@@ -1,0 +1,3 @@
+[submodule "docs/plan-erp"]
+	path = docs/plan-erp
+	url = https://github.com/iots1/plan-erp.git
