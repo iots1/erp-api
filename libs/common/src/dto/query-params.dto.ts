@@ -14,7 +14,7 @@ import { toJsonSearchOrUndefined } from '../utils/dto-transforms.util';
 export class QueryParamsDTO {
   @ApiPropertyOptional({
     description:
-      'หมายเลขหน้าปัจจุบัน ref. https://meditech-be-docs.dudee-indeed.com/guides/base-operations-architecture/#pagination',
+      'หมายเลขหน้าปัจจุบัน ref. https://iots1.github.io/enterprise-backend-blueprint/guides/base-operations-architecture/#pagination',
     default: 1,
     example: 1,
   })
@@ -45,7 +45,7 @@ export class QueryParamsDTO {
 
   @ApiPropertyOptional({
     description:
-      'การเรียงลำดับข้อมูล รูปแบบ "field:direction" ref. https://meditech-be-docs.dudee-indeed.com/guides/base-operations-architecture/#sorting',
+      'การเรียงลำดับข้อมูล รูปแบบ "field:direction" ref. https://iots1.github.io/enterprise-backend-blueprint/guides/base-operations-architecture/#sorting',
     examples: {
       'เรียงตามวันที่สร้าง (ใหม่สุดไปเก่าสุด)': {
         value: 'created_at:desc',
@@ -65,7 +65,7 @@ export class QueryParamsDTO {
 
   @ApiPropertyOptional({
     description:
-      'เงื่อนไขการค้นหาในรูปแบบ JSON ref. https://meditech-be-docs.dudee-indeed.com/guides/base-operations-architecture/#filtering-method-1-s-json-search',
+      'เงื่อนไขการค้นหาในรูปแบบ JSON ref. https://iots1.github.io/enterprise-backend-blueprint/guides/base-operations-architecture/#filtering-method-1-s-json-search',
     example: '{"status":"active", "age":{">":25}}',
   })
   @IsOptional()
@@ -75,7 +75,7 @@ export class QueryParamsDTO {
 
   @ApiPropertyOptional({
     description:
-      'Add filters with format: field||operator||value ref. https://meditech-be-docs.dudee-indeed.com/guides/base-operations-architecture/#filtering-method-2-filter',
+      'Add filters with format: field||operator||value ref. https://iots1.github.io/enterprise-backend-blueprint/guides/base-operations-architecture/#filtering-method-2-filter',
     example: 'status||$eq||active',
     oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }],
   })
@@ -93,7 +93,7 @@ export class QueryParamsDTO {
 
   @ApiPropertyOptional({
     description:
-      'Add OR conditions with format: field||operator||value (combined with OR logic) ref. https://meditech-be-docs.dudee-indeed.com/guides/base-operations-architecture/#or-query-support-disjunctive-conditions',
+      'Add OR conditions with format: field||operator||value (combined with OR logic) ref. https://iots1.github.io/enterprise-backend-blueprint/guides/base-operations-architecture/#or-query-support-disjunctive-conditions',
     example: 'is_public||$eq||true',
     oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }],
   })
@@ -120,7 +120,7 @@ export class QueryParamsDTO {
 
   @ApiPropertyOptional({
     description:
-      'A comma-separated list of fields to include in the response (sparse fieldsets). ref. https://meditech-be-docs.dudee-indeed.com/guides/base-operations-architecture/#field-selection-sparse-fieldsets',
+      'A comma-separated list of fields to include in the response (sparse fieldsets). ref. https://iots1.github.io/enterprise-backend-blueprint/guides/base-operations-architecture/#field-selection-sparse-fieldsets',
     example: 'id,first_name,email',
     type: String,
   })
@@ -130,7 +130,7 @@ export class QueryParamsDTO {
 
   @ApiPropertyOptional({
     description:
-      'Timezone for search datetime (IANA format) ref. https://meditech-be-docs.dudee-indeed.com/guides/base-operations-architecture/#timezone-handling',
+      'Timezone for search datetime (IANA format) ref. https://iots1.github.io/enterprise-backend-blueprint/guides/base-operations-architecture/#timezone-handling',
     default: 'Asia/Bangkok',
     example: 'Asia/Bangkok',
   })
@@ -149,7 +149,7 @@ export class QueryParamsDTO {
 
   @ApiPropertyOptional({
     description:
-      'Use for case dropdown list , non-limit data ref. https://meditech-be-docs.dudee-indeed.com/guides/base-operations-architecture/#ignoring-pagination-limits-ignore_limit',
+      'Use for case dropdown list , non-limit data ref. https://iots1.github.io/enterprise-backend-blueprint/guides/base-operations-architecture/#ignoring-pagination-limits-ignore_limit',
     example: true,
     type: Boolean,
   })
@@ -165,7 +165,7 @@ export class QueryParamsDTO {
 
   @ApiPropertyOptional({
     description:
-      'หากเป็น true จะส่งกลับเฉพาะจำนวนรายการทั้งหมด (count) โดยไม่ดึงข้อมูล list ref. https://meditech-be-docs.dudee-indeed.com/guides/base-operations-architecture/#retrieving-total-count-without-data-get_count_only',
+      'หากเป็น true จะส่งกลับเฉพาะจำนวนรายการทั้งหมด (count) โดยไม่ดึงข้อมูล list ref. https://iots1.github.io/enterprise-backend-blueprint/guides/base-operations-architecture/#retrieving-total-count-without-data-get_count_only',
     example: true,
     type: Boolean,
   })

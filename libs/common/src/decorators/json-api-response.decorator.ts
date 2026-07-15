@@ -156,7 +156,7 @@ export function ApiJsonApiCreatedResponse<TDto extends Type<unknown>>(
                     self: {
                       type: 'string',
                       example:
-                        'https://api-meditech-dev.dudee-indeed.com/business-bc/v1/resource/id',
+                        'https://api.example.com/business-bc/v1/resource/id',
                     },
                   },
                 },
@@ -170,7 +170,7 @@ export function ApiJsonApiCreatedResponse<TDto extends Type<unknown>>(
                 self: {
                   type: 'string',
                   example:
-                    'https://api-meditech-dev.dudee-indeed.com/business-bc/v1/resource',
+                    'https://api.example.com/business-bc/v1/resource',
                 },
               },
             },
@@ -242,7 +242,7 @@ export function ApiJsonApiResponse<TDto extends Type<unknown>>(
                     self: {
                       type: 'string',
                       example:
-                        'https://api-meditech-dev.dudee-indeed.com/business-bc/v1/resource/id',
+                        'https://api.example.com/business-bc/v1/resource/id',
                     },
                   },
                 },
@@ -256,7 +256,7 @@ export function ApiJsonApiResponse<TDto extends Type<unknown>>(
                 self: {
                   type: 'string',
                   example:
-                    'https://api-meditech-dev.dudee-indeed.com/business-bc/v1/resource',
+                    'https://api.example.com/business-bc/v1/resource',
                 },
               },
             },
@@ -614,22 +614,22 @@ export function ApiJsonApiCollectionResponse<TDto extends Type<unknown>>(
                 self: {
                   type: 'string',
                   example:
-                    'https://api-meditech-dev.dudee-indeed.com/business-bc/v1/resource?page=1&limit=10',
+                    'https://api.example.com/business-bc/v1/resource?page=1&limit=10',
                 },
                 first: {
                   type: 'string',
                   example:
-                    'https://api-meditech-dev.dudee-indeed.com/business-bc/v1/resource?page=1&limit=10',
+                    'https://api.example.com/business-bc/v1/resource?page=1&limit=10',
                 },
                 last: {
                   type: 'string',
                   example:
-                    'https://api-meditech-dev.dudee-indeed.com/business-bc/v1/resource?page=10&limit=10',
+                    'https://api.example.com/business-bc/v1/resource?page=10&limit=10',
                 },
                 next: {
                   type: 'string',
                   example:
-                    'https://api-meditech-dev.dudee-indeed.com/business-bc/v1/resource?page=2&limit=10',
+                    'https://api.example.com/business-bc/v1/resource?page=2&limit=10',
                 },
               },
             },
