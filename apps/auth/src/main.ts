@@ -14,7 +14,7 @@ async function bootstrap(): Promise<void> {
     swagger: {
       title: 'Auth API',
       description:
-        'Stateless auth service - JWT login/refresh/logout and CSRF, session state in Redis. Owns no database.',
+        'Auth service - JWT login/refresh/logout, credentials, login history, account blocking and security logs. Session state in Redis. Owns no user profile data (source of truth is iam-bc).',
       tag: 'auth',
     },
     jwtAuth: { name: 'access-token' },

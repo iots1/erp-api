@@ -1,10 +1,14 @@
 import { Global, Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { ClientProvider, ClientsModule } from '@nestjs/microservices';
 
 import { AppMicroservice } from '@lib/common/enum/app-microservice.enum';
+import { AuthGuard } from '@lib/common/guards/auth.guard';
+import { PermissionGuard } from '@lib/common/guards/permission.guard';
 import { LogModule } from '@lib/common/modules/log/log.module';
 import { RedisModule } from '@lib/common/modules/redis/redis.module';
+import { MicroserviceClientService } from '@lib/common/services/microservice-client.service';
 import { buildClientProvider } from '@lib/common/utils/microservice-transport.util';
 import { ConfigModule, ConfigService } from '@lib/config';
 
@@ -43,6 +47,18 @@ import { ConfigModule, ConfigService } from '@lib/config';
       })),
     ),
   ],
-  exports: [JwtModule, ClientsModule, ConfigModule, LogModule, RedisModule],
+  providers: [
+    MicroserviceClientService,
+    { provide: APP_GUARD, useClass: AuthGuard },
+    { provide: APP_GUARD, useClass: PermissionGuard },
+  ],
+  exports: [
+    JwtModule,
+    ClientsModule,
+    ConfigModule,
+    LogModule,
+    RedisModule,
+    MicroserviceClientService,
+  ],
 })
 export class CommonModule {}

@@ -65,7 +65,7 @@ export class IsISO8601Constraint implements ValidatorConstraintInterface {
  * does not have to guess the client's local context.
  * * @param validationOptions - Standard class-validator options.
  */
-// eslint-disable-next-line @typescript-eslint/naming-convention
+
 export function IsISO8601(validationOptions?: ValidationOptions) {
   return function (object: object, propertyName: string): void {
     registerDecorator({

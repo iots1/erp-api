@@ -26,6 +26,7 @@ export * from './constants/iam-message-patterns';
 export * from './enum/app-microservice.enum';
 export * from './enum/erp-databases.enum';
 export * from './enum/gender.enum';
+export * from './enum/file-attachment-type.enum';
 
 // Interfaces
 export * from './interfaces/timestamp.interface';
@@ -35,6 +36,7 @@ export * from './interfaces/auditable.interface';
 export * from './interfaces/soft-deletable.interface';
 export * from './interfaces/query-options.interface';
 export * from './interfaces/microservice.interface';
+export * from './interfaces/image-payload.interface';
 export * from './interfaces/response/status.interface';
 export * from './interfaces/response/pagination.interface';
 export * from './interfaces/response/links.interface';
@@ -61,6 +63,13 @@ export * from './modules/redis/redis.module';
 // Services
 export * from './services/microservice-client.service';
 
+// Guards
+export * from './guards/auth.guard';
+export * from './guards/permission.guard';
+
+// Pipes
+export * from './pipes/parse-uuid-param.pipe';
+
 // Base operations (CRUD)
 export * from './utils/base-operations/base-service-operations.util';
 export * from './utils/base-operations/base-controller-operations.util';
@@ -69,6 +78,7 @@ export * from './utils/base-operations/typeorm-query-builder.util';
 // Utils — success/response
 export * from './utils/http-success/json-api.util';
 export * from './utils/http-success/transform-interceptor.util';
+export * from './utils/http-success/localization-interceptor.util';
 
 // Utils — exceptions & RPC
 export * from './utils/http-exception/validation.helper';
@@ -81,6 +91,9 @@ export * from './utils/http-exception/postgres-error-mapper.util';
 
 // Utils — transforms
 export * from './utils/dto-transforms.util';
+
+// Utils — nested-set trees
+export * from './utils/nested-set/rebuild-nested-set.util';
 
 // Bootstrap
 export * from './utils/bootstrap.util';

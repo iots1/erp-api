@@ -6,13 +6,13 @@
  * `@InjectRepository(Entity, database)`.
  */
 export enum ErpDatabases {
+  AUTH = 'erp_auth',
   IAM = 'erp_iam',
   INVENTORY = 'erp_inventory',
   SUPPLIER = 'erp_supplier',
   SALES = 'erp_sales',
   FINANCE = 'erp_finance',
   REPORT = 'erp_report',
-  STORAGE = 'erp_storage',
 }
 
 /**
@@ -20,11 +20,11 @@ export enum ErpDatabases {
  * e.g. SALES → `SALES_DB_HOST`, `SALES_DB_PORT`, `SALES_DB_NAME`, ...
  */
 export const ERP_DB_ENV_PREFIX: Record<ErpDatabases, string> = {
+  [ErpDatabases.AUTH]: 'AUTH_DB',
   [ErpDatabases.IAM]: 'IAM_DB',
   [ErpDatabases.INVENTORY]: 'INVENTORY_DB',
   [ErpDatabases.SUPPLIER]: 'SUPPLIER_DB',
   [ErpDatabases.SALES]: 'SALES_DB',
   [ErpDatabases.FINANCE]: 'FINANCE_DB',
   [ErpDatabases.REPORT]: 'REPORT_DB',
-  [ErpDatabases.STORAGE]: 'STORAGE_DB',
 };

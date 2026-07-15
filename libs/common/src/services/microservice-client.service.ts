@@ -14,7 +14,6 @@ import {
 import { REQUEST } from '@nestjs/core';
 import { ClientProxy } from '@nestjs/microservices';
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
 import Redis from 'ioredis';
 import { lastValueFrom } from 'rxjs';
 

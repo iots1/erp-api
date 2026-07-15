@@ -89,13 +89,13 @@
         "plugins": ["@nestjs/swagger"]
       }
     },
-    "storage-bc": {
+    "storage": {
       "type": "application",
-      "root": "apps/storage-bc",
+      "root": "apps/storage",
       "entryFile": "main",
-      "sourceRoot": "apps/storage-bc/src",
+      "sourceRoot": "apps/storage/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/storage-bc/tsconfig.app.json",
+        "tsConfigPath": "apps/storage/tsconfig.app.json",
         "webpackConfigPath": "webpack.config.js",
         "plugins": ["@nestjs/swagger"]
       }

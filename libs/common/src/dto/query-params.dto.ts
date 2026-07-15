@@ -47,11 +47,10 @@ export class QueryParamsDTO {
     description:
       'การเรียงลำดับข้อมูล รูปแบบ "field:direction" ref. https://meditech-be-docs.dudee-indeed.com/guides/base-operations-architecture/#sorting',
     examples: {
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       'เรียงตามวันที่สร้าง (ใหม่สุดไปเก่าสุด)': {
         value: 'created_at:desc',
       },
-      // eslint-disable-next-line @typescript-eslint/naming-convention
+
       'เรียงตามชื่อ (A-Z)': {
         value: 'first_name:asc',
       },

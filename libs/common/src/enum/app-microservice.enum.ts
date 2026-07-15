@@ -32,6 +32,12 @@ export const AppMicroservice = {
     queue: 'erp_supplier_queue',
     hostEnv: 'SUPPLIER_BC_MODULE_MICROSERVICE_HOST',
     portEnv: 'SUPPLIER_BC_MODULE_MICROSERVICE_PORT',
+    cmd: {
+      SupplierResources: {
+        GetSupplierById: 'supplierBc.supplier.getById',
+        GetSupplierPaginated: 'supplierBc.supplier.getPaginated',
+      },
+    },
   },
   Sales: {
     name: 'SALES_SERVICE',
@@ -54,8 +60,15 @@ export const AppMicroservice = {
   Storage: {
     name: 'STORAGE_SERVICE',
     queue: 'erp_storage_queue',
-    hostEnv: 'STORAGE_BC_MODULE_MICROSERVICE_HOST',
-    portEnv: 'STORAGE_BC_MODULE_MICROSERVICE_PORT',
+    hostEnv: 'STORAGE_MODULE_MICROSERVICE_HOST',
+    portEnv: 'STORAGE_MODULE_MICROSERVICE_PORT',
+    cmd: {
+      Upload: 'storage.uploadFile',
+      UploadWithMeta: 'storage.uploadFileWithMeta',
+      Remove: 'storage.deleteFile',
+      GetPath: 'storage.getPath',
+      GenerateSignedUrls: 'storage.generateSignedUrls',
+    },
   },
 } as const;
 

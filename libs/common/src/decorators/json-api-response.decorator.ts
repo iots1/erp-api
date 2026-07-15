@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/naming-convention */
 /* eslint-disable @typescript-eslint/no-unsafe-function-type */
 // json-api-response.decorator.ts
 import { applyDecorators, HttpStatus, Type } from '@nestjs/common';

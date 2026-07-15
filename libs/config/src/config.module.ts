@@ -46,6 +46,15 @@ import * as Joi from 'joi';
         AUTH_SESSION_TTL: Joi.number().default(7 * 24 * 60 * 60),
 
         // --- Databases (one per Bounded Context) ---
+        // Auth DB (credentials/refresh_tokens/login_histories/blocked_users/security_logs only — no user profile data)
+        AUTH_DB_HOST: Joi.string().default('localhost'),
+        AUTH_DB_PORT: Joi.number().default(5432),
+        AUTH_DB_USERNAME: Joi.string().default('postgres'),
+        AUTH_DB_PASSWORD: Joi.string().allow('').default('postgres'),
+        AUTH_DB_NAME: Joi.string().default('erp_auth'),
+        AUTH_DB_SYNCHRONIZE: Joi.boolean().default(false),
+        AUTH_DB_LOGGING: Joi.boolean().default(false),
+
         // IAM DB
         IAM_DB_HOST: Joi.string().default('localhost'),
         IAM_DB_PORT: Joi.number().default(5432),
@@ -100,16 +109,7 @@ import * as Joi from 'joi';
         REPORT_DB_SYNCHRONIZE: Joi.boolean().default(false),
         REPORT_DB_LOGGING: Joi.boolean().default(false),
 
-        // Storage DB
-        STORAGE_DB_HOST: Joi.string().default('localhost'),
-        STORAGE_DB_PORT: Joi.number().default(5432),
-        STORAGE_DB_USERNAME: Joi.string().default('postgres'),
-        STORAGE_DB_PASSWORD: Joi.string().allow('').default('postgres'),
-        STORAGE_DB_NAME: Joi.string().default('erp_storage'),
-        STORAGE_DB_SYNCHRONIZE: Joi.boolean().default(false),
-        STORAGE_DB_LOGGING: Joi.boolean().default(false),
-
-        // --- Auth service (stateless: no DB, sessions in Redis) ---
+        // --- Auth service (owns credentials/session security tables only, sessions in Redis) ---
         AUTH_PREFIX_NAME: Joi.string().default('auth'),
         AUTH_PREFIX_VERSION: Joi.string().default('v1'),
         AUTH_MODULE_HTTP_PORT: Joi.number().default(3001),
@@ -159,12 +159,12 @@ import * as Joi from 'joi';
         REPORT_BC_MODULE_MICROSERVICE_HOST: Joi.string().default('localhost'),
         REPORT_BC_MODULE_MICROSERVICE_PORT: Joi.number().default(4007),
 
-        // --- Storage BC ---
+        // --- Storage service (stateless — image upload only, not a business BC) ---
         STORAGE_PREFIX_NAME: Joi.string().default('storage'),
         STORAGE_PREFIX_VERSION: Joi.string().default('v1'),
-        STORAGE_BC_MODULE_HTTP_PORT: Joi.number().default(3008),
-        STORAGE_BC_MODULE_MICROSERVICE_HOST: Joi.string().default('localhost'),
-        STORAGE_BC_MODULE_MICROSERVICE_PORT: Joi.number().default(4008),
+        STORAGE_MODULE_HTTP_PORT: Joi.number().default(3008),
+        STORAGE_MODULE_MICROSERVICE_HOST: Joi.string().default('localhost'),
+        STORAGE_MODULE_MICROSERVICE_PORT: Joi.number().default(4008),
       }),
       validationOptions: {
         allowUnknown: true,

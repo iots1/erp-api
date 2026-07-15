@@ -1,6 +1,5 @@
 import { Global, Module } from '@nestjs/common';
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
 import Redis from 'ioredis';
 
 import { RedisService } from '@lib/common/enum/app-microservice.enum';

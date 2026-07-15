@@ -1,9 +1,17 @@
 import { Module } from '@nestjs/common';
 
-import { CommonModule } from '@lib/common';
+import { CommonModule, ErpDatabases } from '@lib/common';
 import { ConfigModule } from '@lib/config';
+import { DatabaseModule } from '@lib/database';
+
+import { AuthDomainModule } from './modules/auth/auth-domain.module';
 
 @Module({
-  imports: [ConfigModule, CommonModule],
+  imports: [
+    ConfigModule,
+    DatabaseModule.registerAsync(ErpDatabases.AUTH),
+    CommonModule,
+    AuthDomainModule,
+  ],
 })
 export class AuthModule {}

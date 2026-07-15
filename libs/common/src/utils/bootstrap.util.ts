@@ -26,6 +26,7 @@ import { AllExceptionsFilter } from '@lib/common/utils/http-exception/all-except
 import { RpcExceptionsFilter } from '@lib/common/utils/http-exception/rpc-exceptions-filter.util';
 import { ValidationException } from '@lib/common/utils/http-exception/validation.exception';
 import { flattenValidationErrors } from '@lib/common/utils/http-exception/validation.helper';
+import { LocalizationInterceptor } from '@lib/common/utils/http-success/localization-interceptor.util';
 import { TransformInterceptor } from '@lib/common/utils/http-success/transform-interceptor.util';
 import {
   buildServerOptions,
@@ -136,6 +137,7 @@ function registerGlobalMiddleware(
 
   app.useGlobalInterceptors(
     new ClassSerializerInterceptor(reflector),
+    new LocalizationInterceptor(),
     new TransformInterceptor(reflector),
   );
 
