@@ -14,6 +14,11 @@ import { ResourceType } from '@lib/common/decorators/resource-type.decorator';
 import { ValidatedQuery } from '@lib/common/decorators/validated-query.decorator';
 import { QueryParamsDTO } from '@lib/common/dto/query-params.dto';
 
+import {
+  GET_PERMISSION_SUMMARY,
+  GET_PERMISSIONS_SUMMARY,
+  PERMISSION_ID_PARAM_DESCRIPTION,
+} from '../constants/permissions.swagger';
 import { PermissionResponseDTO } from '../dto/permission-response.dto';
 import { Permission } from '../entities/permission.entity';
 import { PermissionsService } from '../services/permissions.service';
@@ -29,7 +34,7 @@ export class PermissionsController {
     th: 'ดูแคตตาล็อกสิทธิ์',
     en: 'View permission catalog',
   })
-  @ApiOperation({ summary: 'List permission catalog (for Policy Generator)' })
+  @ApiOperation({ summary: GET_PERMISSIONS_SUMMARY })
   @ApiQuery({ type: QueryParamsDTO })
   @ApiJsonApiCollectionResponse(
     'permissions',
@@ -47,8 +52,8 @@ export class PermissionsController {
     th: 'ดูแคตตาล็อกสิทธิ์',
     en: 'View permission catalog',
   })
-  @ApiOperation({ summary: 'Get permission by id' })
-  @ApiParam({ name: 'id', description: 'Permission id' })
+  @ApiOperation({ summary: GET_PERMISSION_SUMMARY })
+  @ApiParam({ name: 'id', description: PERMISSION_ID_PARAM_DESCRIPTION })
   @ApiJsonApiResponse('permissions', HttpStatus.OK, PermissionResponseDTO)
   findOne(@Param('id', ParseUuidParamPipe) id: string): Promise<Permission> {
     return this.permissionsService.findById(id);

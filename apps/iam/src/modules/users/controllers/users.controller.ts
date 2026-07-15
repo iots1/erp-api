@@ -28,6 +28,15 @@ import { ValidatedQuery } from '@lib/common/decorators/validated-query.decorator
 import { QueryParamsDTO } from '@lib/common/dto/query-params.dto';
 import { BaseControllerOperations } from '@lib/common/utils/base-operations/base-controller-operations.util';
 
+import {
+  ASSIGN_ROLES_SUMMARY,
+  CREATE_USER_SUMMARY,
+  DELETE_USER_SUMMARY,
+  GET_USER_SUMMARY,
+  GET_USERS_SUMMARY,
+  UPDATE_USER_SUMMARY,
+  USER_ID_PARAM_DESCRIPTION,
+} from '../constants/users.swagger';
 import { AssignRoleDTO } from '../dto/assign-role.dto';
 import { CreateUserDTO } from '../dto/create-user.dto';
 import { UpdateUserDTO } from '../dto/update-user.dto';
@@ -54,7 +63,7 @@ export class UsersController extends BaseControllerOperations<
     en: 'Create user accounts',
   })
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create user account' })
+  @ApiOperation({ summary: CREATE_USER_SUMMARY })
   @ApiJsonApiCreatedResponse('users', UserResponseDTO)
   create(
     @Body() createDTO: CreateUserDTO,
@@ -68,7 +77,7 @@ export class UsersController extends BaseControllerOperations<
     th: 'ดูบัญชีผู้ใช้',
     en: 'View user accounts',
   })
-  @ApiOperation({ summary: 'List user accounts' })
+  @ApiOperation({ summary: GET_USERS_SUMMARY })
   @ApiQuery({ type: QueryParamsDTO })
   @ApiJsonApiCollectionResponse('users', HttpStatus.OK, UserResponseDTO)
   findPaginated(
@@ -82,8 +91,8 @@ export class UsersController extends BaseControllerOperations<
     th: 'ดูบัญชีผู้ใช้',
     en: 'View user accounts',
   })
-  @ApiOperation({ summary: 'Get user account by id' })
-  @ApiParam({ name: 'id', description: 'User id' })
+  @ApiOperation({ summary: GET_USER_SUMMARY })
+  @ApiParam({ name: 'id', description: USER_ID_PARAM_DESCRIPTION })
   @ApiJsonApiResponse('users', HttpStatus.OK, UserResponseDTO)
   findOne(@Param('id', ParseUuidParamPipe) id: string): Promise<User> {
     return super.findOne(id);
@@ -95,8 +104,8 @@ export class UsersController extends BaseControllerOperations<
     en: 'Create user accounts',
   })
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Update user account' })
-  @ApiParam({ name: 'id', description: 'User id' })
+  @ApiOperation({ summary: UPDATE_USER_SUMMARY })
+  @ApiParam({ name: 'id', description: USER_ID_PARAM_DESCRIPTION })
   @ApiJsonApiResponse('users', HttpStatus.OK, UserResponseDTO)
   update(
     @Param('id', ParseUuidParamPipe) id: string,
@@ -112,8 +121,8 @@ export class UsersController extends BaseControllerOperations<
     en: 'Assign roles to users',
   })
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Assign roles to a user (replaces existing set)' })
-  @ApiParam({ name: 'id', description: 'User id' })
+  @ApiOperation({ summary: ASSIGN_ROLES_SUMMARY })
+  @ApiParam({ name: 'id', description: USER_ID_PARAM_DESCRIPTION })
   async assignRoles(
     @Param('id', ParseUuidParamPipe) id: string,
     @Body() dto: AssignRoleDTO,
@@ -132,8 +141,8 @@ export class UsersController extends BaseControllerOperations<
     en: 'Create user accounts',
   })
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Soft delete user account' })
-  @ApiParam({ name: 'id', description: 'User id' })
+  @ApiOperation({ summary: DELETE_USER_SUMMARY })
+  @ApiParam({ name: 'id', description: USER_ID_PARAM_DESCRIPTION })
   softDelete(
     @Param('id', ParseUuidParamPipe) id: string,
     @CurrentUser() currentUser: IUserSession,

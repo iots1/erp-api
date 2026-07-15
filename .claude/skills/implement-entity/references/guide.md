@@ -389,7 +389,13 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser, IResponsePaginatedService, RequirePermission, type IUserSession } from '@lib/common';
+import {
+    CurrentUser,
+    IResponsePaginatedService,
+    ParseUuidParamPipe,
+    RequirePermission,
+    type IUserSession,
+} from '@lib/common';
 import {
     ApiJsonApiCollectionResponse,
     ApiJsonApiCreatedResponse,
@@ -429,7 +435,7 @@ export class PatientInsurancesController extends BaseControllerOperations<
     }
 
     @Post()
-    @RequirePermission('patient:update')
+    @RequirePermission('patient:update', { th: 'แก้ไขข้อมูลผู้ป่วย', en: 'Update patient' })
     @HttpCode(HttpStatus.CREATED)
     @ApiOperation({ summary: CREATE_PATIENT_INSURANCE_SUMMARY })
     @ApiJsonApiCreatedResponse('patient-insurances', PatientInsuranceResponseDTO)
@@ -441,7 +447,7 @@ export class PatientInsurancesController extends BaseControllerOperations<
     }
 
     @Get()
-    @RequirePermission('patient:view')
+    @RequirePermission('patient:view', { th: 'ดูข้อมูลผู้ป่วย', en: 'View patient' })
     @ApiOperation({ summary: GET_PATIENT_INSURANCES_SUMMARY })
     @ApiQuery({ type: PatientInsuranceQueryParamsDTO })
     @ApiJsonApiCollectionResponse('patient-insurances', HttpStatus.OK, PatientInsuranceResponseDTO)
@@ -452,13 +458,13 @@ export class PatientInsurancesController extends BaseControllerOperations<
     }
 
     @Get(':id')
-    @RequirePermission('patient:view')
+    @RequirePermission('patient:view', { th: 'ดูข้อมูลผู้ป่วย', en: 'View patient' })
     @ApiOperation({ summary: GET_PATIENT_INSURANCE_SUMMARY })
     @ApiParam({ name: 'id', description: PATIENT_INSURANCE_ID_PARAM_DESCRIPTION })
     @ApiQuery({ type: PatientInsuranceQueryParamsDTO })
     @ApiJsonApiResponse('patient-insurances', HttpStatus.OK, PatientInsuranceResponseDTO)
     findOne(
-        @Param('id') id: string,
+        @Param('id', ParseUuidParamPipe) id: string,
         @ValidatedQuery(PatientInsuranceQueryParamsDTO) query: PatientInsuranceQueryParamsDTO,
     ): Promise<PatientInsurance> {
         return super.findOneOrQuery({
@@ -468,13 +474,13 @@ export class PatientInsurancesController extends BaseControllerOperations<
     }
 
     @Put(':id')
-    @RequirePermission('patient:update')
+    @RequirePermission('patient:update', { th: 'แก้ไขข้อมูลผู้ป่วย', en: 'Update patient' })
     @HttpCode(HttpStatus.OK)
     @ApiOperation({ summary: UPDATE_PATIENT_INSURANCE_SUMMARY })
     @ApiParam({ name: 'id', description: PATIENT_INSURANCE_ID_PARAM_DESCRIPTION })
     @ApiJsonApiResponse('patient-insurances', HttpStatus.OK, PatientInsuranceResponseDTO)
     update(
-        @Param('id') id: string,
+        @Param('id', ParseUuidParamPipe) id: string,
         @Body() updateDTO: UpdatePatientInsuranceDTO,
         @CurrentUser() currentUser: IUserSession,
     ): Promise<PatientInsurance> {
@@ -482,18 +488,20 @@ export class PatientInsurancesController extends BaseControllerOperations<
     }
 
     @Delete(':id')
-    @RequirePermission('patient:update')
+    @RequirePermission('patient:update', { th: 'แก้ไขข้อมูลผู้ป่วย', en: 'Update patient' })
     @HttpCode(HttpStatus.NO_CONTENT)
     @ApiOperation({ summary: DELETE_PATIENT_INSURANCE_SUMMARY })
     @ApiParam({ name: 'id', description: PATIENT_INSURANCE_ID_PARAM_DESCRIPTION })
     softDelete(
-        @Param('id') id: string,
+        @Param('id', ParseUuidParamPipe) id: string,
         @CurrentUser() currentUser: IUserSession,
     ): Promise<void> {
         return super.softDelete(id, currentUser);
     }
 }
 ```
+
+> Note: `@RequirePermission(permission, { th, en })` names are synced into iam's `permissions` catalog by `npm run permissions:sync` — always supply the name so the catalog gets a real display name instead of a placeholder. See the **Permission Rules** section in `SKILL.md`.
 
 #### Swagger description file
 
@@ -512,6 +520,15 @@ export const UPDATE_PATIENT_INSURANCE_SUMMARY = 'Update patient insurance record
 export const DELETE_PATIENT_INSURANCE_SUMMARY = 'Delete patient insurance record';
 
 export const PATIENT_INSURANCE_ID_PARAM_DESCRIPTION = 'Patient insurance ID';
+
+// Nested controller (patients/:patient_id/insurances) — same file, same rule: no inline strings
+export const CREATE_PATIENT_INSURANCE_NESTED_SUMMARY = 'Create insurance record for a patient';
+export const GET_PATIENT_INSURANCES_NESTED_SUMMARY = 'Get insurance records for a patient';
+export const GET_PATIENT_INSURANCE_NESTED_SUMMARY = 'Get a single insurance record for a patient';
+export const UPDATE_PATIENT_INSURANCE_NESTED_SUMMARY = 'Update insurance record for a patient';
+export const DELETE_PATIENT_INSURANCE_NESTED_SUMMARY = 'Delete insurance record for a patient (soft delete)';
+
+export const PATIENT_ID_PARAM_DESCRIPTION = 'Patient ID';
 ```
 
 Rules:
@@ -555,7 +572,13 @@ export class CreatePatientInsuranceNestedDTO extends OmitType(CreatePatientInsur
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Put } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser, IResponsePaginatedService, RequirePermission, type IUserSession } from '@lib/common';
+import {
+    CurrentUser,
+    IResponsePaginatedService,
+    ParseUuidParamPipe,
+    RequirePermission,
+    type IUserSession,
+} from '@lib/common';
 import {
     ApiJsonApiCollectionResponse,
     ApiJsonApiCreatedResponse,
@@ -565,6 +588,15 @@ import { ResourceType } from '@lib/common/decorators/resource-type.decorator';
 import { ValidatedQuery } from '@lib/common/decorators/validated-query.decorator';
 import { QueryParamsDTO } from '@lib/common/dto/query-params.dto';
 
+import {
+    CREATE_PATIENT_INSURANCE_NESTED_SUMMARY,
+    DELETE_PATIENT_INSURANCE_NESTED_SUMMARY,
+    GET_PATIENT_INSURANCE_NESTED_SUMMARY,
+    GET_PATIENT_INSURANCES_NESTED_SUMMARY,
+    PATIENT_ID_PARAM_DESCRIPTION,
+    PATIENT_INSURANCE_ID_PARAM_DESCRIPTION,
+    UPDATE_PATIENT_INSURANCE_NESTED_SUMMARY,
+} from '../constants/patient-insurance.swagger';
 import { CreatePatientInsuranceNestedDTO } from '../dto/create-patient-insurance-nested.dto';
 import { PatientInsuranceResponseDTO } from '../dto/patient-insurance-response.dto';
 import { UpdatePatientInsuranceDTO } from '../dto/update-patient-insurance.dto';
@@ -578,13 +610,13 @@ export class PatientInsurancesNestedController {
     constructor(private readonly patientInsurancesService: PatientInsurancesService) {}
 
     @Post(':patient_id/insurances')
-    @RequirePermission('patient:update')
+    @RequirePermission('patient:update', { th: 'แก้ไขข้อมูลผู้ป่วย', en: 'Update patient' })
     @HttpCode(HttpStatus.CREATED)
-    @ApiOperation({ summary: 'Create insurance record for a patient' })
-    @ApiParam({ name: 'patient_id', description: 'Patient ID' })
+    @ApiOperation({ summary: CREATE_PATIENT_INSURANCE_NESTED_SUMMARY })
+    @ApiParam({ name: 'patient_id', description: PATIENT_ID_PARAM_DESCRIPTION })
     @ApiJsonApiCreatedResponse('patient-insurances', PatientInsuranceResponseDTO)
     create(
-        @Param('patient_id') patientId: string,
+        @Param('patient_id', ParseUuidParamPipe) patientId: string,
         @Body() createDTO: CreatePatientInsuranceNestedDTO,
         @CurrentUser() currentUser: IUserSession,
     ): Promise<PatientInsurance> {
@@ -593,13 +625,13 @@ export class PatientInsurancesNestedController {
     }
 
     @Get(':patient_id/insurances')
-    @RequirePermission('patient:view')
-    @ApiOperation({ summary: 'Get insurance records for a patient' })
-    @ApiParam({ name: 'patient_id', description: 'Patient ID' })
+    @RequirePermission('patient:view', { th: 'ดูข้อมูลผู้ป่วย', en: 'View patient' })
+    @ApiOperation({ summary: GET_PATIENT_INSURANCES_NESTED_SUMMARY })
+    @ApiParam({ name: 'patient_id', description: PATIENT_ID_PARAM_DESCRIPTION })
     @ApiQuery({ type: QueryParamsDTO })
     @ApiJsonApiCollectionResponse('patient-insurances', HttpStatus.OK, PatientInsuranceResponseDTO)
     findPaginated(
-        @Param('patient_id') patientId: string,
+        @Param('patient_id', ParseUuidParamPipe) patientId: string,
         @ValidatedQuery(QueryParamsDTO) query: QueryParamsDTO,
     ): Promise<IResponsePaginatedService<PatientInsurance[]>> {
         // Append patient_id filter — preserves any other filters from the client
@@ -612,25 +644,25 @@ export class PatientInsurancesNestedController {
     }
 
     @Get(':patient_id/insurances/:insurance_id')
-    @RequirePermission('patient:view')
-    @ApiOperation({ summary: 'Get a single insurance record for a patient' })
-    @ApiParam({ name: 'patient_id', description: 'Patient ID' })
-    @ApiParam({ name: 'insurance_id', description: 'Insurance record ID' })
+    @RequirePermission('patient:view', { th: 'ดูข้อมูลผู้ป่วย', en: 'View patient' })
+    @ApiOperation({ summary: GET_PATIENT_INSURANCE_NESTED_SUMMARY })
+    @ApiParam({ name: 'patient_id', description: PATIENT_ID_PARAM_DESCRIPTION })
+    @ApiParam({ name: 'insurance_id', description: PATIENT_INSURANCE_ID_PARAM_DESCRIPTION })
     @ApiJsonApiResponse('patient-insurances', HttpStatus.OK, PatientInsuranceResponseDTO)
-    findOne(@Param('insurance_id') id: string): Promise<PatientInsurance> {
+    findOne(@Param('insurance_id', ParseUuidParamPipe) id: string): Promise<PatientInsurance> {
         // Use findById — child PK is sufficient, no need to re-filter by parent
         return this.patientInsurancesService.findById(id);
     }
 
     @Put(':patient_id/insurances/:insurance_id')
-    @RequirePermission('patient:update')
+    @RequirePermission('patient:update', { th: 'แก้ไขข้อมูลผู้ป่วย', en: 'Update patient' })
     @HttpCode(HttpStatus.OK)
-    @ApiOperation({ summary: 'Update insurance record for a patient' })
-    @ApiParam({ name: 'patient_id', description: 'Patient ID' })
-    @ApiParam({ name: 'insurance_id', description: 'Insurance record ID' })
+    @ApiOperation({ summary: UPDATE_PATIENT_INSURANCE_NESTED_SUMMARY })
+    @ApiParam({ name: 'patient_id', description: PATIENT_ID_PARAM_DESCRIPTION })
+    @ApiParam({ name: 'insurance_id', description: PATIENT_INSURANCE_ID_PARAM_DESCRIPTION })
     @ApiJsonApiResponse('patient-insurances', HttpStatus.OK, PatientInsuranceResponseDTO)
     update(
-        @Param('insurance_id') id: string,
+        @Param('insurance_id', ParseUuidParamPipe) id: string,
         @Body() updateDTO: UpdatePatientInsuranceDTO,
         @CurrentUser() currentUser: IUserSession,
     ): Promise<PatientInsurance> {
@@ -638,13 +670,13 @@ export class PatientInsurancesNestedController {
     }
 
     @Delete(':patient_id/insurances/:insurance_id')
-    @RequirePermission('patient:update')
+    @RequirePermission('patient:update', { th: 'แก้ไขข้อมูลผู้ป่วย', en: 'Update patient' })
     @HttpCode(HttpStatus.NO_CONTENT)
-    @ApiOperation({ summary: 'Delete insurance record for a patient (soft delete)' })
-    @ApiParam({ name: 'patient_id', description: 'Patient ID' })
-    @ApiParam({ name: 'insurance_id', description: 'Insurance record ID' })
+    @ApiOperation({ summary: DELETE_PATIENT_INSURANCE_NESTED_SUMMARY })
+    @ApiParam({ name: 'patient_id', description: PATIENT_ID_PARAM_DESCRIPTION })
+    @ApiParam({ name: 'insurance_id', description: PATIENT_INSURANCE_ID_PARAM_DESCRIPTION })
     softDelete(
-        @Param('insurance_id') id: string,
+        @Param('insurance_id', ParseUuidParamPipe) id: string,
         @CurrentUser() currentUser: IUserSession,
     ): Promise<void> {
         // service.delete(id, softDelete=true, currentUser)
@@ -740,7 +772,8 @@ apps/emr-bc/src/modules/patient/
 ✅ **Nested DELETE** — `service.delete(id, true, currentUser)` for soft delete
 ✅ **No `private readonly` for super()-only params** — avoids TS unused-property warnings
 ✅ **@ResourceType() decorator** — JSON:API response formatting
-✅ **@RequirePermission()** — Authorization checks
+✅ **@RequirePermission(permission, { th, en })** — Authorization checks; always pass the `{ th, en }` name, it's synced into iam's `permissions` catalog by `npm run permissions:sync`
+✅ **@Param(name, ParseUuidParamPipe)** — Every UUID route param, on every endpoint (flat and nested), rejects malformed UUIDs with `400002` instead of a raw DB error
 ✅ **No @ApiBearerAuth()** — Auth is configured globally, not per-controller
 ✅ **Use @ValidatedQuery()** — Query parameter validation
 ✅ **`queryParamsWithRelations` factory** — When `allowedRelations` is non-empty, create `constants/<resource>.constants.ts` + `dto/<resource>-query-params.dto.ts`; use the resource-specific DTO in `@ApiQuery` and `@ValidatedQuery` so Scalar shows a multi-select enum for `relations`

@@ -28,6 +28,16 @@ import { ValidatedQuery } from '@lib/common/decorators/validated-query.decorator
 import { QueryParamsDTO } from '@lib/common/dto/query-params.dto';
 import { BaseControllerOperations } from '@lib/common/utils/base-operations/base-controller-operations.util';
 
+import {
+  CREATE_POLICY_SUMMARY,
+  DELETE_POLICY_SUMMARY,
+  GET_POLICIES_SUMMARY,
+  GET_POLICY_STATEMENTS_SUMMARY,
+  GET_POLICY_SUMMARY,
+  POLICY_ID_PARAM_DESCRIPTION,
+  SET_POLICY_STATEMENTS_SUMMARY,
+  UPDATE_POLICY_SUMMARY,
+} from '../constants/policies.swagger';
 import { CreatePolicyDTO } from '../dto/create-policy.dto';
 import { PolicyResponseDTO } from '../dto/policy-response.dto';
 import { SetStatementsDTO } from '../dto/set-statements.dto';
@@ -57,7 +67,7 @@ export class PoliciesController extends BaseControllerOperations<
     en: 'Create policies',
   })
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create policy' })
+  @ApiOperation({ summary: CREATE_POLICY_SUMMARY })
   @ApiJsonApiCreatedResponse('policies', PolicyResponseDTO)
   create(
     @Body() createDTO: CreatePolicyDTO,
@@ -68,7 +78,7 @@ export class PoliciesController extends BaseControllerOperations<
 
   @Get()
   @RequirePermission('policy:read', { th: 'ดูนโยบาย', en: 'View policies' })
-  @ApiOperation({ summary: 'List policies' })
+  @ApiOperation({ summary: GET_POLICIES_SUMMARY })
   @ApiQuery({ type: QueryParamsDTO })
   @ApiJsonApiCollectionResponse('policies', HttpStatus.OK, PolicyResponseDTO)
   findPaginated(
@@ -79,8 +89,8 @@ export class PoliciesController extends BaseControllerOperations<
 
   @Get(':id')
   @RequirePermission('policy:read', { th: 'ดูนโยบาย', en: 'View policies' })
-  @ApiOperation({ summary: 'Get policy by id' })
-  @ApiParam({ name: 'id', description: 'Policy id' })
+  @ApiOperation({ summary: GET_POLICY_SUMMARY })
+  @ApiParam({ name: 'id', description: POLICY_ID_PARAM_DESCRIPTION })
   @ApiJsonApiResponse('policies', HttpStatus.OK, PolicyResponseDTO)
   findOne(@Param('id', ParseUuidParamPipe) id: string): Promise<Policy> {
     return super.findOne(id);
@@ -92,8 +102,8 @@ export class PoliciesController extends BaseControllerOperations<
     en: 'Create policies',
   })
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Update policy metadata' })
-  @ApiParam({ name: 'id', description: 'Policy id' })
+  @ApiOperation({ summary: UPDATE_POLICY_SUMMARY })
+  @ApiParam({ name: 'id', description: POLICY_ID_PARAM_DESCRIPTION })
   @ApiJsonApiResponse('policies', HttpStatus.OK, PolicyResponseDTO)
   update(
     @Param('id', ParseUuidParamPipe) id: string,
@@ -105,10 +115,8 @@ export class PoliciesController extends BaseControllerOperations<
 
   @Get(':id/statements')
   @RequirePermission('policy:read', { th: 'ดูนโยบาย', en: 'View policies' })
-  @ApiOperation({
-    summary: 'Get expanded statement tree (Policy Generator output)',
-  })
-  @ApiParam({ name: 'id', description: 'Policy id' })
+  @ApiOperation({ summary: GET_POLICY_STATEMENTS_SUMMARY })
+  @ApiParam({ name: 'id', description: POLICY_ID_PARAM_DESCRIPTION })
   getStatements(
     @Param('id', ParseUuidParamPipe) id: string,
   ): Promise<IExpandedStatement[]> {
@@ -121,10 +129,8 @@ export class PoliciesController extends BaseControllerOperations<
     en: 'Create policies',
   })
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({
-    summary: 'Replace policy statements (compiled from Policy Generator)',
-  })
-  @ApiParam({ name: 'id', description: 'Policy id' })
+  @ApiOperation({ summary: SET_POLICY_STATEMENTS_SUMMARY })
+  @ApiParam({ name: 'id', description: POLICY_ID_PARAM_DESCRIPTION })
   async setStatements(
     @Param('id', ParseUuidParamPipe) id: string,
     @Body() dto: SetStatementsDTO,
@@ -143,8 +149,8 @@ export class PoliciesController extends BaseControllerOperations<
     en: 'Create policies',
   })
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Soft delete policy' })
-  @ApiParam({ name: 'id', description: 'Policy id' })
+  @ApiOperation({ summary: DELETE_POLICY_SUMMARY })
+  @ApiParam({ name: 'id', description: POLICY_ID_PARAM_DESCRIPTION })
   softDelete(
     @Param('id', ParseUuidParamPipe) id: string,
     @CurrentUser() currentUser: IUserSession,

@@ -18,6 +18,13 @@ import {
   type IUserSession,
 } from '@lib/common';
 
+import {
+  LOGIN_SUMMARY,
+  LOGOUT_SUMMARY,
+  ME_SUMMARY,
+  REFRESH_SUMMARY,
+  SET_CREDENTIAL_SUMMARY,
+} from '../constants/auth.swagger';
 import { LoginResultDTO } from '../dto/login-result.dto';
 import { LoginDTO } from '../dto/login.dto';
 import { RefreshDTO } from '../dto/refresh.dto';
@@ -32,10 +39,7 @@ export class AuthController {
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary:
-      'Login with username + password — issues JWT access/refresh tokens',
-  })
+  @ApiOperation({ summary: LOGIN_SUMMARY })
   @ApiOkResponse({ type: LoginResultDTO })
   login(
     @Body() dto: LoginDTO,
@@ -54,9 +58,7 @@ export class AuthController {
   @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'Exchange a refresh token for a new access/refresh token pair',
-  })
+  @ApiOperation({ summary: REFRESH_SUMMARY })
   @ApiOkResponse({ type: LoginResultDTO })
   refresh(@Body() dto: RefreshDTO): Promise<ILoginResult> {
     return this.authService.refresh(dto.refresh_token);
@@ -64,9 +66,7 @@ export class AuthController {
 
   @Post('logout')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({
-    summary: 'Revoke the current session (and refresh token, if provided)',
-  })
+  @ApiOperation({ summary: LOGOUT_SUMMARY })
   async logout(
     @CurrentUser() currentUser: IUserSession,
     @Body() dto: Partial<RefreshDTO>,
@@ -80,7 +80,7 @@ export class AuthController {
 
   @Get('me')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Get the current authenticated session' })
+  @ApiOperation({ summary: ME_SUMMARY })
   me(@CurrentUser() currentUser: IUserSession): IUserSession {
     return currentUser;
   }
@@ -91,10 +91,7 @@ export class AuthController {
     en: 'Set user password',
   })
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({
-    summary:
-      'Create/reset a user credential (admin flow, after iam user creation)',
-  })
+  @ApiOperation({ summary: SET_CREDENTIAL_SUMMARY })
   async setCredential(
     @Body() dto: SetCredentialDTO,
     @CurrentUser() currentUser: IUserSession,

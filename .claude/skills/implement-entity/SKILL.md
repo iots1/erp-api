@@ -41,12 +41,36 @@ Guides through a complete 5-step workflow to implement a new entity in a MediTec
 ### Controller Rules
 
 - **Controller**: Must have `@ResourceType('plural-kebab-name')` for JSON:API formatting.
-- **Controller**: Every endpoint must have `@RequirePermission('resource:action')`.
+- **Controller**: Every endpoint must have `@RequirePermission('resource:action', { th: '...', en: '...' })` — see **Permission Rules** below, the `{ th, en }` name is not optional in practice.
+- **Controller**: Every UUID path param (`:id` or any FK-shaped param) must use `@Param('id', ParseUuidParamPipe)` — never bare `@Param('id')`. See **UUID Param Validation** below.
 - **Controller**: Every method must have an explicit return type (e.g., `Promise<Entity>`, `Promise<IResponsePaginatedService<Entity[]>>`).
 - **Controller**: Swagger decorators must reference Response DTOs, not Create DTOs (e.g., use `EntityResponseDTO` not `CreateEntityDTO`).
 - **Controller**: Do NOT add `@ApiBearerAuth()` — authentication is configured globally in `@lib/common/utils/bootstrap.util.ts`.
 - **Controller**: Always use `@Put` for update endpoints — **never `@Patch`**. All updates are full replacements.
 - **Controller — Swagger strings**: Never inline API description prose in the controller. Every `@ApiOperation` summary/description, `@ApiQuery`/`@ApiBody`/`@ApiParam` description, and response description must be imported from `constants/<resource>.swagger.ts`. Use individual `UPPER_SNAKE_CASE` consts (e.g. `CREATE_<RESOURCE>_SUMMARY`) **or** one grouped object per file — pick one. Put strings shared across controllers in `constants/swagger-common.ts`. Reference: `apps/opd-bc/src/controllers/visits.proxy-controller.ts` + `apps/opd-bc/src/constants/visits.swagger.ts`.
+
+### Permission Rules — `@RequirePermission` and the `permissions` catalog
+
+- **Every endpoint** (except `@Public()` ones) needs `@RequirePermission('resource:action', { th, en })` — import from `@lib/common`.
+- **Always pass the `{ th, en }` name** alongside the permission string:
+  ```typescript
+  @RequirePermission('goods_receipt:submit', { th: 'ยืนยันรับสินค้า', en: 'Submit goods receipt' })
+  ```
+  Without a name, `npm run permissions:sync` (see below) falls back to a humanized placeholder (e.g. `"Submit Goods_receipt"`) that an admin has to fix by hand later — just supply the real name up front.
+- **The `permissions` table is not maintained by hand.** It's synced from code by `libs/database/src/scripts/sync-permissions.script.ts` (`npm run permissions:sync`), which scans every `apps/<service>/src/**/*.ts` file for `@RequirePermission(...)` calls and upserts them into iam's `permissions` table, keyed by **`(service, permission)`** — not `permission` alone, because the same `resource:action` string can legitimately mean different things in different BCs (`service` is derived from the `apps/<service>` folder name, e.g. `inventory-bc`).
+  - Run it after adding/renaming/removing `@RequirePermission()` calls, before wiring a new policy in the Policy Generator — otherwise the permission won't exist in the catalog for a policy statement to reference.
+  - It's safe to re-run any time: unchanged permissions are left alone, permissions no longer found in code are **soft-deleted** (never hard-deleted — nothing FK's `permissions.id` on purpose, see below), and a `permission_sync_logs` row records what was added/removed each run (audit history).
+  - It **only** touches `plane = 'api'` rows. `ui` permissions (`page:*`, `component:*` — frontend `data-permission` attributes) are **not** declared via `@RequirePermission()` and must be added/edited manually in the `permissions` table; the sync script never adds, updates, or soft-deletes them.
+- **`permissions.id` is intentionally not a hard FK anywhere** (e.g. `statement_actions.permission_id` is a plain `uuid` column with an index, no `FOREIGN KEY` constraint) — this lets the sync script freely soft-delete stale rows without ever failing on referential integrity.
+
+### UUID Param Validation — `ParseUuidParamPipe`
+
+- Every route param that is a UUID (primary `:id`, or any other id-shaped param like `:role_id`) must be validated with `ParseUuidParamPipe` from `@lib/common`:
+  ```typescript
+  findOne(@Param('id', ParseUuidParamPipe) id: string): Promise<Entity> { ... }
+  ```
+- This rejects malformed UUIDs with a proper `400002` (`InvalidParameterException`) before the request reaches the service/DB layer — without it, a bad id string either falls through to a raw Postgres `22P02` error or, worse, gets used unvalidated in a query.
+- Applies to **every** `@Param()` usage across `findOne`, `update`, `softDelete`/`delete`, and any nested/custom endpoints (e.g. `:id/roles`, `:id/policies`, `:id/statements`) — not just the flat CRUD ones.
 
 ### Query Params & Relations Rules
 

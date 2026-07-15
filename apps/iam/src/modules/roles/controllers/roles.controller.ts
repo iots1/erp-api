@@ -28,6 +28,15 @@ import { ValidatedQuery } from '@lib/common/decorators/validated-query.decorator
 import { QueryParamsDTO } from '@lib/common/dto/query-params.dto';
 import { BaseControllerOperations } from '@lib/common/utils/base-operations/base-controller-operations.util';
 
+import {
+  ATTACH_POLICIES_SUMMARY,
+  CREATE_ROLE_SUMMARY,
+  DELETE_ROLE_SUMMARY,
+  GET_ROLE_SUMMARY,
+  GET_ROLES_SUMMARY,
+  ROLE_ID_PARAM_DESCRIPTION,
+  UPDATE_ROLE_SUMMARY,
+} from '../constants/roles.swagger';
 import { AttachPolicyDTO } from '../dto/attach-policy.dto';
 import { CreateRoleDTO } from '../dto/create-role.dto';
 import { RoleResponseDTO } from '../dto/role-response.dto';
@@ -51,7 +60,7 @@ export class RolesController extends BaseControllerOperations<
   @Post()
   @RequirePermission('role:create', { th: 'สร้างบทบาท', en: 'Create roles' })
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create role' })
+  @ApiOperation({ summary: CREATE_ROLE_SUMMARY })
   @ApiJsonApiCreatedResponse('roles', RoleResponseDTO)
   create(
     @Body() createDTO: CreateRoleDTO,
@@ -62,7 +71,7 @@ export class RolesController extends BaseControllerOperations<
 
   @Get()
   @RequirePermission('role:read', { th: 'ดูบทบาท', en: 'View roles' })
-  @ApiOperation({ summary: 'List roles' })
+  @ApiOperation({ summary: GET_ROLES_SUMMARY })
   @ApiQuery({ type: QueryParamsDTO })
   @ApiJsonApiCollectionResponse('roles', HttpStatus.OK, RoleResponseDTO)
   findPaginated(
@@ -73,8 +82,8 @@ export class RolesController extends BaseControllerOperations<
 
   @Get(':id')
   @RequirePermission('role:read', { th: 'ดูบทบาท', en: 'View roles' })
-  @ApiOperation({ summary: 'Get role by id' })
-  @ApiParam({ name: 'id', description: 'Role id' })
+  @ApiOperation({ summary: GET_ROLE_SUMMARY })
+  @ApiParam({ name: 'id', description: ROLE_ID_PARAM_DESCRIPTION })
   @ApiJsonApiResponse('roles', HttpStatus.OK, RoleResponseDTO)
   findOne(@Param('id', ParseUuidParamPipe) id: string): Promise<Role> {
     return super.findOne(id);
@@ -83,8 +92,8 @@ export class RolesController extends BaseControllerOperations<
   @Put(':id')
   @RequirePermission('role:update', { th: 'แก้ไขบทบาท', en: 'Update roles' })
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Update role' })
-  @ApiParam({ name: 'id', description: 'Role id' })
+  @ApiOperation({ summary: UPDATE_ROLE_SUMMARY })
+  @ApiParam({ name: 'id', description: ROLE_ID_PARAM_DESCRIPTION })
   @ApiJsonApiResponse('roles', HttpStatus.OK, RoleResponseDTO)
   update(
     @Param('id', ParseUuidParamPipe) id: string,
@@ -97,10 +106,8 @@ export class RolesController extends BaseControllerOperations<
   @Put(':id/policies')
   @RequirePermission('role:update', { th: 'แก้ไขบทบาท', en: 'Update roles' })
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({
-    summary: 'Attach policies to a role (replaces existing set)',
-  })
-  @ApiParam({ name: 'id', description: 'Role id' })
+  @ApiOperation({ summary: ATTACH_POLICIES_SUMMARY })
+  @ApiParam({ name: 'id', description: ROLE_ID_PARAM_DESCRIPTION })
   async attachPolicies(
     @Param('id', ParseUuidParamPipe) id: string,
     @Body() dto: AttachPolicyDTO,
@@ -116,8 +123,8 @@ export class RolesController extends BaseControllerOperations<
   @Delete(':id')
   @RequirePermission('role:update', { th: 'แก้ไขบทบาท', en: 'Update roles' })
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Soft delete role' })
-  @ApiParam({ name: 'id', description: 'Role id' })
+  @ApiOperation({ summary: DELETE_ROLE_SUMMARY })
+  @ApiParam({ name: 'id', description: ROLE_ID_PARAM_DESCRIPTION })
   softDelete(
     @Param('id', ParseUuidParamPipe) id: string,
     @CurrentUser() currentUser: IUserSession,
