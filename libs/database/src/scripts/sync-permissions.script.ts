@@ -26,6 +26,10 @@ import { Client } from 'pg';
  * `permission` (resource:action) is only unique *within* a service — two BCs can
  * legitimately declare the same string for unrelated endpoints — so the scan key
  * is always (service, permission), never permission alone.
+ *
+ * Only ever touches `plane = 'api'` rows. `ui` permissions (`page:*`, `component:*`)
+ * come from frontend `data-permission` attributes, not `@RequirePermission()` — they
+ * are managed manually and this script never adds, updates, or soft-deletes them.
  */
 
 const APPS_ROOT = join(__dirname, '../../../../apps');
@@ -155,10 +159,15 @@ async function main(): Promise<void> {
   await client.connect();
 
   try {
+    // Scoped to plane = 'api' only — `ui` permissions (page:*/component:*) are
+    // manually curated (frontend data-permission attributes, not @RequirePermission()
+    // calls) and must never be touched by this sync, added or soft-deleted.
     const { rows: existingRows } = await client.query<{
       service: string;
       permission: string;
-    }>(`SELECT service, permission FROM permissions WHERE is_deleted = false`);
+    }>(
+      `SELECT service, permission FROM permissions WHERE is_deleted = false AND plane = 'api'`,
+    );
     const existing = new Set(
       existingRows.map((r) => `${r.service}::${r.permission}`),
     );
