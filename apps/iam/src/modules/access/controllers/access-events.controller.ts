@@ -30,7 +30,7 @@ export class AccessEventsController {
     private readonly permissionResolver: PermissionResolverService,
   ) {}
 
-  @MessagePattern(IamMessagePatterns.FindById)
+  @MessagePattern({ cmd: IamMessagePatterns.FindById })
   async findById(
     @Payload() message: IMicroservicePayload<IFindByIdPayload>,
   ): Promise<IIamUser> {
@@ -52,14 +52,14 @@ export class AccessEventsController {
     };
   }
 
-  @MessagePattern(IamMessagePatterns.ResolvePermissions)
+  @MessagePattern({ cmd: IamMessagePatterns.ResolvePermissions })
   resolvePermissions(
     @Payload() message: IMicroservicePayload<IResolvePermissionsPayload>,
   ): Promise<IPermissionResolution> {
     return this.permissionResolver.resolveForUser(message.payload.user_id);
   }
 
-  @MessagePattern(IamMessagePatterns.EvaluateConditions)
+  @MessagePattern({ cmd: IamMessagePatterns.EvaluateConditions })
   evaluateConditions(
     @Payload() message: IMicroservicePayload<IEvaluateConditionsPayload>,
   ): Promise<boolean> {

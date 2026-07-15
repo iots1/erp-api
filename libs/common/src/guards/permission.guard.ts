@@ -5,7 +5,7 @@ import {
   Inject,
   Injectable,
 } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
+import { ContextIdFactory, ModuleRef, Reflector } from '@nestjs/core';
 import { ClientProxy } from '@nestjs/microservices';
 
 import type { FastifyRequest } from 'fastify';
@@ -35,7 +35,7 @@ import { IAuthenticatedRequest } from './auth.guard';
 export class PermissionGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
-    private readonly microserviceClient: MicroserviceClientService,
+    private readonly moduleRef: ModuleRef,
     @Inject(AppMicroservice.Iam.name) private readonly iamClient: ClientProxy,
   ) {}
 
@@ -69,7 +69,13 @@ export class PermissionGuard implements CanActivate {
     const conditionalPermissions = request.user?.conditional_permissions ?? [];
     if (conditionalPermissions.includes(required)) {
       const [resource, action] = required.split(':');
-      const allowed = await this.microserviceClient.sendWithContext<
+      const contextId = ContextIdFactory.getByRequest(request);
+      const microserviceClient = await this.moduleRef.resolve(
+        MicroserviceClientService,
+        contextId,
+        { strict: false },
+      );
+      const allowed = await microserviceClient.sendWithContext<
         boolean,
         IEvaluateConditionsPayload
       >(
