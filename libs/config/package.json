@@ -1,0 +1,11 @@
+{
+  "name": "@lib/config",
+  "version": "0.0.1",
+  "private": true,
+  "license": "MIT",
+  "peerDependencies": {
+    "@nestjs/common": ">=11.0.0",
+    "@nestjs/config": ">=4.0.0",
+    "joi": ">=18.0.0"
+  }
+}

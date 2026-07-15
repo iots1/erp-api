@@ -1,0 +1,7 @@
+{
+  "name": "@lib/contracts",
+  "version": "0.0.1",
+  "description": "Framework-agnostic TypeScript types shared by the Angular frontend and the NestJS backend. No runtime dependencies.",
+  "private": true,
+  "license": "MIT"
+}

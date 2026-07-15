@@ -1,0 +1,25 @@
+{
+  "name": "inventory-bc",
+  "version": "0.0.1",
+  "description": "Core stock & lot management (FIFO/FEFO, quantity on hand).",
+  "private": true,
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@lib/common": "workspace:*",
+    "@lib/config": "workspace:*",
+    "@lib/database": "workspace:*",
+    "@nestjs/common": "^11.0.1",
+    "@nestjs/core": "^11.0.1",
+    "@nestjs/jwt": "^11.0.0",
+    "@nestjs/microservices": "^11.1.6",
+    "@nestjs/swagger": "^11.2.0",
+    "@nestjs/typeorm": "^11.0.0",
+    "class-validator": "^0.14.2",
+    "fastify": "^5.8.5",
+    "ioredis": "^5.11.1",
+    "pg": "^8.16.3",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "typeorm": "^0.3.26"
+  }
+}

@@ -1,9 +1,17 @@
-# compiled output
+# ──────────────────────────────────────────────────────────────
+#  Compiled output & dependencies
+# ──────────────────────────────────────────────────────────────
 /dist
-/node_modules
 /build
+node_modules/
+.pnp
+.pnp.js
+.nx/cache
+.nx/workspace-data
 
-# Logs
+# ──────────────────────────────────────────────────────────────
+#  Logs
+# ──────────────────────────────────────────────────────────────
 logs
 *.log
 npm-debug.log*
@@ -11,46 +19,95 @@ pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
+pino-log.log*
 
-# OS
+# ──────────────────────────────────────────────────────────────
+#  OS-specific files
+# ──────────────────────────────────────────────────────────────
 .DS_Store
+.AppleDouble
+.LSOverride
+*.swp
+*.swo
+*~
+Thumbs.db
 
-# Tests
+# ──────────────────────────────────────────────────────────────
+#  Test & coverage
+# ──────────────────────────────────────────────────────────────
 /coverage
 /.nyc_output
+**/*.lcov
 
-# IDEs and editors
+# ──────────────────────────────────────────────────────────────
+#  IDEs and editors
+# ──────────────────────────────────────────────────────────────
 /.idea
+/.vscode/*
+!/.vscode/settings.json
+!/.vscode/tasks.json
+!/.vscode/launch.json
+!/.vscode/extensions.json
 .project
 .classpath
 .c9/
 *.launch
 .settings/
 *.sublime-workspace
+*.sublime-project
+.history
+.jdtls
+*.iml
+*.iws
+*.ipr
 
-# IDE - VSCode
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-
-# dotenv environment variable files
+# ──────────────────────────────────────────────────────────────
+#  Environment & secrets
+# ──────────────────────────────────────────────────────────────
 .env
-.env.development.local
-.env.test.local
-.env.production.local
 .env.local
+.env.*.local
+.env.development
+.env.development.local
+.env.test
+.env.test.local
+.env.production
+.env.production.local
+!.env.example
 
-# temp directory
-.temp
-.tmp
-
-# Runtime data
+# ──────────────────────────────────────────────────────────────
+#  Runtime data
+# ──────────────────────────────────────────────────────────────
 pids
 *.pid
 *.seed
 *.pid.lock
 
-# Diagnostic reports (https://nodejs.org/api/report.html)
+# ──────────────────────────────────────────────────────────────
+#  Diagnostic & profiling reports
+# ──────────────────────────────────────────────────────────────
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+*.heapsnapshot
+
+# ──────────────────────────────────────────────────────────────
+#  Temporary directories
+# ──────────────────────────────────────────────────────────────
+.temp
+.tmp
+tmp
+temp
+
+# ──────────────────────────────────────────────────────────────
+#  Database & cache
+# ──────────────────────────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+.cache
+
+# ──────────────────────────────────────────────────────────────
+#  Local development
+# ──────────────────────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
