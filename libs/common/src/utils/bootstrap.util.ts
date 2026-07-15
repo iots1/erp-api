@@ -1,3 +1,8 @@
+// MUST be first: starts the OpenTelemetry SDK before http/pg/nestjs are loaded
+// so auto-instrumentation can patch them (see tracing.ts). Do not reorder.
+// import '../tracing';
+
+import { timingSafeEqual } from 'crypto';
 import {
   ClassSerializerInterceptor,
   Type,
@@ -7,6 +12,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { NestFactory, Reflector } from '@nestjs/core';
 import { MicroserviceOptions } from '@nestjs/microservices';
+import { IoAdapter } from '@nestjs/platform-socket.io';
 import {
   FastifyAdapter,
   NestFastifyApplication,
@@ -16,12 +22,16 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import fastifyHelmet from '@fastify/helmet';
 import fastifyRateLimit from '@fastify/rate-limit';
 import { apiReference } from '@scalar/nestjs-api-reference';
+import { createAdapter } from '@socket.io/redis-adapter';
 import dayjs from 'dayjs';
 import timezone from 'dayjs/plugin/timezone';
 import utc from 'dayjs/plugin/utc';
 import { FastifyReply, FastifyRequest } from 'fastify';
+import { createClient, type RedisClientType } from 'redis';
+import { Server as SocketIOServer, type ServerOptions } from 'socket.io';
 
 import { AppMicroserviceKey } from '@lib/common/enum/app-microservice.enum';
+import { DocAuthKey } from '@lib/common/enum/doc-auth-key.enum';
 import { AllExceptionsFilter } from '@lib/common/utils/http-exception/all-exceptions-filter.util';
 import { RpcExceptionsFilter } from '@lib/common/utils/http-exception/rpc-exceptions-filter.util';
 import { ValidationException } from '@lib/common/utils/http-exception/validation.exception';
@@ -51,23 +61,28 @@ export interface RateLimitOptions {
 export interface SecurityOptions {
   helmet?: boolean;
   rateLimit?: RateLimitOptions | false;
-  cors?: { origin?: string | string[] };
+  cors?: {
+    origin?: string | string[];
+    exposedHeaders?: string | string[];
+  };
+}
+
+export interface BootstrapViewsOptions {
+  dir: string;
+  engine?: string;
 }
 
 export interface BootstrapOptions {
   module: Type<unknown>;
-  /** Env key holding the URL prefix name (e.g. 'trainer'). */
   globalPrefixNameEnv: string;
-  /** Env key holding the URL prefix version (e.g. 'v1'). */
   globalPrefixVersionEnv: string;
   defaultGlobalPrefixName: string;
   defaultGlobalPrefixVersion: string;
   httpPortEnv: string;
-  /**
-   * When set, a microservice listener is started for this BC. The transport
-   * (RabbitMQ or TCP) is chosen platform-wide by the `TRANSPORT` env key.
-   */
   microservice?: AppMicroserviceKey;
+  useIoAdapter?: boolean;
+  views?: BootstrapViewsOptions;
+  publicDir?: string;
   swagger: {
     title: string;
     description: string;
@@ -75,8 +90,8 @@ export interface BootstrapOptions {
     tag: string;
   };
   jwtAuth?: JwtAuthOptions;
+  basicAuth?: boolean;
   security?: SecurityOptions;
-  /** Reject unknown payload fields with 400 (default: false → strip them). */
   forbidNonWhitelisted?: boolean;
 }
 
@@ -91,6 +106,23 @@ function initializeTimezone(): void {
   dayjs.tz.setDefault('Asia/Bangkok');
 }
 
+/**
+ * Resolve Fastify `trustProxy` from process.env directly.
+ * Needed before configService is initialized to inject into FastifyAdapter.
+ */
+function resolveTrustProxy(raw?: string): boolean | number | string[] {
+  if (raw === undefined || raw.trim().length === 0) {
+    return ['127.0.0.1', '100.64.0.0/10'];
+  }
+  if (raw === 'true') return true;
+  if (raw === 'false') return false;
+  if (/^\d+$/.test(raw)) return parseInt(raw, 10);
+  return raw
+    .split(',')
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0);
+}
+
 async function applySecurity(
   app: NestFastifyApplication,
   configService: ConfigService,
@@ -98,7 +130,8 @@ async function applySecurity(
 ): Promise<void> {
   const corsOrigin =
     security?.cors?.origin ?? configService.get<string>('CORS_ORIGIN') ?? '*';
-  app.enableCors({ origin: corsOrigin });
+  const exposedHeaders = security?.cors?.exposedHeaders ?? ['X-Trace-Id'];
+  app.enableCors({ origin: corsOrigin, exposedHeaders });
 
   if (security?.helmet !== false) {
     await app.register(fastifyHelmet, { contentSecurityPolicy: false });
@@ -124,6 +157,35 @@ async function applySecurity(
         ],
         meta: { timestamp: new Date().toISOString() },
       }),
+    });
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
+//  View Engine & Static Assets (Requires @fastify/view & @fastify/static)
+// ──────────────────────────────────────────────────────────────
+
+async function setupViewsAndStatic(
+  app: NestFastifyApplication,
+  options: BootstrapOptions,
+  pathURI: string,
+): Promise<void> {
+  // NOTE: Make sure to install `@fastify/static` and `@fastify/view`
+  if (options.publicDir) {
+    app.useStaticAssets({
+      root: options.publicDir,
+      prefix: `/${pathURI}/assets/`,
+    });
+  }
+
+  if (options.views) {
+    // This await resolves the ESLint require-await error
+    // and correctly imports the module asynchronously.
+    const ejs = await import('ejs');
+
+    app.setViewEngine({
+      engine: { ejs },
+      templates: options.views.dir,
     });
   }
 }
@@ -155,11 +217,72 @@ function registerGlobalMiddleware(
   );
 }
 
+// ──────────────────────────────────────────────────────────────
+//  OpenAPI / Swagger / Scalar
+// ──────────────────────────────────────────────────────────────
+
 function setupApiDocs(
   app: NestFastifyApplication,
   options: BootstrapOptions,
   pathURI: string,
+  configService: ConfigService,
 ): { fullDocsPath: string; classicDocsPath: string } {
+  const swaggerDocsEndpoint =
+    configService.get<string>('SWAGGER_DOCS_ENDPOINT') ?? 'api-docs';
+  const swaggerJsonEndpoint =
+    configService.get<string>('SWAGGER_JSON_ENDPOINT') ?? 'json-docs';
+  const swaggerClassicDocsEndpoint =
+    configService.get<string>('SWAGGER_CLASSIC_DOCS_ENDPOINT') ??
+    'classic-docs';
+
+  const fullDocsPath = `/${pathURI}/${swaggerDocsEndpoint}`;
+  const jsonDocsPath = `/${pathURI}/${swaggerJsonEndpoint}`;
+  const classicDocsPath = `/${pathURI}/${swaggerClassicDocsEndpoint}`;
+
+  // --- Fastify Basic Auth Hook for Docs ---
+  const docsUsername = configService.get<string>('SWAGGER_USERNAME');
+  const docsPassword = configService.get<string>('SWAGGER_PASSWORD');
+
+  if (docsUsername && docsPassword) {
+    const expected = Buffer.from(`${docsUsername}:${docsPassword}`);
+    app
+      .getHttpAdapter()
+      .getInstance()
+      .addHook('onRequest', (req, reply, done) => {
+        if (
+          req.url.startsWith(fullDocsPath) ||
+          req.url.startsWith(jsonDocsPath) ||
+          req.url.startsWith(classicDocsPath)
+        ) {
+          const authHeader = req.headers['authorization'];
+          if (authHeader && authHeader.startsWith('Basic ')) {
+            const provided = Buffer.from(authHeader.slice(6), 'base64');
+            if (
+              provided.length === expected.length &&
+              timingSafeEqual(provided, expected)
+            ) {
+              return done();
+            }
+          }
+          reply.header('WWW-Authenticate', 'Basic realm="API Documentation"');
+          reply.code(401).send({
+            status: { code: 401, message: 'Unauthorized' },
+            errors: [
+              {
+                code: 'UNAUTHORIZED',
+                title: 'Unauthorized',
+                detail: 'API documentation requires authentication.',
+              },
+            ],
+            meta: { timestamp: new Date().toISOString() },
+          });
+          return; // Prevent further execution for docs path
+        }
+        done();
+      });
+  }
+
+  // --- Build OpenAPI document ---
   const builder = new DocumentBuilder()
     .setTitle(options.swagger.title)
     .setDescription(options.swagger.description)
@@ -178,14 +301,29 @@ function setupApiDocs(
       },
       options.jwtAuth.name,
     );
-    builder.addSecurityRequirements(options.jwtAuth.name);
+    builder.addApiKey(
+      {
+        type: 'apiKey',
+        in: 'header',
+        name: 'x-csrf-token',
+        description: 'Enter the CSRF token obtained from the session',
+      },
+      DocAuthKey.CSRF_TOKEN,
+    );
+    builder.addSecurityRequirements({
+      [options.jwtAuth.name]: [],
+      [DocAuthKey.CSRF_TOKEN]: [],
+    });
+  }
+
+  if (options.basicAuth) {
+    builder.addBasicAuth(
+      { type: 'http', scheme: 'basic', description: 'Basic Authentication' },
+      DocAuthKey.BASIC_AUTH,
+    );
   }
 
   const document = SwaggerModule.createDocument(app, builder.build());
-
-  const fullDocsPath = `/${pathURI}/api-docs`;
-  const jsonDocsPath = `/${pathURI}/json-docs`;
-  const classicDocsPath = `/${pathURI}/classic-docs`;
 
   app.use(
     fullDocsPath,
@@ -216,10 +354,21 @@ function setupApiDocs(
   return { fullDocsPath, classicDocsPath };
 }
 
+// ──────────────────────────────────────────────────────────────
+//  Health Check & Versioning
+// ──────────────────────────────────────────────────────────────
+
+function resolveAppVersion(configService: ConfigService): string {
+  const version = configService.get<string>('APP_VERSION');
+  return version !== undefined && version.length > 0 ? version : 'local';
+}
+
 function registerHealthCheck(
   app: NestFastifyApplication,
   pathURI: string,
   moduleName: string,
+  version: string,
+  environment: string,
 ): void {
   app
     .getHttpAdapter()
@@ -227,10 +376,76 @@ function registerHealthCheck(
       void reply.status(200).send({
         status: 'ok',
         message: `Service ${moduleName} is running`,
+        version,
+        environment,
         timestamp: new Date().toISOString(),
       });
     });
 }
+
+// ──────────────────────────────────────────────────────────────
+//  Socket.io Adapter (Redis fallback to in-memory)
+// ──────────────────────────────────────────────────────────────
+
+async function setupSocketIoAdapter(
+  app: NestFastifyApplication,
+  configService: ConfigService,
+  moduleName: string,
+): Promise<void> {
+  try {
+    const host = configService.get<string | undefined>('SOCKET_REDIS_HOST');
+    const port = configService.get<number | undefined>('SOCKET_REDIS_PORT');
+    const password = configService.get<string | undefined>(
+      'SOCKET_REDIS_PASSWORD',
+    );
+    const db = configService.get<number | undefined>('SOCKET_REDIS_DB') ?? 1;
+
+    if (host === undefined || port === undefined || port <= 0) {
+      throw new Error(
+        'SOCKET_REDIS_HOST or SOCKET_REDIS_PORT not properly configured',
+      );
+    }
+
+    const pubClient: RedisClientType = createClient({
+      socket: { host, port },
+      ...(password !== undefined && password.length > 0 ? { password } : {}),
+      database: db,
+    });
+
+    const subClient: RedisClientType = pubClient.duplicate();
+    await Promise.all([pubClient.connect(), subClient.connect()]);
+
+    class RedisIoAdapter extends IoAdapter {
+      public createIOServer(
+        port: number,
+        options?: ServerOptions,
+      ): SocketIOServer {
+        const server = super.createIOServer(port, options) as SocketIOServer;
+        server.adapter(createAdapter(pubClient, subClient));
+        return server;
+      }
+    }
+
+    app.useWebSocketAdapter(new RedisIoAdapter(app));
+    console.log(
+      `🔌 [${moduleName}] Socket.io adapter enabled with Redis pub/sub (${host}:${port}/db${db})`,
+    );
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.warn(
+      `⚠️  [${moduleName}] Failed to initialize Redis Socket adapter, falling back to in-memory:`,
+      errorMessage,
+    );
+    app.useWebSocketAdapter(new IoAdapter(app));
+    console.log(
+      `🔌 [${moduleName}] Socket.io adapter enabled (in-memory only)`,
+    );
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
+//  Microservices
+// ──────────────────────────────────────────────────────────────
 
 async function setupMicroservice(
   app: NestFastifyApplication,
@@ -272,20 +487,24 @@ export async function bootstrapApplication(
 ): Promise<NestFastifyApplication> {
   initializeTimezone();
 
-  const adapter = new FastifyAdapter({ trustProxy: true, logger: false });
+  // Note: trustProxy read directly from process.env before ConfigService is available.
+  const trustProxy = resolveTrustProxy(process.env.TRUST_PROXY);
+  const adapter = new FastifyAdapter({ trustProxy, logger: false });
+
   const app = await NestFactory.create<NestFastifyApplication>(
     options.module,
     adapter,
-    {
-      rawBody: true,
-    },
+    { rawBody: true },
   );
+
   const configService = app.get(ConfigService);
   const reflector = app.get(Reflector);
   const moduleName = (options.module as { name: string }).name;
 
+  // --- Security ---
   await applySecurity(app, configService, options.security);
 
+  // --- Global Prefix ---
   const listenPORT = resolveHttpPort(configService, options.httpPortEnv);
   const globalPrefixName =
     configService.get<string>(options.globalPrefixNameEnv) ??
@@ -296,15 +515,32 @@ export async function bootstrapApplication(
   const pathURI = `${globalPrefixName}/${globalPrefixVersion}`;
   app.setGlobalPrefix(pathURI);
 
+  // --- Views & Static Assets (Optional) ---
+  if (options.views || options.publicDir) {
+    await setupViewsAndStatic(app, options, pathURI);
+  }
+
+  // --- Global Middlewares ---
   registerGlobalMiddleware(
     app,
     reflector,
     options.forbidNonWhitelisted ?? false,
   );
 
-  const { fullDocsPath, classicDocsPath } = setupApiDocs(app, options, pathURI);
-  registerHealthCheck(app, pathURI, moduleName);
+  // --- API Documentation ---
+  const { fullDocsPath, classicDocsPath } = setupApiDocs(
+    app,
+    options,
+    pathURI,
+    configService,
+  );
 
+  // --- Health Check ---
+  const appVersion = resolveAppVersion(configService);
+  const environment = configService.get<string>('NODE_ENV') ?? 'local';
+  registerHealthCheck(app, pathURI, moduleName, appVersion, environment);
+
+  // --- Microservice ---
   if (options.microservice !== undefined) {
     await setupMicroservice(
       app,
@@ -314,8 +550,14 @@ export async function bootstrapApplication(
     );
   }
 
+  // --- Socket.io Adapter ---
+  if (options.useIoAdapter) {
+    await setupSocketIoAdapter(app, configService, moduleName);
+  }
+
   await app.listen(listenPORT, '0.0.0.0');
 
+  // --- Startup Logs ---
   console.log(
     `🚀 [${moduleName}] HTTP running on: http://localhost:${listenPORT}/${pathURI}`,
   );
