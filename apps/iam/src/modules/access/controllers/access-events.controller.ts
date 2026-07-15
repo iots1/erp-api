@@ -1,4 +1,4 @@
-import { Controller, NotFoundException } from '@nestjs/common';
+import { Controller, NotFoundException, UseInterceptors } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { InjectRepository } from '@nestjs/typeorm';
 
@@ -21,8 +21,10 @@ import {
   IPermissionResolution,
   PermissionResolverService,
 } from '../services/permission-resolver.service';
+import { RmqAckInterceptor } from '@lib/common/utils/rmq-ack-interceptor.util';
 
 @Controller()
+@UseInterceptors(RmqAckInterceptor)
 export class AccessEventsController {
   constructor(
     @InjectRepository(User, ErpDatabases.IAM)
