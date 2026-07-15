@@ -38,11 +38,32 @@ DB stores **flat parallel columns** `*_th` / `*_en` (never JSONB for normal fiel
 
 ---
 
+## Repo layout — bounded contexts
+
+Nx monorepo (`apps/*` + `libs/*`, pnpm workspaces). One app per BC, each with its own Postgres
+database (`ErpDatabases` enum in `@lib/common`) and its own TCP/RMQ microservice endpoint
+(`AppMicroservice` enum):
+
+| App (`apps/`) | DB | Owns |
+|---|---|---|
+| `auth` | `erp_auth` | `credentials`, `refresh_tokens`, `login_histories`, `blocked_users`, `security_logs` — **no user profile data** |
+| `iam` | `erp_iam` | `users` (source of truth), `roles`, `policies`/`policy_statements`/`statement_*`, `permissions` catalog |
+| `inventory-bc` | `erp_inventory` | products, brands, UOM, warehouses |
+| `supplier-bc` | `erp_supplier` | suppliers |
+| `sales-bc` | `erp_sales` | — |
+| `finance-bc` | `erp_finance` | — |
+| `report-bc` | `erp_report` | — |
+| `storage` | none (S3/MinIO) | file objects — stateless, no Postgres DB |
+
+`libs/common` is `@Global()` and provides `ConfigModule`, `RedisModule`, `LogModule`, a
+`ClientsModule` entry per BC, `MicroserviceClientService`, and the global `AuthGuard` +
+`PermissionGuard` (registered as `APP_GUARD` — every non-`@Public()` endpoint in every BC is
+authenticated/authorized without per-app wiring). `libs/database` holds per-BC `DataSource`s
+(for the TypeORM CLI) and all migrations under `libs/database/src/migrations/erp_<bc>/`.
+
 ## Backend conventions (NestJS 11 · Fastify · TypeORM · PostgreSQL)
 
-Authoritative full version: `docs/plan-erp/backend-convention.html`. This repo currently only
-scaffolds Express (`@nestjs/platform-express`); switch to Fastify (`@nestjs/platform-fastify`)
-and add TypeORM + PostgreSQL when implementation starts, per the plan.
+Authoritative full version: `docs/plan-erp/backend-convention.html`.
 
 ### Naming
 
@@ -108,10 +129,41 @@ the returned value into a **JSON:API** envelope (without the decorator, raw data
 - Auto type-coercion (`"123"`→`123`, `"true"`→`true`), whitelist-strips unknown props, supports
   nested validation and array filter syntax `filter[]=field||$eq||value`.
 
+### UUID route params — `ParseUuidParamPipe`
+
+- Every UUID path param (`:id`, `:role_id`, any FK-shaped param) must use
+  `@Param('id', ParseUuidParamPipe)` from `@lib/common` — never a bare `@Param('id')`. Rejects
+  malformed UUIDs with `400002` before they reach the service/DB layer.
+
+### Auth & permissions — `@RequirePermission`, `AuthGuard`/`PermissionGuard`
+
+- Every non-`@Public()` endpoint needs `@RequirePermission('resource:action', { th, en })` —
+  **always pass the `{ th, en }` name**, not just the permission string.
+- `AuthGuard` + `PermissionGuard` are registered globally (`APP_GUARD` in `CommonModule`) in
+  every BC: JWT verify + Redis session check, then permission check (JWT's flat `permissions`
+  list first; falls back to a live ABAC condition evaluation call to iam-bc for permissions
+  flagged `conditional_permissions` at login). A non-public endpoint with no
+  `@RequirePermission()` is **default-denied**.
+- The `permissions` catalog (iam-bc, `erp_iam.permissions`) is **not hand-maintained** — run
+  `npm run permissions:sync` after adding/renaming/removing `@RequirePermission()` calls. It
+  scans every `apps/<service>/src/**/*.ts`, upserts by **`(service, permission)`** (the same
+  `resource:action` string can mean different things in different BCs), soft-deletes permissions
+  no longer found in code (never hard-deletes — nothing FK's `permissions.id`), and logs
+  add/remove history to `permission_sync_logs`. It only ever touches `plane = 'api'` rows —
+  `ui` permissions (`page:*`, `component:*`, frontend `data-permission` attributes) are managed
+  manually and the script never touches them.
+
 ### Microservice (TCP) calls
 
 - Use `sendWithContext(...)` — the **no-throw** pattern: returns `defaultValue`/`null` on error
   and logs consistently; the caller decides (e.g. `if (!x) throw new NotFoundException(...)`).
+
+### Swagger/Scalar strings
+
+- Never inline `@ApiOperation`/`@ApiParam`/`@ApiQuery` description prose in a controller — import
+  from `constants/<resource>.swagger.ts` (individual `UPPER_SNAKE_CASE` consts). Strings shared
+  across controllers in a BC go in `constants/swagger-common.ts`. See
+  `.claude/skills/implement-entity/SKILL.md` for the full pattern.
 
 ### Cross-context rules (from the architecture)
 
