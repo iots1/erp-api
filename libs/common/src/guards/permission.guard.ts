@@ -16,6 +16,7 @@ import {
 } from '@lib/common/constants/iam-message-patterns';
 import { IS_PUBLIC_KEY } from '@lib/common/decorators/public.decorator';
 import { REQUIRE_PERMISSION_KEY } from '@lib/common/decorators/require-permission.decorator';
+import { SKIP_PERMISSION_CHECK_KEY } from '@lib/common/decorators/skip-permission-check.decorator';
 import { AppMicroservice } from '@lib/common/enum/app-microservice.enum';
 import { NoOpLogsService } from '@lib/common/modules/log/logs.service';
 import { MicroserviceClientService } from '@lib/common/services/microservice-client.service';
@@ -48,6 +49,18 @@ export class PermissionGuard implements CanActivate {
     ]);
     if (isPublic) return true;
 
+    const request = context.switchToHttp().getRequest<IAuthenticatedRequest>();
+    const session = request.user?.user_session;
+    if (!session?.id) {
+      throw new ForbiddenException('Not authenticated.');
+    }
+
+    const skipPermissionCheck = this.reflector.getAllAndOverride<boolean>(
+      SKIP_PERMISSION_CHECK_KEY,
+      [context.getHandler(), context.getClass()],
+    );
+    if (skipPermissionCheck) return true;
+
     const required = this.reflector.getAllAndOverride<string>(
       REQUIRE_PERMISSION_KEY,
       [context.getHandler(), context.getClass()],
@@ -56,12 +69,6 @@ export class PermissionGuard implements CanActivate {
       throw new ForbiddenException(
         'This endpoint is missing @RequirePermission() — default deny.',
       );
-    }
-
-    const request = context.switchToHttp().getRequest<IAuthenticatedRequest>();
-    const session = request.user?.user_session;
-    if (!session?.id) {
-      throw new ForbiddenException('Not authenticated.');
     }
 
     if (session.permissions.includes(required)) return true;

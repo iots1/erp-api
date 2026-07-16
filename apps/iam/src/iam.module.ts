@@ -9,6 +9,7 @@ import { PermissionsModule } from './modules/permissions/permissions.module';
 import { PoliciesModule } from './modules/policies/policies.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { UsersModule } from './modules/users/users.module';
+import { ViewsModule } from './modules/views/views.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { UsersModule } from './modules/users/users.module';
     PoliciesModule,
     PermissionsModule,
     AccessModule,
+    ViewsModule,
   ],
 })
 export class IamModule {}

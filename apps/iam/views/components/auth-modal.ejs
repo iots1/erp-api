@@ -1,0 +1,18 @@
+<div id="authLoginModal" class="auth-modal-overlay hidden">
+    <div class="auth-modal-card">
+        <h3>เซสชันหมดอายุ</h3>
+        <p>กรุณาเข้าสู่ระบบอีกครั้งเพื่อดำเนินการต่อ</p>
+        <form id="authLoginForm" onsubmit="handleAuthLogin(event)">
+            <div class="auth-modal-field">
+                <label for="authModalUsername">ชื่อผู้ใช้งาน</label>
+                <input type="text" id="authModalUsername" class="p-input" required autocomplete="username">
+            </div>
+            <div class="auth-modal-field">
+                <label for="authModalPassword">รหัสผ่าน</label>
+                <input type="password" id="authModalPassword" class="p-input" required autocomplete="current-password">
+            </div>
+            <p id="authModalError" class="auth-modal-error hidden"></p>
+            <button type="submit" class="p-btn p-btn-lavender auth-modal-submit">เข้าสู่ระบบ</button>
+        </form>
+    </div>
+</div>

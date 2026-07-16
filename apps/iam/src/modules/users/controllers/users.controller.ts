@@ -32,6 +32,7 @@ import {
   ASSIGN_ROLES_SUMMARY,
   CREATE_USER_SUMMARY,
   DELETE_USER_SUMMARY,
+  GET_USER_ROLES_SUMMARY,
   GET_USER_SUMMARY,
   GET_USERS_SUMMARY,
   UPDATE_USER_SUMMARY,
@@ -113,6 +114,20 @@ export class UsersController extends BaseControllerOperations<
     @CurrentUser() currentUser: IUserSession,
   ): Promise<User> {
     return super.update(id, updateDTO, currentUser);
+  }
+
+  @Get(':id/roles')
+  @RequirePermission('user_account:read', {
+    th: 'ดูบัญชีผู้ใช้',
+    en: 'View user accounts',
+  })
+  @ApiOperation({ summary: GET_USER_ROLES_SUMMARY })
+  @ApiParam({ name: 'id', description: USER_ID_PARAM_DESCRIPTION })
+  async findRoles(
+    @Param('id', ParseUuidParamPipe) id: string,
+  ): Promise<{ id: string; role_ids: string[] }> {
+    const role_ids = await this.service.findRoleIds(id);
+    return { id, role_ids };
   }
 
   @Put(':id/roles')

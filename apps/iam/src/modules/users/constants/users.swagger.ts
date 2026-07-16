@@ -8,6 +8,8 @@ export const GET_USER_SUMMARY = 'Get user account by id';
 export const UPDATE_USER_SUMMARY = 'Update user account';
 export const ASSIGN_ROLES_SUMMARY =
   'Assign roles to a user (replaces existing set)';
+export const GET_USER_ROLES_SUMMARY =
+  'Get role ids currently assigned to a user';
 export const DELETE_USER_SUMMARY = 'Soft delete user account';
 
 export const USER_ID_PARAM_DESCRIPTION = 'User id';

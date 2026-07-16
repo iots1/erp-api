@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="/<%= prefix %>/assets/css/global.css?v=<%= assetVersion %>">
+    <link rel="stylesheet" href="/<%= prefix %>/assets/pages/user-management/css/bundle.css?v=<%= assetVersion %>">
+</head>
+<body class="um-body">
+
+    <!-- ═══════════ Initial login screen ═══════════ -->
+    <div id="loginScreen" class="um-login-screen">
+        <div class="p-card um-login-card">
+            <div class="um-login-brand">
+                <div class="um-login-logo">E</div>
+                <span>ERP IAM Admin</span>
+            </div>
+            <p class="um-login-subtitle">เข้าสู่ระบบจัดการสิทธิ์ผู้ใช้งาน</p>
+            <form id="loginForm" onsubmit="handleInitialLoginSubmit(event)">
+                <div class="p-field">
+                    <label for="loginUsername">ชื่อผู้ใช้งาน</label>
+                    <input type="text" id="loginUsername" class="p-input" required autocomplete="username" autofocus>
+                </div>
+                <div class="p-field">
+                    <label for="loginPassword">รหัสผ่าน</label>
+                    <input type="password" id="loginPassword" class="p-input" required autocomplete="current-password">
+                </div>
+                <p id="loginError" class="auth-modal-error hidden"></p>
+                <button type="submit" class="p-btn p-btn-sky um-login-submit">เข้าสู่ระบบ</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ═══════════ App shell ═══════════ -->
+    <div id="appShell" class="um-shell hidden">
+        <aside class="um-sidebar">
+            <div class="um-sidebar-brand">
+                <div class="um-login-logo">E</div>
+                <span>ERP IAM</span>
+            </div>
+
+            <nav class="um-sidebar-nav">
+                <p class="um-nav-group-label">หน้าหลัก</p>
+                <a href="#" class="um-nav-item" data-view="dashboard" data-permission="page:view_dashboard" onclick="switchView('dashboard', this)">
+                    <i data-lucide="layout-dashboard"></i><span>แดชบอร์ด</span>
+                </a>
+
+                <p class="um-nav-group-label">การจัดการ</p>
+                <a href="#" class="um-nav-item active" data-view="users" data-permission="page:view_users" onclick="switchView('users', this)">
+                    <i data-lucide="users"></i><span>จัดการผู้ใช้งาน</span>
+                </a>
+                <a href="#" id="nav-roles" class="um-nav-item" data-view="roles" data-permission="page:view_roles" onclick="switchView('roles', this)">
+                    <i data-lucide="shield-check"></i><span>สิทธิ์การใช้งาน (Roles)</span>
+                </a>
+                <a href="#" id="nav-policies" class="um-nav-item" data-view="policies" data-permission="page:view_policies" onclick="switchView('policies', this)">
+                    <i data-lucide="key"></i><span>นโยบายความปลอดภัย</span>
+                </a>
+
+                <p class="um-nav-group-label">รายงาน</p>
+                <a href="#" class="um-nav-item" data-view="audit" data-permission="page:view_audit" onclick="switchView('audit', this)">
+                    <i data-lucide="activity"></i><span>บันทึกการใช้งาน (Audit)</span>
+                </a>
+                <a href="#" class="um-nav-item" data-view="settings" data-permission="page:view_settings" onclick="switchView('settings', this)">
+                    <i data-lucide="settings"></i><span>ตั้งค่าระบบ</span>
+                </a>
+            </nav>
+
+            <div class="um-sidebar-footer">
+                <div class="um-sidebar-user">
+                    <div class="um-sidebar-user-avatar"><i data-lucide="user"></i></div>
+                    <div class="um-sidebar-user-info">
+                        <p id="currentLoginName">-</p>
+                        <p id="currentLoginRole">-</p>
+                    </div>
+                    <button type="button" class="um-icon-btn" onclick="handleLogout()" title="ออกจากระบบ"><i data-lucide="log-out"></i></button>
+                </div>
+            </div>
+        </aside>
+
+        <main class="um-main">
+            <header class="um-topbar">
+                <h1 id="pageTitle">จัดการผู้ใช้งาน</h1>
+                <div class="um-topbar-right">
+                    <input type="text" id="globalSearch" class="p-input um-search-input" placeholder="ค้นหาด่วน (ชื่อ, username, อีเมล)...">
+                </div>
+            </header>
+
+            <div class="um-content">
+
+                <!-- VIEW: Dashboard -->
+                <section id="view-dashboard" class="um-view">
+                    <div class="page-header"><h1>ภาพรวมระบบ (Dashboard)</h1></div>
+                    <div class="stats-grid" id="dashboardStats"></div>
+                    <div class="p-card um-graph-placeholder" data-permission="component:widget_login_graph">
+                        <p>พื้นที่สำหรับแสดงกราฟการเข้าใช้งาน (Login Analytics Graph)</p>
+                    </div>
+                </section>
+
+                <!-- VIEW: Users -->
+                <section id="view-users" class="um-view active">
+                    <div class="um-toolbar">
+                        <div class="um-toolbar-left">
+                            <button type="button" class="p-btn p-btn-sky" data-permission="component:btn_add_user" onclick="openUserFormModal()">
+                                <i data-lucide="plus"></i><span>เพิ่มบุคลากร</span>
+                            </button>
+                            <button type="button" class="p-btn" data-permission="component:btn_export_users" onclick="exportUsersJson()">
+                                <i data-lucide="download"></i><span>Export JSON</span>
+                            </button>
+                        </div>
+                        <input type="text" id="filterDept" class="p-input um-filter-input" placeholder="กรองตามแผนก (Department)...">
+                    </div>
+
+                    <div class="p-card um-table-card">
+                        <table class="p-table">
+                            <thead>
+                                <tr>
+                                    <th>ผู้ใช้งาน</th>
+                                    <th>รหัสพนักงาน</th>
+                                    <th>แผนก</th>
+                                    <th>บทบาท</th>
+                                    <th>สถานะ</th>
+                                    <th class="um-th-right">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="userTableBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- VIEW: Roles -->
+                <section id="view-roles" class="um-view">
+                    <div class="um-toolbar">
+                        <h2 class="um-view-title">บทบาทระบบ (System Roles)</h2>
+                        <button type="button" class="p-btn p-btn-sky" data-permission="role:create" onclick="openRoleForm(null, document.getElementById('nav-roles'))">
+                            <i data-lucide="plus"></i><span>สร้าง Role</span>
+                        </button>
+                    </div>
+                    <div class="p-card um-table-card">
+                        <table class="p-table">
+                            <thead>
+                                <tr>
+                                    <th>Role</th>
+                                    <th>คำอธิบาย</th>
+                                    <th>Role ID</th>
+                                    <th class="um-th-right">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="roleTableBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- VIEW: Role form -->
+                <section id="view-role-form" class="um-view">
+                    <div class="um-form-header">
+                        <button type="button" class="um-icon-btn" onclick="switchView('roles', document.getElementById('nav-roles'))"><i data-lucide="arrow-left"></i></button>
+                        <div>
+                            <h2 id="roleFormTitle" class="um-view-title">สร้างบทบาทใหม่ (Create Role)</h2>
+                            <p class="um-view-subtitle">กำหนดรายละเอียดบทบาทและแนบนโยบายความปลอดภัย</p>
+                        </div>
+                    </div>
+
+                    <form id="roleForm" onsubmit="handleRoleFormSubmit(event)">
+                        <div class="p-card um-form-section">
+                            <div class="um-form-grid">
+                                <div class="p-field">
+                                    <label for="frmRoleCode">รหัสบทบาท (Role Code) <span class="required">*</span></label>
+                                    <input type="text" id="frmRoleCode" class="p-input um-mono-input" required placeholder="เช่น ROLE_WAREHOUSE_MANAGER">
+                                </div>
+                                <div class="p-field">
+                                    <label for="frmRoleNameTh">ชื่อบทบาท (ไทย) <span class="required">*</span></label>
+                                    <input type="text" id="frmRoleNameTh" class="p-input" required>
+                                </div>
+                                <div class="p-field">
+                                    <label for="frmRoleNameEn">ชื่อบทบาท (English) <span class="required">*</span></label>
+                                    <input type="text" id="frmRoleNameEn" class="p-input" required>
+                                </div>
+                                <div class="p-field um-field-span-2">
+                                    <label for="frmRoleDescription">คำอธิบาย</label>
+                                    <textarea id="frmRoleDescription" class="p-textarea" rows="2"></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="p-card um-form-section">
+                            <h3 class="um-section-title">เลือกนโยบายความปลอดภัย (Attach Policies)</h3>
+                            <div id="rolePoliciesContainer" class="um-checkbox-grid"></div>
+                        </div>
+
+                        <div class="um-form-actions">
+                            <button type="button" class="p-btn" onclick="switchView('roles', document.getElementById('nav-roles'))">ยกเลิก</button>
+                            <button type="submit" class="p-btn p-btn-sky">บันทึกบทบาท</button>
+                        </div>
+                    </form>
+                </section>
+
+                <!-- VIEW: Policies -->
+                <section id="view-policies" class="um-view">
+                    <div class="um-toolbar">
+                        <h2 class="um-view-title">นโยบายความปลอดภัย (Policies)</h2>
+                        <button type="button" class="p-btn p-btn-lavender" data-permission="policy:create" onclick="openPolicyForm(null, document.getElementById('nav-policies'))">
+                            <i data-lucide="file-json"></i><span>สร้าง Policy ใหม่</span>
+                        </button>
+                    </div>
+                    <div id="policyListContainer" class="um-policy-list"></div>
+                </section>
+
+                <!-- VIEW: Policy form (generator) -->
+                <section id="view-policy-form" class="um-view">
+                    <div class="um-form-header">
+                        <button type="button" class="um-icon-btn" onclick="switchView('policies', document.getElementById('nav-policies'))"><i data-lucide="arrow-left"></i></button>
+                        <div>
+                            <h2 id="policyFormTitle" class="um-view-title">สร้าง Policy ใหม่ (Policy Generator)</h2>
+                            <p class="um-view-subtitle">ครอบคลุมทั้งฝั่ง Frontend (Page/Component) และ Backend (API Resource)</p>
+                        </div>
+                    </div>
+
+                    <form id="policyForm" onsubmit="handlePolicyFormSubmit(event)">
+                        <!-- Step 1 -->
+                        <div class="p-card um-form-section">
+                            <h3 class="um-section-title">Step 1: ข้อมูลพื้นฐาน</h3>
+                            <div class="um-form-grid">
+                                <div class="p-field">
+                                    <label for="frmPolCode">รหัส Policy <span class="required">*</span></label>
+                                    <input type="text" id="frmPolCode" class="p-input um-mono-input" required placeholder="เช่น POL_WAREHOUSE_GOODS_RECEIPT">
+                                </div>
+                                <div class="p-field">
+                                    <label for="frmPolNameTh">ชื่อ (ไทย) <span class="required">*</span></label>
+                                    <input type="text" id="frmPolNameTh" class="p-input" required>
+                                </div>
+                                <div class="p-field">
+                                    <label for="frmPolNameEn">ชื่อ (English) <span class="required">*</span></label>
+                                    <input type="text" id="frmPolNameEn" class="p-input" required>
+                                </div>
+                                <div class="p-field um-field-checkbox">
+                                    <label><input type="checkbox" id="frmPolActive" checked> เปิดใช้งาน (Active)</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 2 -->
+                        <div class="p-card um-form-section um-step2">
+                            <h3 class="um-section-title">Step 2: Add statement(s)</h3>
+                            <p class="um-view-subtitle">กำหนดสิทธิ์ 1 ชุด แล้วกดปุ่ม Add Statement</p>
+
+                            <div class="um-form-grid um-step2-top">
+                                <div class="p-field">
+                                    <label>ผลลัพธ์ (Effect) <span class="required">*</span></label>
+                                    <select id="stmtEffect" class="p-select">
+                                        <option value="allow">✅ อนุญาต (Allow)</option>
+                                        <option value="deny">❌ ปฏิเสธ (Deny)</option>
+                                    </select>
+                                </div>
+                                <div class="p-field um-field-span-2">
+                                    <label>รูปแบบสิทธิ์ (Policy Type) <span class="required">*</span></label>
+                                    <div class="um-type-toggle">
+                                        <button type="button" id="btnTypeUI" class="um-type-toggle-btn active" onclick="setStatementType('ui')"><i data-lucide="layout"></i> User Interface (UI)</button>
+                                        <button type="button" id="btnTypeAPI" class="um-type-toggle-btn" onclick="setStatementType('api')"><i data-lucide="database"></i> Resource (API)</button>
+                                    </div>
+                                    <input type="hidden" id="stmtPlane" value="ui">
+                                </div>
+                            </div>
+
+                            <div class="um-form-grid um-step2-dropdowns">
+                                <div class="um-dropdown-container" id="containerDD1">
+                                    <label id="labelDD1">หน้าจอ (Page) <span class="required">*</span></label>
+                                    <button type="button" class="p-input um-dropdown-trigger" onclick="toggleMultiDropdown('dropdown1')">
+                                        <span id="dd1Label">เลือก Page...</span>
+                                        <i data-lucide="chevron-down"></i>
+                                    </button>
+                                    <div id="dropdown1" class="um-multi-dropdown hidden">
+                                        <div class="um-dropdown-search">
+                                            <input type="text" id="searchDd1" class="p-input" placeholder="ค้นหา..." onkeyup="renderMultiSelect('dd1')">
+                                        </div>
+                                        <div id="dd1OptionsList" class="um-dropdown-list"></div>
+                                    </div>
+                                </div>
+
+                                <div class="um-dropdown-container hidden" id="containerDD2">
+                                    <label>Resource (ทรัพยากร) <span class="required">*</span></label>
+                                    <button type="button" class="p-input um-dropdown-trigger" onclick="toggleMultiDropdown('dropdown2')">
+                                        <span id="dd2Label">เลือก Resource...</span>
+                                        <i data-lucide="chevron-down"></i>
+                                    </button>
+                                    <div id="dropdown2" class="um-multi-dropdown hidden">
+                                        <div class="um-dropdown-search">
+                                            <input type="text" id="searchDd2" class="p-input" placeholder="ค้นหา..." onkeyup="renderMultiSelect('dd2')">
+                                        </div>
+                                        <div id="dd2OptionsList" class="um-dropdown-list"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="um-actions-box">
+                                <div class="um-actions-box-head">
+                                    <label id="actionsLabel">เลือก Components ในหน้าจอ <span class="required">*</span></label>
+                                    <button type="button" class="um-link-btn" onclick="selectAllActions()">เลือกทั้งหมด</button>
+                                </div>
+                                <div id="actionsCheckboxContainer" class="um-actions-box-body">
+                                    <span class="um-muted-note">กรุณาเลือกข้อมูลด้านบนก่อน</span>
+                                </div>
+                            </div>
+
+                            <div class="um-conditions-box">
+                                <div class="um-conditions-head">
+                                    <label>Add conditions (optional)</label>
+                                    <button type="button" class="p-btn p-btn-sm" onclick="addConditionRow()"><i data-lucide="plus-circle"></i> เพิ่มเงื่อนไข</button>
+                                </div>
+                                <div id="conditionBuilderRows" class="um-conditions-rows">
+                                    <div class="um-muted-note um-condition-empty">ไม่ได้ระบุ Condition</div>
+                                </div>
+                            </div>
+
+                            <div class="um-add-statement-row">
+                                <button type="button" class="p-btn p-btn-sky" onclick="addStatementToDraft()"><i data-lucide="plus"></i> Add Statement</button>
+                            </div>
+                        </div>
+
+                        <!-- Step 3 -->
+                        <div class="p-card um-form-section">
+                            <h3 class="um-section-title">Step 3: Statements added (<span id="stmtCountBadge">0</span>)</h3>
+                            <div class="um-table-scroll">
+                                <table class="p-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Effect</th>
+                                            <th>Service(s)</th>
+                                            <th>Resource(s)</th>
+                                            <th>Action(s)</th>
+                                            <th>Condition(s)</th>
+                                            <th class="um-th-right">Remove</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="statementsTableBody">
+                                        <tr><td colspan="6" class="um-empty-cell">ยังไม่มี Statement กรุณาเพิ่มจาก Step 2</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="um-form-actions">
+                            <button type="button" class="p-btn" onclick="switchView('policies', document.getElementById('nav-policies'))">Cancel</button>
+                            <button type="submit" class="p-btn p-btn-lavender">Generate Policy</button>
+                        </div>
+                    </form>
+                </section>
+
+                <!-- VIEW: Audit (placeholder — no backend endpoint) -->
+                <section id="view-audit" class="um-view">
+                    <div class="p-card um-placeholder">
+                        <div class="um-placeholder-icon"><i data-lucide="activity"></i></div>
+                        <h2>Audit Logs</h2>
+                        <p>ยังไม่มี API สำหรับดึงประวัติการใช้งาน</p>
+                    </div>
+                </section>
+
+                <!-- VIEW: Settings (placeholder — no backend endpoint) -->
+                <section id="view-settings" class="um-view">
+                    <div class="p-card um-placeholder">
+                        <div class="um-placeholder-icon"><i data-lucide="settings"></i></div>
+                        <h2>System Settings</h2>
+                        <p>ยังไม่มี API สำหรับตั้งค่าระบบ</p>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal: Add / edit user -->
+    <div id="userFormModal" class="p-modal-overlay hidden">
+        <div class="p-modal-card">
+            <div class="p-modal-head">
+                <h3 id="userFormTitle">เพิ่มบุคลากร</h3>
+                <button type="button" class="um-icon-btn" onclick="closeUserFormModal()"><i data-lucide="x"></i></button>
+            </div>
+            <form id="userForm" onsubmit="handleUserFormSubmit(event)">
+                <div class="p-modal-body">
+                    <div class="p-field">
+                        <label for="frmUsername">ชื่อผู้ใช้งาน (Username) <span class="required">*</span></label>
+                        <input type="text" id="frmUsername" class="p-input" required>
+                    </div>
+                    <div class="p-field">
+                        <label for="frmEmployeeId">รหัสพนักงาน <span class="required">*</span></label>
+                        <input type="text" id="frmEmployeeId" class="p-input" required>
+                    </div>
+                    <div class="p-field">
+                        <label for="frmFullName">ชื่อ-นามสกุล <span class="required">*</span></label>
+                        <input type="text" id="frmFullName" class="p-input" required>
+                    </div>
+                    <div class="p-field">
+                        <label for="frmEmail">อีเมล <span class="required">*</span></label>
+                        <input type="email" id="frmEmail" class="p-input" required>
+                    </div>
+                    <div class="p-field">
+                        <label for="frmDepartment">แผนก/สังกัด</label>
+                        <input type="text" id="frmDepartment" class="p-input">
+                    </div>
+                    <div class="p-field">
+                        <label for="frmStatus">สถานะ</label>
+                        <select id="frmStatus" class="p-select">
+                            <option value="pending">Pending</option>
+                            <option value="active">Active</option>
+                            <option value="suspended">Suspended</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="p-modal-foot">
+                    <button type="button" class="p-btn" onclick="closeUserFormModal()">ยกเลิก</button>
+                    <button type="submit" class="p-btn p-btn-sky">บันทึก</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Assign roles -->
+    <div id="userRolesModal" class="p-modal-overlay hidden">
+        <div class="p-modal-card">
+            <div class="p-modal-head">
+                <h3>จัดการบทบาทผู้ใช้งาน</h3>
+                <button type="button" class="um-icon-btn" onclick="closeUserRolesModal()"><i data-lucide="x"></i></button>
+            </div>
+            <form id="userRolesForm" onsubmit="handleAssignRolesSubmit(event)">
+                <div class="p-modal-body">
+                    <div id="userRolesContainer" class="um-checkbox-grid"></div>
+                </div>
+                <div class="p-modal-foot">
+                    <button type="button" class="p-btn" onclick="closeUserRolesModal()">ยกเลิก</button>
+                    <button type="submit" class="p-btn p-btn-sky">บันทึก</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="toastStack" class="p-toast-stack"></div>
+
+    <!-- Shared auth modal (session-expired re-login) -->
+    <link rel="stylesheet" href="/<%= prefix %>/assets/css/auth-modal.css?v=<%= assetVersion %>">
+    <%- include('../../components/auth-modal') %>
+
+    <!-- Scripts: config -> bundle (order matters) -->
+    <%- include('components/config') %>
+    <script src="/<%= prefix %>/assets/pages/user-management/js/bundle.js?v=<%= assetVersion %>"></script>
+</body>
+</html>

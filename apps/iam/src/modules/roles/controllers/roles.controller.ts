@@ -32,6 +32,7 @@ import {
   ATTACH_POLICIES_SUMMARY,
   CREATE_ROLE_SUMMARY,
   DELETE_ROLE_SUMMARY,
+  GET_ROLE_POLICIES_SUMMARY,
   GET_ROLE_SUMMARY,
   GET_ROLES_SUMMARY,
   ROLE_ID_PARAM_DESCRIPTION,
@@ -101,6 +102,17 @@ export class RolesController extends BaseControllerOperations<
     @CurrentUser() currentUser: IUserSession,
   ): Promise<Role> {
     return super.update(id, updateDTO, currentUser);
+  }
+
+  @Get(':id/policies')
+  @RequirePermission('role:read', { th: 'ดูบทบาท', en: 'View roles' })
+  @ApiOperation({ summary: GET_ROLE_POLICIES_SUMMARY })
+  @ApiParam({ name: 'id', description: ROLE_ID_PARAM_DESCRIPTION })
+  async findPolicies(
+    @Param('id', ParseUuidParamPipe) id: string,
+  ): Promise<{ id: string; policy_ids: string[] }> {
+    const policy_ids = await this.service.findPolicyIds(id);
+    return { id, policy_ids };
   }
 
   @Put(':id/policies')

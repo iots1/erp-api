@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ERP IAM Admin - ระบบจัดการสิทธิ์ผู้ใช้งาน (Identity &amp; Access)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        .sidebar-item:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .sidebar-item.active {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .status-pill {
+            padding: 2px 10px;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-active { background-color: #dcfce7; color: #166534; }
+        .status-pending { background-color: #fef9c3; color: #854d0e; }
+        .status-suspended { background-color: #fee2e2; color: #991b1b; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        
+        /* Hide all views by default except active */
+        .view-section { display: none; }
+        .view-section.active { display: block; }
+
+        /* คลาสสำหรับซ่อน UI Element เมื่อไม่มีสิทธิ์ (ซ่อนแบบถาวร) */
+        .no-permission { display: none !important; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+    <!-- Sidebar -->
+    <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col hidden md:flex shrink-0 transition-all duration-300">
+        <div class="p-6 flex items-center gap-3">
+            <div class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center text-white font-bold">E</div>
+            <span class="text-xl font-bold text-white tracking-wider">ERP IAM</span>
+        </div>
+        
+        <nav class="flex-1 px-4 space-y-1 overflow-y-auto" id="sidebarMenu">
+            <!-- เมนูหลัก ใช้ Resource: page -->
+            <p class="text-xs font-semibold text-slate-500 uppercase px-2 mb-2 menu-group-label" data-permission-group="dashboard">หน้าหลัก</p>
+            <a href="#" onclick="switchView('dashboard', this)" data-permission="page:view_dashboard" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-lg transition-all group">
+                <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                <span>แดชบอร์ด</span>
+            </a>
+            
+            <p class="text-xs font-semibold text-slate-500 uppercase px-2 mt-6 mb-2 menu-group-label" data-permission-group="management">การจัดการ</p>
+            <a href="#" onclick="switchView('users', this)" data-permission="page:view_users" class="sidebar-item active flex items-center gap-3 px-4 py-3 rounded-lg transition-all">
+                <i data-lucide="users" class="w-5 h-5"></i>
+                <span>จัดการผู้ใช้งาน</span>
+            </a>
+            <a href="#" id="nav-roles" onclick="switchView('roles', this)" data-permission="page:view_roles" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-lg transition-all">
+                <i data-lucide="shield-check" class="w-5 h-5"></i>
+                <span>สิทธิ์การใช้งาน (Roles)</span>
+            </a>
+            <a href="#" id="nav-policies" onclick="switchView('policies', this)" data-permission="page:view_policies" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-lg transition-all">
+                <i data-lucide="key" class="w-5 h-5"></i>
+                <span>นโยบายความปลอดภัย</span>
+            </a>
+
+            <p class="text-xs font-semibold text-slate-500 uppercase px-2 mt-6 mb-2 menu-group-label" data-permission-group="reports">รายงาน</p>
+            <a href="#" onclick="switchView('audit', this)" data-permission="page:view_audit" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-lg transition-all">
+                <i data-lucide="activity" class="w-5 h-5"></i>
+                <span>บันทึกการใช้งาน (Audit)</span>
+            </a>
+            <a href="#" onclick="switchView('settings', this)" data-permission="page:view_settings" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-lg transition-all">
+                <i data-lucide="settings" class="w-5 h-5"></i>
+                <span>ตั้งค่าระบบ</span>
+            </a>
+        </nav>
+
+        <div class="p-4 border-t border-slate-800">
+            <div class="flex items-center gap-3 px-2">
+                <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center">
+                    <i data-lucide="user" class="w-4 h-4 text-white"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-white truncate" id="currentLoginName">Admin_Root</p>
+                    <p class="text-xs text-slate-500 truncate" id="currentLoginRole">Super Administrator</p>
+                </div>
+                <button class="hover:text-red-400"><i data-lucide="log-out" class="w-4 h-4"></i></button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden bg-slate-50">
+        
+        <!-- Header -->
+        <header class="h-16 bg-white border-b flex items-center justify-between px-8 shrink-0 shadow-sm z-10">
+            <div class="flex items-center gap-4">
+                <button class="md:hidden p-2 hover:bg-slate-100 rounded-lg">
+                    <i data-lucide="menu"></i>
+                </button>
+                <h1 id="pageTitle" class="text-lg font-semibold text-slate-800">จัดการผู้ใช้งาน</h1>
+            </div>
+            <div class="flex items-center gap-4">
+                
+                <!-- ตัวจำลองสิทธิ์ (JWT Simulator) -->
+                <div class="flex items-center bg-blue-50 rounded-lg px-3 py-1.5 border border-blue-100">
+                    <span class="text-xs text-blue-800 font-semibold mr-2 hidden sm:block">จำลองสิทธิ์ (Mock JWT):</span>
+                    <select id="simulatorRole" onchange="simulateLogin(this.value)" class="bg-transparent text-sm font-bold text-blue-700 focus:outline-none cursor-pointer">
+                        <option value="superadmin">Super Admin (เห็นทุกเมนูและทุก Block)</option>
+                        <option value="dashboard_limited">Manager (เข้าหน้า Dashboard ได้ แต่เห็นแค่ 2 กล่องสถิติ)</option>
+                        <option value="hr">HR / Staff (ซ่อนปุ่มลบ และดูได้แค่เมนู Users)</option>
+                    </select>
+                </div>
+
+                <div class="relative hidden sm:block">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3">
+                        <i data-lucide="search" class="w-4 h-4 text-slate-400"></i>
+                    </span>
+                    <input type="text" id="globalSearch" placeholder="ค้นหาด่วน (ชื่อ, รหัส, อีเมล)..." class="pl-10 pr-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-64 bg-slate-50">
+                </div>
+                <button class="relative p-2 text-slate-500 hover:bg-slate-100 rounded-full">
+                    <i data-lucide="bell" class="w-5 h-5"></i>
+                    <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 border-2 border-white rounded-full"></span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Dynamic Views Area -->
+        <div class="flex-1 overflow-y-auto p-8 relative">
+            
+            <!-- VIEW: Dashboard -->
+            <section id="view-dashboard" class="view-section">
+                <h2 class="text-2xl font-bold text-slate-800 mb-6">ภาพรวมระบบ (Dashboard)</h2>
+                <!-- กล่องสถิติจะถูก Gen ควบคู่กับ data-permission ใน JavaScript -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8" id="dashboardStats">
+                    <!-- Render by JS -->
+                </div>
+                
+                <!-- กล่องกราฟ ก็ถูกผูก data-permission -->
+                <div id="loginGraphBlock" data-permission="component:widget_login_graph" class="bg-white border rounded-xl p-6 shadow-sm flex items-center justify-center h-64 text-slate-400 transition-all">
+                    <p>พื้นที่สำหรับแสดงกราฟการเข้าใช้งาน (Login Analytics Graph)</p>
+                </div>
+            </section>
+
+            <!-- VIEW: Users Management (Default) -->
+            <section id="view-users" class="view-section active">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                    <div class="flex items-center gap-2">
+                        <!-- ปุ่มระดับ Component ถูกคุมสิทธิ์ -->
+                        <button data-permission="component:btn_add_user" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 transition-colors shadow-sm" onclick="toggleModal('addUserModal')">
+                            <i data-lucide="plus" class="w-4 h-4"></i>
+                            <span>เพิ่มบุคลากร</span>
+                        </button>
+                        <button data-permission="component:btn_export_users" class="px-4 py-2 bg-white border text-slate-600 rounded-lg hover:bg-slate-50 flex items-center gap-2">
+                            <i data-lucide="download" class="w-4 h-4"></i>
+                            <span>Export JSON</span>
+                        </button>
+                    </div>
+                    <div class="flex items-center gap-2 w-full sm:w-auto">
+                        <select id="filterDept" class="px-3 py-2 border rounded-lg text-sm bg-white focus:outline-none" onchange="filterUsers()">
+                            <option value="">ทุกแผนก (Department)</option>
+                            <option value="Warehouse">Warehouse</option>
+                            <option value="Purchasing">Purchasing</option>
+                            <option value="Sales">Sales</option>
+                            <option value="Accounting">Accounting</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- User Table -->
+                <div class="bg-white border rounded-xl overflow-hidden shadow-sm">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 border-b text-slate-500 text-xs uppercase font-semibold tracking-wide">
+                                    <th class="px-6 py-4">ผู้ใช้งาน (Username)</th>
+                                    <th class="px-6 py-4">รหัสพนักงาน</th>
+                                    <th class="px-6 py-4">แผนก / คลัง</th>
+                                    <th class="px-6 py-4">บทบาท (Roles)</th>
+                                    <th class="px-6 py-4">สถานะ</th>
+                                    <th class="px-6 py-4 text-right">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="userTableBody" class="divide-y text-slate-700">
+                                <!-- Data will be injected here via JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIEW: Roles -->
+            <section id="view-roles" class="view-section">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-bold text-slate-800">บทบาทระบบ (System Roles)</h2>
+                    <button onclick="switchView('role-form', document.getElementById('nav-roles')); renderRoleForm();" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 shadow-sm transition-colors">
+                        <i data-lucide="plus" class="w-4 h-4"></i> <span>สร้าง Role</span>
+                    </button>
+                </div>
+                <div class="bg-white border rounded-xl overflow-hidden shadow-sm">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b text-slate-500 text-xs uppercase font-semibold tracking-wide">
+                                <th class="px-6 py-4">Role ID / ชื่อบทบาท</th>
+                                <th class="px-6 py-4">จำนวนสมาชิก</th>
+                                <th class="px-6 py-4">Policies ที่ผูกมัด (Attached Policies)</th>
+                                <th class="px-6 py-4 text-right">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="roleTableBody" class="divide-y text-slate-700">
+                            <!-- Render by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- VIEW: Role Form -->
+            <section id="view-role-form" class="view-section">
+                <div class="flex items-center gap-4 mb-6">
+                    <button onclick="switchView('roles', document.getElementById('nav-roles'))" class="p-2 hover:bg-slate-200 rounded-lg text-slate-600 transition-colors">
+                        <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                    </button>
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800">สร้างบทบาทใหม่ (Create Role)</h2>
+                        <p class="text-sm text-slate-500">กำหนดรายละเอียดบทบาทและแนบนโยบายความปลอดภัย (Attach Policies)</p>
+                    </div>
+                </div>
+
+                <form onsubmit="handleRoleSubmit(event)" class="bg-white border rounded-xl shadow-sm overflow-hidden">
+                    <div class="p-6 border-b border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label class="text-sm font-medium text-slate-700">รหัสบทบาท (Role ID) <span class="text-red-500">*</span></label>
+                            <input type="text" id="frmRoleId" required placeholder="เช่น ROLE_WAREHOUSE_MANAGER" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none uppercase font-mono text-sm">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-sm font-medium text-slate-700">ชื่อบทบาท (Role Name) <span class="text-red-500">*</span></label>
+                            <input type="text" id="frmRoleName" required placeholder="เช่น ผู้จัดการคลังสินค้า" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        </div>
+                    </div>
+
+                    <div class="p-6 bg-slate-50">
+                        <h3 class="text-lg font-bold text-slate-800 mb-4">เลือกนโยบายความปลอดภัย (Attach Policies)</h3>
+                        <div id="rolePoliciesContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <!-- Policy Checkboxes will be injected here -->
+                        </div>
+                    </div>
+
+                    <div class="p-6 border-t bg-white flex justify-end gap-3">
+                        <button type="button" onclick="switchView('roles', document.getElementById('nav-roles'))" class="px-6 py-2 border rounded-lg hover:bg-slate-100 text-slate-600 font-medium transition-colors">ยกเลิก</button>
+                        <button type="submit" class="px-8 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors shadow-sm">บันทึกบทบาท</button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- VIEW: Policies -->
+            <section id="view-policies" class="view-section">
+                 <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-bold text-slate-800">นโยบายความปลอดภัย (Policies)</h2>
+                    <button onclick="switchView('policy-form', document.getElementById('nav-policies')); renderPolicyForm();" class="px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 flex items-center gap-2">
+                        <i data-lucide="file-json" class="w-4 h-4"></i> <span>สร้าง Policy ใหม่</span>
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 gap-4" id="policyListContainer">
+                    <!-- Render by JS -->
+                </div>
+            </section>
+
+            <!-- VIEW: Policy Form (THE FULL GENERATOR) -->
+            <section id="view-policy-form" class="view-section">
+                <div class="flex items-center gap-4 mb-6">
+                    <button onclick="switchView('policies', document.getElementById('nav-policies'))" class="p-2 hover:bg-slate-200 rounded-lg text-slate-600 transition-colors">
+                        <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                    </button>
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800">สร้าง Policy ใหม่ (Policy Generator)</h2>
+                        <p class="text-sm text-slate-500">สร้างนโยบายความปลอดภัย ครอบคลุมทั้งฝั่ง Frontend (Page/Component) และ Backend (API Resource)</p>
+                    </div>
+                </div>
+
+                <form onsubmit="handlePolicySubmit(event)" class="space-y-6">
+                    
+                    <!-- STEP 1: Basic Info -->
+                    <div class="bg-white border rounded-xl shadow-sm overflow-hidden">
+                        <div class="bg-slate-800 px-6 py-4">
+                            <h3 class="text-lg font-bold text-white">Step 1: ข้อมูลพื้นฐาน (Basic Information)</h3>
+                        </div>
+                        <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="text-sm font-medium text-slate-700">ชื่อ Policy <span class="text-red-500">*</span></label>
+                                <input type="text" id="frmPolName" required placeholder="เช่น WarehouseManagerGoodsReceiptAccess" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-sm font-medium text-slate-700">คำอธิบาย (Description) <span class="text-red-500">*</span></label>
+                                <input type="text" id="frmPolDesc" required placeholder="อนุญาตให้บันทึกและยืนยันใบรับสินค้าเข้าคลัง" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- STEP 2: Add Statement(s) -->
+                    <div class="bg-white border rounded-xl shadow-sm overflow-hidden border-blue-100">
+                        <div class="bg-blue-50 border-b border-blue-100 px-6 py-4">
+                            <h3 class="text-lg font-bold text-blue-900">Step 2: Add statement(s)</h3>
+                            <p class="text-sm text-blue-700">กำหนดสิทธิ์ 1 ชุด (เลือก Service > Resource > Action > Condition) แล้วกดปุ่ม Add Statement</p>
+                        </div>
+                        <div class="p-6 space-y-6">
+                            
+                            <!-- Type Selection: UI vs API -->
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 border-b pb-6">
+                                <div class="space-y-2 relative z-0">
+                                    <label class="text-sm font-medium text-slate-700 block mb-2">ผลลัพธ์ (Effect) <span class="text-red-500">*</span></label>
+                                    <select id="stmtEffect" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white font-medium shadow-sm">
+                                        <option value="Allow" class="text-emerald-600">✅ อนุญาต (Allow)</option>
+                                        <option value="Deny" class="text-red-600">❌ ปฏิเสธ (Deny)</option>
+                                    </select>
+                                </div>
+                                <div class="md:col-span-2 space-y-2">
+                                    <label class="text-sm font-medium text-slate-700 block mb-2">รูปแบบสิทธิ์ (Policy Type) <span class="text-red-500">*</span></label>
+                                    <div class="flex bg-slate-200 p-1 rounded-lg w-fit shadow-inner">
+                                        <button type="button" id="btnTypeUI" onclick="setType('UI')" class="px-5 py-1.5 rounded-md text-sm font-bold bg-white shadow-sm text-blue-700 transition-all flex items-center gap-2">
+                                            <i data-lucide="layout" class="w-4 h-4"></i> User Interface (UI)
+                                        </button>
+                                        <button type="button" id="btnTypeAPI" onclick="setType('API')" class="px-5 py-1.5 rounded-md text-sm font-bold text-slate-500 hover:text-slate-700 transition-all flex items-center gap-2">
+                                            <i data-lucide="database" class="w-4 h-4"></i> Resource (API)
+                                        </button>
+                                    </div>
+                                    <input type="hidden" id="stmtType" value="UI">
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                                <!-- Dropdown 1 (Service / Page) -->
+                                <div class="space-y-2 relative z-30 dropdown-container" id="containerDD1">
+                                    <label id="labelDD1" class="text-sm font-medium text-slate-700 block mb-2">หน้าจอ (Page) <span class="text-red-500">*</span></label>
+                                    <button type="button" onclick="toggleMultiDropdown('dropdown1')" class="w-full px-4 py-2 text-left bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none flex justify-between items-center shadow-sm">
+                                        <span id="dd1Label" class="text-slate-400 font-normal truncate pr-2">เลือก Page...</span>
+                                        <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 shrink-0"></i>
+                                    </button>
+                                    <div id="dropdown1" class="multi-dropdown absolute w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl hidden">
+                                        <div class="p-2 border-b bg-slate-50 rounded-t-lg">
+                                            <div class="relative">
+                                                <i data-lucide="search" class="absolute left-2.5 top-2.5 w-4 h-4 text-slate-400"></i>
+                                                <input type="text" id="searchdd1" onkeyup="renderMultiSelect('dd1')" placeholder="ค้นหา Page..." class="w-full pl-8 pr-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:border-blue-500">
+                                            </div>
+                                        </div>
+                                        <div class="max-h-48 overflow-y-auto" id="dd1OptionsList"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Dropdown 2 (Resource - ONLY for API) -->
+                                <div class="space-y-2 relative z-20 dropdown-container" id="containerDD2" style="display: none;">
+                                    <label class="text-sm font-medium text-slate-700 block mb-2">Resource (ทรัพยากร) <span class="text-red-500">*</span></label>
+                                    <button type="button" onclick="toggleMultiDropdown('dropdown2')" class="w-full px-4 py-2 text-left bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none flex justify-between items-center shadow-sm">
+                                        <span id="dd2Label" class="text-slate-400 font-normal truncate pr-2">เลือก Resource...</span>
+                                        <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 shrink-0"></i>
+                                    </button>
+                                    <div id="dropdown2" class="multi-dropdown absolute w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl hidden">
+                                        <div class="p-2 border-b bg-slate-50 rounded-t-lg">
+                                            <div class="relative">
+                                                <i data-lucide="search" class="absolute left-2.5 top-2.5 w-4 h-4 text-slate-400"></i>
+                                                <input type="text" id="searchdd2" onkeyup="renderMultiSelect('dd2')" placeholder="ค้นหา Resource..." class="w-full pl-8 pr-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:border-blue-500">
+                                            </div>
+                                        </div>
+                                        <div class="max-h-48 overflow-y-auto" id="dd2OptionsList"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Actions (Dynamic based on UI Page or API Resource) -->
+                            <div class="space-y-3 p-4 bg-slate-50 border rounded-xl shadow-inner mt-4 relative z-0">
+                                <div class="flex items-center justify-between border-b pb-2">
+                                    <label id="actionsLabel" class="text-sm font-medium text-slate-700">เลือก Components ในหน้าจอ <span class="text-red-500">*</span></label>
+                                    <button type="button" onclick="selectAllActions()" class="text-xs font-semibold text-blue-600 hover:text-blue-800">เลือกทั้งหมด</button>
+                                </div>
+                                <div id="actionsCheckboxContainer" class="flex flex-col gap-4 mt-4">
+                                    <span class="text-sm text-slate-500 italic">กรุณาเลือกข้อมูลด้านบนก่อน</span>
+                                </div>
+                            </div>
+
+                            <!-- Conditions Builder -->
+                            <div class="space-y-3 pt-2 relative z-0">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <label class="text-sm font-medium text-slate-700">Add conditions (optional)</label>
+                                    </div>
+                                    <button type="button" onclick="addConditionRow()" class="px-3 py-1.5 bg-white border border-slate-300 text-slate-700 text-sm rounded hover:bg-slate-50 flex items-center gap-1.5 transition-colors shadow-sm font-medium">
+                                        <i data-lucide="plus-circle" class="w-4 h-4 text-blue-600"></i> เพิ่มเงื่อนไข
+                                    </button>
+                                </div>
+                                <div id="conditionBuilderRows" class="space-y-3 bg-white p-4 border rounded-xl min-h-[80px] flex flex-col justify-center border-dashed border-slate-300">
+                                    <div id="emptyConditionMsg" class="text-center text-slate-400 text-sm py-4">ไม่ได้ระบุ Condition</div>
+                                </div>
+                            </div>
+
+                            <!-- Add Statement Button -->
+                            <div class="pt-4 flex justify-end border-t mt-4">
+                                <button type="button" onclick="addStatementToPolicy()" class="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors flex items-center gap-2 shadow-sm">
+                                    <i data-lucide="plus" class="w-4 h-4"></i> Add Statement
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- STEP 3: Statements Added -->
+                    <div class="bg-white border rounded-xl shadow-sm overflow-hidden">
+                        <div class="bg-slate-50 border-b px-6 py-4 flex items-center justify-between">
+                            <h3 class="text-lg font-bold text-slate-800">Step 3: Statements added (<span id="stmtCountBadge" class="text-blue-600">0</span>)</h3>
+                        </div>
+                        <div class="p-0 overflow-x-auto">
+                            <table class="w-full text-left border-collapse text-sm">
+                                <thead>
+                                    <tr class="bg-slate-100 border-b text-slate-600 font-semibold uppercase text-xs">
+                                        <th class="px-4 py-3">Effect</th>
+                                        <th class="px-4 py-3">Service(s) / Type</th>
+                                        <th class="px-4 py-3">Resource(s) / Page</th>
+                                        <th class="px-4 py-3 min-w-[250px]">Action(s) / Component(s)</th>
+                                        <th class="px-4 py-3 min-w-[200px]">Condition(s)</th>
+                                        <th class="px-4 py-3 text-right">Remove</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="statementsTableBody" class="divide-y text-slate-700 bg-white">
+                                    <tr id="emptyStatementsMsg">
+                                        <td colspan="6" class="px-4 py-8 text-center text-slate-500">ยังไม่มี Statement กรุณาเพิ่มจาก Step 2</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Submit Policy -->
+                    <div class="pt-4 flex justify-end gap-3">
+                        <button type="button" onclick="switchView('policies', document.getElementById('nav-policies'))" class="px-6 py-2 border rounded-lg hover:bg-slate-100 text-slate-600 font-medium transition-colors bg-white">Cancel</button>
+                        <button type="submit" class="px-8 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 font-medium transition-colors shadow-md">Generate Policy</button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- VIEW: Audit / Settings (Placeholders) -->
+            <section id="view-audit" class="view-section">
+                <div class="bg-white border rounded-xl p-10 shadow-sm text-center">
+                    <div class="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4"><i data-lucide="activity" class="w-8 h-8"></i></div>
+                    <h2 class="text-2xl font-bold text-slate-800 mb-2">Audit Logs</h2>
+                    <p class="text-slate-500">ประวัติการเข้าใช้งาน</p>
+                </div>
+            </section>
+            
+            <section id="view-settings" class="view-section">
+                 <div class="bg-white border rounded-xl p-10 shadow-sm text-center">
+                    <div class="w-16 h-16 bg-slate-100 text-slate-500 rounded-full flex items-center justify-center mx-auto mb-4"><i data-lucide="settings" class="w-8 h-8"></i></div>
+                    <h2 class="text-2xl font-bold text-slate-800 mb-2">System Settings</h2>
+                    <p class="text-slate-500">ตั้งค่าระบบ IAM</p>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Modal: Add User -->
+    <div id="addUserModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden transform scale-95 transition-transform duration-300">
+            <div class="p-6 border-b flex items-center justify-between">
+                <h3 class="text-xl font-bold text-slate-800">เพิ่มบุคลากร</h3>
+                <button type="button" onclick="toggleModal('addUserModal')" class="p-2 hover:bg-slate-100 rounded-full text-slate-400"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form class="p-6" onsubmit="handleUserSubmit(event)">
+                <div class="mb-4"><label class="text-sm font-medium text-slate-700">ชื่อผู้ใช้งาน</label><input type="text" id="frmUsername" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 mt-1"></div>
+                <div class="mb-6"><label class="text-sm font-medium text-slate-700">บทบาทหลัก</label>
+                    <select id="frmRole" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 mt-1 bg-white">
+                        <option value="ROLE_WAREHOUSE_MANAGER">Warehouse Manager</option><option value="ROLE_PURCHASING_STAFF">Purchasing Staff</option>
+                    </select>
+                </div>
+                <div class="flex gap-3">
+                    <button type="button" onclick="toggleModal('addUserModal')" class="flex-1 px-4 py-2 border rounded-lg text-slate-600">ยกเลิก</button>
+                    <button type="submit" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg">บันทึก</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- =============== JAVASCRIPT & MOCK DATA =============== -->
+    <script>
+        // 1. Mock Data Dictionary
+        const mockApiData = {
+            users: [
+                { id: "USR001", username: "warehouse.somchai", full_name: "สมชาย คลังสมบูรณ์", employee_id: "EMP2024001", department: "Warehouse", warehouse: "WH-MAIN", email: "somchai@erp-system.th", status: "active", roles: ["ROLE_WAREHOUSE_MANAGER"] },
+                { id: "USR002", username: "purchasing.somying", full_name: "สมหญิง จัดซื้อดี", employee_id: "EMP2024050", department: "Purchasing", warehouse: "WH-MAIN", email: "somying@erp-system.th", status: "active", roles: ["ROLE_PURCHASING_STAFF"] }
+            ],
+            roles: [
+                { id: "ROLE_WAREHOUSE_MANAGER", name: "Warehouse Manager", description: "ผู้จัดการคลังสินค้า อนุมัติรับ/จ่ายสินค้าและปรับสต็อก", userCount: 12, policies: ["POL_WAREHOUSE_GOODS_RECEIPT"] }
+            ],
+            policies: [
+                { id: "POL_WAREHOUSE_GOODS_RECEIPT", name: "Warehouse Manager - Goods Receipt Access", description: "อนุญาตให้บันทึกและยืนยันใบรับสินค้าเข้าคลังของสาขาตนเอง", effect: "Allow", type: "Condition Based" }
+            ]
+        };
+
+        // 🌟 Data Structure ใหม่: แยกอิสระระหว่าง API และ UI
+        const stmtOptions = {
+            api_services: [
+                { id: "inventory-bc", label: "inventory-bc (คลังสินค้า / API)" },
+                { id: "supplier-bc", label: "supplier-bc (จัดซื้อ / API)" },
+                { id: "sales-bc", label: "sales-bc (งานขาย / API)" },
+                { id: "system-admin", label: "system-admin (ระบบบริหารจัดการหลัก)" }
+            ],
+            api_resources: [
+                { id: "goods_receipt", label: "goods_receipt (ใบรับสินค้าเข้าคลัง)" },
+                { id: "purchase_order", label: "purchase_order (ใบสั่งซื้อ)" },
+                { id: "customer", label: "customer (ข้อมูลลูกค้า)" },
+                { id: "user_account", label: "user_account (บัญชีผู้ใช้งานระบบ)" },
+                { id: "system_config", label: "system_config (การตั้งค่าระบบ)" }
+            ],
+            ui_pages: [
+                { id: "page_dashboard", label: "หน้าแดชบอร์ด (Dashboard)" },
+                { id: "page_users", label: "หน้าจัดการผู้ใช้งาน (Users)" },
+                { id: "page_roles", label: "หน้าสิทธิ์การใช้งาน (Roles)" },
+                { id: "page_policies", label: "หน้านโยบายความปลอดภัย (Policies)" },
+                { id: "page_audit", label: "หน้าบันทึกการใช้งาน (Audit Logs)" },
+                { id: "page_settings", label: "หน้าตั้งค่าระบบ (Settings)" }
+            ]
+        };
+
+        const apiActionDictionary = {
+            "goods_receipt": [
+                { permission: "goods_receipt:read", permission_name_th: "ดูรายการใบรับสินค้าเข้าคลัง", permission_name_en: "View goods receipt" },
+                { permission: "goods_receipt:create", permission_name_th: "สร้างใบรับสินค้า (Draft)", permission_name_en: "Create goods receipt" },
+                { permission: "goods_receipt:submit", permission_name_th: "ยืนยันรับสินค้า (Submit → สร้าง Lot)", permission_name_en: "Submit goods receipt" },
+                { permission: "goods_receipt:cancel", permission_name_th: "ยกเลิกใบรับสินค้า", permission_name_en: "Cancel goods receipt" }
+            ],
+            "purchase_order": [
+                { permission: "purchase_order:read", permission_name_th: "ดูใบสั่งซื้อ", permission_name_en: "View purchase orders" },
+                { permission: "purchase_order:create", permission_name_th: "สร้างใบสั่งซื้อใหม่", permission_name_en: "Create purchase order" },
+                { permission: "purchase_order:approve", permission_name_th: "อนุมัติใบสั่งซื้อ", permission_name_en: "Approve purchase order" }
+            ],
+            "customer": [
+                { permission: "customer:read", permission_name_th: "ดูข้อมูลลูกค้า", permission_name_en: "View customer" },
+                { permission: "customer:edit", permission_name_th: "แก้ไขข้อมูลลูกค้า", permission_name_en: "Edit customer" },
+                { permission: "customer:delete", permission_name_th: "ลบข้อมูลลูกค้า", permission_name_en: "Delete customer" }
+            ],
+            "user_account": [
+                { permission: "user_account:read", permission_name_th: "ดูข้อมูลบัญชีผู้ใช้งาน", permission_name_en: "View user accounts" },
+                { permission: "user_account:create", permission_name_th: "สร้างบัญชีใหม่", permission_name_en: "Create user account" },
+                { permission: "user_account:assign_role", permission_name_th: "กำหนดบทบาทสิทธิ์ (Assign Roles)", permission_name_en: "Assign roles" }
+            ],
+            "system_config": [
+                { permission: "system_config:read", permission_name_th: "ดูการตั้งค่าระบบ (Read-only)", permission_name_en: "View configs" },
+                { permission: "system_config:update", permission_name_th: "แก้ไขการตั้งค่าระบบหลัก", permission_name_en: "Update configs" }
+            ]
+        };
+
+        const uiActionDictionary = {
+            "page_dashboard": [
+                { permission: "page:view_dashboard", permission_name_th: "✅ สิทธิ์การเข้าถึงหน้าแดชบอร์ด", permission_name_en: "Access Dashboard Page" },
+                { permission: "component:widget_total_users", permission_name_th: "มองเห็นกล่องสถิติ: บุคลากรทั้งหมด", permission_name_en: "View Total Users Widget" },
+                { permission: "component:widget_total_roles", permission_name_th: "มองเห็นกล่องสถิติ: Roles ในระบบ", permission_name_en: "View Total Roles Widget" },
+                { permission: "component:widget_active_policies", permission_name_th: "มองเห็นกล่องสถิติ: Policies เปิดใช้งาน", permission_name_en: "View Active Policies Widget" },
+                { permission: "component:widget_login_graph", permission_name_th: "มองเห็นกราฟการเข้าใช้งาน", permission_name_en: "View Login Graph" }
+            ],
+            "page_users": [
+                { permission: "page:view_users", permission_name_th: "✅ สิทธิ์การเข้าถึงหน้าจัดการผู้ใช้งาน", permission_name_en: "Access Users Page" },
+                { permission: "component:btn_add_user", permission_name_th: "มองเห็นปุ่ม: เพิ่มบุคลากร", permission_name_en: "View Add User Button" },
+                { permission: "component:btn_export_users", permission_name_th: "มองเห็นปุ่ม: Export JSON", permission_name_en: "View Export Users Button" }
+            ],
+            "page_roles": [
+                { permission: "page:view_roles", permission_name_th: "✅ สิทธิ์การเข้าถึงหน้าสิทธิ์การใช้งาน (Roles)", permission_name_en: "Access Roles Page" }
+            ],
+            "page_policies": [
+                { permission: "page:view_policies", permission_name_th: "✅ สิทธิ์การเข้าถึงหน้านโยบายความปลอดภัย", permission_name_en: "Access Policies Page" }
+            ],
+            "page_audit": [
+                { permission: "page:view_audit", permission_name_th: "✅ สิทธิ์การเข้าถึงหน้าบันทึกการใช้งาน (Audit)", permission_name_en: "Access Audit Page" }
+            ],
+            "page_settings": [
+                { permission: "page:view_settings", permission_name_th: "✅ สิทธิ์การเข้าถึงหน้าตั้งค่าระบบ (Settings)", permission_name_en: "Access Settings Page" }
+            ]
+        };
+
+        // 2. Mock JWT Simulation
+        const mockJwtPermissions = {
+            superadmin: {
+                name: "Admin_Root", roleTitle: "Super Administrator",
+                permissions: [
+                    "page:view_dashboard", "page:view_users", "page:view_roles", "page:view_policies", "page:view_audit", "page:view_settings",
+                    "component:widget_total_users", "component:widget_total_roles", "component:widget_active_policies", "component:widget_login_graph",
+                    "component:btn_add_user", "component:btn_export_users",
+                    "goods_receipt:create", "goods_receipt:read"
+                ]
+            },
+            dashboard_limited: {
+                name: "วิชัย ผู้จัดการ", roleTitle: "Manager (เห็นแค่บาง Block)",
+                permissions: [
+                    "page:view_dashboard", "page:view_users",
+                    // เห็นแค่กล่องสถิติ 2 กล่อง กราฟจะไม่เห็น
+                    "component:widget_total_users", "component:widget_total_roles",
+                    "component:btn_export_users"
+                ]
+            },
+            hr: {
+                name: "สมศรี ฝ่ายบุคคล", roleTitle: "HR Staff",
+                permissions: [
+                    "page:view_users", // เข้าได้แค่เมนู User
+                    "component:widget_total_users", "component:btn_add_user"
+                ]
+            }
+        };
+
+        function simulateLogin(roleKey) {
+            const userState = mockJwtPermissions[roleKey];
+            document.getElementById('currentLoginName').innerText = userState.name;
+            document.getElementById('currentLoginRole').innerText = userState.roleTitle;
+
+            const allProtectedElements = document.querySelectorAll('[data-permission]');
+            allProtectedElements.forEach(item => {
+                const requiredPermission = item.getAttribute('data-permission');
+                if (userState.permissions.includes(requiredPermission)) {
+                    item.classList.remove('no-permission');
+                } else {
+                    item.classList.add('no-permission');
+                }
+            });
+
+            document.querySelectorAll('.menu-group-label').forEach(label => {
+                let hasVisibleChild = false;
+                let nextEl = label.nextElementSibling;
+                while(nextEl && nextEl.tagName === 'A') {
+                    if(!nextEl.classList.contains('no-permission')) { hasVisibleChild = true; break; }
+                    nextEl = nextEl.nextElementSibling;
+                }
+                label.style.display = hasVisibleChild ? 'block' : 'none';
+            });
+
+            const firstVisibleMenu = document.querySelector('a.sidebar-item:not(.no-permission)');
+            if(firstVisibleMenu) {
+                const viewId = firstVisibleMenu.getAttribute('onclick').match(/'([^']+)'/)[1];
+                switchView(viewId, firstVisibleMenu);
+            }
+        }
+
+        // 3. UI App Logics
+        let currentUsers = [...mockApiData.users]; 
+        let currentPolicyStatements = [];
+        
+        // State ตัวใหม่ที่รองรับ Dropdown แบบ Dynamic
+        let activeType = 'UI'; // เริ่มต้นด้วยหน้า UI
+        const multiSelectState = { dd1: [], dd2: [] }; 
+        
+        let conditionRows = [];
+        let conditionCounter = 0;
+
+        const conditionOperators = [
+            { val: "StringEquals", label: "เท่ากับ (StringEquals)" },
+            { val: "StringNotEquals", label: "ไม่เท่ากับ (StringNotEquals)" },
+            { val: "StringLike", label: "มีคำว่า (StringLike)" },
+            { val: "NumericLessThan", label: "น้อยกว่า (NumericLessThan)" },
+            { val: "NumericGreaterThan", label: "มากกว่า (NumericGreaterThan)" },
+            { val: "DateGreaterThan", label: "เวลาหลัง (DateGreaterThan)" },
+            { val: "DateLessThan", label: "เวลาก่อน (DateLessThan)" },
+            { val: "IpAddress", label: "IP อยู่ในเครือข่าย (IpAddress)" }
+        ];
+
+        const conditionKeys = [
+            { val: "customer.owner_id", label: "ID เจ้าของลูกค้า (owner_id)" },
+            { val: "warehouse.branch_id", label: "รหัสคลัง/สาขาของผู้ใช้งาน (branch_id)" },
+            { val: "goods_receipt.created_by", label: "ผู้บันทึกใบรับสินค้า (created_by)" },
+            { val: "purchase_order.total_amount", label: "มูลค่ารวมใบสั่งซื้อ (total_amount)" },
+            { val: "document.approval_limit", label: "วงเงินอนุมัติเอกสารของผู้ใช้ (approval_limit)" },
+            { val: "context.business_hours", label: "อยู่ในเวลาทำการหรือไม่ (business_hours)" },
+            { val: "aws:CurrentTime", label: "เวลาที่ใช้งาน (CurrentTime)" },
+            { val: "aws:SourceIp", label: "ไอพีแอดเดรส (SourceIp)" }
+        ];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderDashboard(); 
+            lucide.createIcons();
+            renderUsersTable(currentUsers);
+            renderRolesTable();
+            renderPoliciesList();
+            
+            simulateLogin('superadmin'); 
+
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.dropdown-container')) {
+                    document.querySelectorAll('.multi-dropdown').forEach(d => d.classList.add('hidden'));
+                }
+            });
+        });
+
+        function renderDashboard() {
+            const stats = [
+                { permission: "component:widget_total_users", title: "บุคลากรทั้งหมด", val: mockApiData.users.length, icon: "users-round", color: "blue" },
+                { permission: "component:widget_total_roles", title: "Roles ในระบบ", val: mockApiData.roles.length, icon: "shield-check", color: "purple" },
+                { permission: "component:widget_active_policies", title: "Policies เปิดใช้งาน", val: mockApiData.policies.length, icon: "key", color: "emerald" }
+            ];
+            
+            document.getElementById('dashboardStats').innerHTML = stats.map(s => `
+                <div data-permission="${s.permission}" class="bg-white p-6 rounded-xl border shadow-sm transition-all duration-300">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="p-2 bg-${s.color}-50 text-${s.color}-600 rounded-lg"><i data-lucide="${s.icon}" class="w-6 h-6"></i></div>
+                    </div>
+                    <p class="text-slate-500 text-sm">${s.title}</p>
+                    <h3 class="text-2xl font-bold text-slate-800">${s.val}</h3>
+                </div>
+            `).join('');
+        }
+
+        function switchView(viewId, element) {
+            document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('active'));
+            if(element && !element.classList.contains('no-permission')) element.classList.add('active');
+            document.querySelectorAll('.view-section').forEach(sec => sec.classList.remove('active'));
+            document.getElementById(`view-${viewId}`).classList.add('active');
+        }
+
+        function renderUsersTable(usersData) {
+            const tbody = document.getElementById('userTableBody');
+            tbody.innerHTML = usersData.map(user => `
+                <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="px-6 py-4"><p class="font-medium text-slate-900">${user.full_name}</p></td>
+                    <td class="px-6 py-4 text-sm">${user.employee_id}</td>
+                    <td class="px-6 py-4"><p class="text-sm">${user.department}</p></td>
+                    <td class="px-6 py-4"><span class="text-xs px-2 py-1 bg-slate-100 rounded">${user.roles[0]}</span></td>
+                    <td class="px-6 py-4"><span class="status-pill status-active">Active</span></td>
+                    <td class="px-6 py-4 text-right"><button class="text-blue-600"><i data-lucide="edit-3" class="w-4 h-4"></i></button></td>
+                </tr>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function renderRolesTable() {
+            document.getElementById('roleTableBody').innerHTML = mockApiData.roles.map(role => `
+                <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="px-6 py-4"><p class="font-bold text-slate-800">${role.id}</p><p class="text-sm text-slate-600">${role.name}</p></td>
+                    <td class="px-6 py-4 text-sm">${role.userCount} Users</td>
+                    <td class="px-6 py-4 text-xs font-mono text-slate-500">${(role.policies || []).join(', ')}</td>
+                    <td class="px-6 py-4 text-right"><button class="text-sm text-blue-600">แก้ไข</button></td>
+                </tr>
+            `).join('');
+        }
+
+        function renderPoliciesList() {
+            document.getElementById('policyListContainer').innerHTML = mockApiData.policies.map(pol => `
+                <div class="bg-white border rounded-lg p-5 hover:shadow-md">
+                    <h4 class="font-bold text-slate-800">${pol.name}</h4>
+                    <p class="text-sm text-slate-500 font-mono text-xs">${pol.id}</p>
+                </div>
+            `).join('');
+        }
+
+        // เปิดฟอร์มสร้าง Role ใหม่ — เคลียร์ input เดิม แล้ว render checkbox policy ให้เลือกผูกกับ role
+        function renderRoleForm(existingRole = null) {
+            document.getElementById('frmRoleId').value = existingRole?.id || '';
+            document.getElementById('frmRoleName').value = existingRole?.name || '';
+            renderRolePolicyCheckboxes(existingRole?.policies || []);
+        }
+
+        // การ์ด checkbox ให้เลือก policy ที่มีอยู่แล้วมาผูกกับ role (attach)
+        function renderRolePolicyCheckboxes(selectedIds = []) {
+            const container = document.getElementById('rolePoliciesContainer');
+            if (mockApiData.policies.length === 0) {
+                container.innerHTML = `<p class="text-sm text-slate-500 italic">ยังไม่มี Policy ในระบบ — ไปสร้างที่หน้า "นโยบายความปลอดภัย" ก่อน</p>`;
+                return;
+            }
+            container.innerHTML = mockApiData.policies.map(pol => `
+                <label class="flex items-start gap-3 p-4 bg-white border rounded-xl hover:border-blue-400 hover:bg-blue-50 cursor-pointer shadow-sm transition-colors">
+                    <input type="checkbox" name="rolePolicies" value="${pol.id}" ${selectedIds.includes(pol.id) ? 'checked' : ''} class="mt-1 w-4 h-4 rounded text-blue-600">
+                    <div class="flex-1 min-w-0">
+                        <span class="block text-sm font-bold text-slate-800">${pol.name}</span>
+                        <span class="block text-xs font-mono text-slate-500 truncate">${pol.id}</span>
+                        <span class="inline-block mt-1 text-[10px] font-bold px-1.5 py-0.5 rounded ${pol.effect === 'Allow' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}">${pol.effect}</span>
+                    </div>
+                </label>
+            `).join('');
+        }
+
+        // ==========================================
+        // Policy Generator Functions (The Core UI)
+        // ==========================================
+
+        function setType(type) {
+            activeType = type;
+            document.getElementById('stmtType').value = type;
+            
+            // Toggle Button Styles
+            document.getElementById('btnTypeUI').className = type === 'UI' ? 'px-5 py-1.5 rounded-md text-sm font-bold bg-white shadow-sm text-blue-700 transition-all flex items-center gap-2' : 'px-5 py-1.5 rounded-md text-sm font-bold text-slate-500 hover:text-slate-700 transition-all flex items-center gap-2';
+            document.getElementById('btnTypeAPI').className = type === 'API' ? 'px-5 py-1.5 rounded-md text-sm font-bold bg-white shadow-sm text-blue-700 transition-all flex items-center gap-2' : 'px-5 py-1.5 rounded-md text-sm font-bold text-slate-500 hover:text-slate-700 transition-all flex items-center gap-2';
+            
+            // Toggle Visibility & Labels
+            if (type === 'API') {
+                document.getElementById('labelDD1').innerHTML = 'Service (API) <span class="text-red-500">*</span>';
+                document.getElementById('searchdd1').placeholder = 'ค้นหา Service...';
+                document.getElementById('containerDD2').style.display = 'block'; // Show Resource Dropdown
+                document.getElementById('actionsLabel').innerHTML = 'เลือก Actions (สิทธิ์การกระทำ) <span class="text-red-500">*</span>';
+            } else {
+                document.getElementById('labelDD1').innerHTML = 'หน้าจอ (Page) <span class="text-red-500">*</span>';
+                document.getElementById('searchdd1').placeholder = 'ค้นหา Page...';
+                document.getElementById('containerDD2').style.display = 'none'; // Hide Resource Dropdown
+                document.getElementById('actionsLabel').innerHTML = 'เลือก Components ในหน้าจอ <span class="text-red-500">*</span>';
+            }
+            
+            resetStatementForm();
+        }
+
+        function renderPolicyForm() {
+            document.getElementById('frmPolName').value = '';
+            document.getElementById('frmPolDesc').value = '';
+            currentPolicyStatements = [];
+            renderStatementsTable();
+            setType('UI'); // เริ่มที่ UI เป็นค่า Default
+        }
+
+        function resetStatementForm() {
+            document.getElementById('stmtEffect').value = 'Allow';
+            multiSelectState.dd1 = [];
+            multiSelectState.dd2 = [];
+            document.getElementById('searchdd1').value = '';
+            document.getElementById('searchdd2').value = '';
+            
+            renderMultiSelect('dd1');
+            if(activeType === 'API') renderMultiSelect('dd2');
+            
+            conditionRows = [];
+            renderConditions();
+            renderActionCheckboxes(); // เคลียร์ check box เก่า
+        }
+
+        function toggleMultiDropdown(id) {
+            document.querySelectorAll('.multi-dropdown').forEach(d => { if(d.id !== id) d.classList.add('hidden'); });
+            document.getElementById(id).classList.toggle('hidden');
+        }
+
+        // ดึงแหล่งข้อมูล Options ให้ตรงกับ Dropdown และ Type ปัจจุบัน
+        function getCurrentOptions(ddId) {
+            if (ddId === 'dd1') return activeType === 'API' ? stmtOptions.api_services : stmtOptions.ui_pages;
+            return stmtOptions.api_resources;
+        }
+
+        function renderMultiSelect(ddId) {
+            const container = document.getElementById(`${ddId}OptionsList`);
+            const searchInput = document.getElementById(`search${ddId}`).value.toLowerCase();
+            const dataSource = getCurrentOptions(ddId);
+            
+            const filteredOptions = dataSource.filter(opt => opt.label.toLowerCase().includes(searchInput));
+            const isAllSelected = filteredOptions.length > 0 && filteredOptions.every(opt => multiSelectState[ddId].includes(opt.id));
+
+            let html = `
+                <label class="flex items-center gap-2 p-2 hover:bg-slate-100 cursor-pointer border-b sticky top-0 bg-white z-10">
+                    <input type="checkbox" onchange="toggleSelectAllMulti('${ddId}', this.checked)" ${isAllSelected && filteredOptions.length > 0 ? 'checked' : ''} class="w-4 h-4 text-blue-600 rounded">
+                    <span class="text-sm font-bold text-slate-800">เลือกทั้งหมด (Select All)</span>
+                </label>
+            `;
+
+            if(filteredOptions.length === 0) html += `<div class="p-4 text-sm text-slate-500 text-center">ไม่พบข้อมูล</div>`;
+
+            html += filteredOptions.map(opt => `
+                <label class="flex items-center gap-2 p-2 px-3 hover:bg-slate-50 cursor-pointer">
+                    <input type="checkbox" value="${opt.id}" onchange="toggleOptionMulti('${ddId}', '${opt.id}', this.checked)" ${multiSelectState[ddId].includes(opt.id) ? 'checked' : ''} class="w-4 h-4 text-blue-600 rounded">
+                    <span class="text-sm text-slate-700">${opt.label}</span>
+                </label>
+            `).join('');
+
+            container.innerHTML = html;
+            
+            const labelEl = document.getElementById(`${ddId}Label`);
+            const count = multiSelectState[ddId].length;
+            const typeLabel = activeType === 'API' ? (ddId === 'dd1' ? 'Service' : 'Resource') : 'Page';
+            
+            if (count === 0) labelEl.innerText = `เลือก ${typeLabel}...`;
+            else labelEl.innerText = `เลือกแล้ว ${count} รายการ`;
+            labelEl.className = count > 0 ? 'text-blue-700 font-medium truncate pr-2' : 'text-slate-400 font-normal truncate pr-2';
+        }
+
+        function toggleSelectAllMulti(ddId, isChecked) {
+            const filteredOptions = getCurrentOptions(ddId).filter(opt => opt.label.toLowerCase().includes(document.getElementById(`search${ddId}`).value.toLowerCase()));
+            if (isChecked) { filteredOptions.forEach(opt => { if (!multiSelectState[ddId].includes(opt.id)) multiSelectState[ddId].push(opt.id); }); }
+            else { filteredOptions.forEach(opt => { multiSelectState[ddId] = multiSelectState[ddId].filter(id => id !== opt.id); }); }
+            renderMultiSelect(ddId);
+            renderActionCheckboxes(); // อัปเดต Action ตลอดเมื่อมีการเปลี่ยนค่า
+        }
+
+        function toggleOptionMulti(ddId, id, isChecked) {
+            if (isChecked) multiSelectState[ddId].push(id); else multiSelectState[ddId] = multiSelectState[ddId].filter(val => val !== id);
+            renderMultiSelect(ddId);
+            renderActionCheckboxes(); 
+        }
+
+        function renderActionCheckboxes() {
+            const container = document.getElementById('actionsCheckboxContainer');
+            
+            // เช็คว่ามีข้อมูลให้ดึงมาโชว์ไหม (ถ้าเป็น API เช็ค dd2, ถ้าเป็น UI เช็ค dd1)
+            const targetArray = activeType === 'API' ? multiSelectState.dd2 : multiSelectState.dd1;
+            const targetDictionary = activeType === 'API' ? apiActionDictionary : uiActionDictionary;
+            const targetOptions = activeType === 'API' ? stmtOptions.api_resources : stmtOptions.ui_pages;
+
+            if (targetArray.length === 0) {
+                container.innerHTML = `<span class="text-sm text-slate-500 italic">กรุณาเลือกข้อมูลด้านบนก่อน</span>`;
+                return;
+            }
+            
+            let html = '';
+            targetArray.forEach(resId => {
+                const actions = targetDictionary[resId] || [{ permission: `${resId}:*`, permission_name_th: `Full access to ${resId}` }];
+                const resourceLabel = targetOptions.find(r => r.id === resId)?.label || resId;
+                const groupIcon = activeType === 'UI' ? 'layout' : 'folder-key';
+
+                html += `
+                <div class="mb-3 bg-white p-3 rounded-xl border border-slate-200">
+                    <h4 class="text-sm font-bold text-slate-800 mb-3 pb-2 border-b text-blue-700 flex items-center gap-2">
+                        <i data-lucide="${groupIcon}" class="w-4 h-4"></i> ${resourceLabel}
+                    </h4>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                `;
+
+                html += actions.map(act => `
+                    <label class="flex items-start gap-3 p-2 px-3 border rounded-lg hover:border-blue-400 hover:bg-blue-50 cursor-pointer shadow-sm relative group bg-slate-50/50">
+                        <input type="checkbox" name="stmtActions" value='${JSON.stringify(act).replace(/'/g, "&#39;")}' class="mt-1 w-4 h-4 rounded text-blue-600">
+                        <div class="flex-1">
+                            <span class="block text-sm font-bold text-slate-800">${act.permission_name_th}</span>
+                            <span class="block text-[11px] text-slate-500">${act.permission_name_en || act.permission}</span>
+                        </div>
+                    </label>
+                `).join('');
+                html += `</div></div>`; 
+            });
+            container.innerHTML = html;
+            lucide.createIcons();
+        }
+
+        function selectAllActions() {
+            const checkboxes = document.querySelectorAll('input[name="stmtActions"]');
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            checkboxes.forEach(cb => cb.checked = !allChecked);
+        }
+
+        // --- ฟังก์ชันสำหรับจัดการ Condition Builder ---
+        function addConditionRow() {
+            const id = `cond_${conditionCounter++}`;
+            conditionRows.push({ operator: 'StringEquals', key: 'customer.owner_id', value: '${user.id}', id: id });
+            renderConditions();
+        }
+
+        function removeConditionRow(id) {
+            conditionRows = conditionRows.filter(row => row.id !== id);
+            renderConditions();
+        }
+
+        function updateConditionValue(id, field, value) {
+            const row = conditionRows.find(r => r.id === id);
+            if (row) row[field] = value;
+        }
+
+        function renderConditions() {
+            const container = document.getElementById('conditionBuilderRows');
+            const emptyMsg = document.getElementById('emptyConditionMsg');
+            Array.from(container.children).forEach(child => { if (child.id !== 'emptyConditionMsg') child.remove(); });
+
+            if (conditionRows.length === 0) { emptyMsg.style.display = 'block'; return; }
+            emptyMsg.style.display = 'none';
+
+            const opOpts = conditionOperators.map(op => `<option value="${op.val}">${op.label}</option>`).join('');
+            const keyOpts = conditionKeys.map(k => `<option value="${k.val}">${k.label}</option>`).join('');
+
+            conditionRows.forEach((row, index) => {
+                const div = document.createElement('div');
+                div.className = "flex flex-col sm:flex-row items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-lg";
+                const logicBadge = index > 0 ? `<div class="bg-slate-200 text-slate-600 text-[10px] font-bold px-2 py-1 rounded">AND</div>` : `<div class="w-[30px]"></div>`;
+
+                div.innerHTML = `
+                    ${logicBadge}
+                    <div class="flex-1 w-full grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <select onchange="updateConditionValue('${row.id}', 'operator', this.value)" class="w-full text-sm border-slate-300 rounded p-2 focus:ring-blue-500 shadow-sm">${opOpts}</select>
+                        <select onchange="updateConditionValue('${row.id}', 'key', this.value)" class="w-full text-sm border-slate-300 rounded p-2 focus:ring-blue-500 shadow-sm">${keyOpts}</select>
+                        <input type="text" onchange="updateConditionValue('${row.id}', 'value', this.value)" value="${row.value}" placeholder="Value" class="w-full text-sm border-slate-300 rounded p-2 focus:ring-blue-500 shadow-sm font-mono text-blue-700">
+                    </div>
+                    <button type="button" onclick="removeConditionRow('${row.id}')" class="p-2 text-slate-400 hover:text-red-500"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
+                `;
+                div.querySelector(`select[onchange*="'operator'"]`).value = row.operator;
+                div.querySelector(`select[onchange*="'key'"]`).value = row.key;
+                container.appendChild(div);
+            });
+            lucide.createIcons();
+        }
+
+        function compileConditionsToJSON() {
+            if (conditionRows.length === 0) return null;
+            let conditionObj = {};
+            conditionRows.forEach(row => {
+                if (!conditionObj[row.operator]) conditionObj[row.operator] = {};
+                let finalValue = row.value.includes(',') && row.operator === 'IpAddress' ? row.value.split(',').map(s => s.trim()) : row.value;
+                conditionObj[row.operator][row.key] = finalValue;
+            });
+            return conditionObj;
+        }
+        // --- สิ้นสุดการกู้คืนฟังก์ชัน Condition Builder ---
+
+        function addStatementToPolicy() {
+            const effect = document.getElementById('stmtEffect').value;
+            let finalServices, finalResources;
+
+            if (activeType === 'API') {
+                if (multiSelectState.dd1.length === 0 || multiSelectState.dd2.length === 0) { alert("กรุณาเลือก Service และ Resource"); return; }
+                finalServices = multiSelectState.dd1.length === stmtOptions.api_services.length ? ["*"] : [...multiSelectState.dd1];
+                finalResources = multiSelectState.dd2.length === stmtOptions.api_resources.length ? ["*"] : [...multiSelectState.dd2];
+            } else {
+                if (multiSelectState.dd1.length === 0) { alert("กรุณาเลือก หน้าจอ (Page)"); return; }
+                finalServices = ["frontend-ui"]; // Implicit Service สำหรับ UI Component
+                finalResources = multiSelectState.dd1.length === stmtOptions.ui_pages.length ? ["*"] : [...multiSelectState.dd1]; // ส่งชื่อ Page ไปในฐานะ Resource
+            }
+
+            const checkedBoxes = document.querySelectorAll('input[name="stmtActions"]:checked');
+            const actions = Array.from(checkedBoxes).map(cb => JSON.parse(cb.value));
+            if (actions.length === 0) { alert("กรุณาเลือกอย่างน้อย 1 Action/Component"); return; }
+
+            currentPolicyStatements.push({
+                type: activeType, // เก็บ Type ไว้สำหรับโชว์ในตารางด้วย
+                effect: effect,
+                service: finalServices,
+                resource: finalResources,
+                actions: actions,
+                conditions: compileConditionsToJSON()
+            });
+
+            renderStatementsTable();
+            resetStatementForm(); // เคลียร์ฟอร์มเตรียมรับกฎข้อถัดไป
+        }
+
+        function removeStatement(index) {
+            currentPolicyStatements.splice(index, 1);
+            renderStatementsTable();
+        }
+
+        function renderStatementsTable() {
+            const tbody = document.getElementById('statementsTableBody');
+            document.getElementById('stmtCountBadge').innerText = currentPolicyStatements.length;
+
+            if (currentPolicyStatements.length === 0) {
+                tbody.innerHTML = `<tr id="emptyStatementsMsg"><td colspan="6" class="px-4 py-8 text-center text-slate-500">ยังไม่มี Statement</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = currentPolicyStatements.map((stmt, index) => {
+                const effectBadge = stmt.effect === 'Allow' ? `<span class="px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs font-bold">Allow</span>` : `<span class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-bold">Deny</span>`;
+                const typeBadge = stmt.type === 'UI' ? `<span class="bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider ml-1">UI</span>` : `<span class="bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider ml-1">API</span>`;
+
+                const renderArr = (arr) => arr.map(a => `<div class="bg-slate-100 text-slate-700 text-[11px] px-1.5 py-0.5 rounded mb-1 inline-block border">${a}</div>`).join(' ');
+
+                const actionsHtml = stmt.actions.map(a => `
+                    <div class="inline-block bg-white shadow-sm border text-slate-700 text-[11px] px-2 py-1 rounded mr-1 mb-1 font-medium">
+                        <span class="text-blue-600 mr-1 opacity-70">✓</span> ${a.permission_name_th}
+                    </div>
+                `).join('');
+
+                let conditionHtml = `<span class="text-slate-400 italic text-xs">None</span>`;
+                if (stmt.conditions) {
+                    conditionHtml = `<pre class="text-[10px] bg-slate-800 text-green-400 p-2 rounded overflow-x-auto max-w-xs">${JSON.stringify(stmt.conditions, null, 2)}</pre>`;
+                }
+
+                return `
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-4 py-3 align-top">${effectBadge} ${typeBadge}</td>
+                        <td class="px-4 py-3 align-top w-[15%]">${renderArr(stmt.service)}</td>
+                        <td class="px-4 py-3 align-top w-[15%]">${renderArr(stmt.resource)}</td>
+                        <td class="px-4 py-3 align-top w-[35%]">${actionsHtml}</td>
+                        <td class="px-4 py-3 align-top w-[20%]">${conditionHtml}</td>
+                        <td class="px-4 py-3 align-top text-right"><button type="button" onclick="removeStatement(${index})" class="text-xs font-semibold text-red-500 hover:underline">Remove</button></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function handlePolicySubmit(e) {
+            e.preventDefault();
+            if (currentPolicyStatements.length === 0) { alert("ต้องมีอย่างน้อย 1 Statement"); return; }
+            alert("Generate Policy สำเร็จแล้ว ตรวจสอบ Console Log (F12)");
+            switchView('policies', document.getElementById('nav-policies'));
+        }
+
+        function filterUsers() {}
+
+        // เปิด/ปิด modal พร้อม fade + scale — ต้องสลับทั้ง hidden, opacity และ scale ของการ์ดด้านใน
+        // ไม่งั้น modal จะค้างที่ opacity-0 แต่ยังเป็น fixed inset-0 คลุมทั้งจอ บล็อกคลิกทุกอย่างแบบมองไม่เห็น
+        function toggleModal(id) {
+            const overlay = document.getElementById(id);
+            const card = overlay.querySelector(':scope > div');
+            const willOpen = overlay.classList.contains('hidden');
+
+            if (willOpen) {
+                overlay.classList.remove('hidden');
+                // ให้ browser paint สถานะ hidden ก่อน ค่อย trigger transition ไป opacity-100
+                requestAnimationFrame(() => {
+                    overlay.classList.remove('opacity-0');
+                    overlay.classList.add('opacity-100');
+                    card?.classList.remove('scale-95');
+                    card?.classList.add('scale-100');
+                });
+            } else {
+                overlay.classList.remove('opacity-100');
+                overlay.classList.add('opacity-0');
+                card?.classList.remove('scale-100');
+                card?.classList.add('scale-95');
+                setTimeout(() => overlay.classList.add('hidden'), 300);
+            }
+        }
+
+        function handleUserSubmit(e) {
+            e.preventDefault();
+            const username = document.getElementById('frmUsername').value.trim();
+            const roleId = document.getElementById('frmRole').value;
+
+            currentUsers.push({
+                id: `USR${String(currentUsers.length + 1).padStart(3, '0')}`,
+                username, full_name: username, employee_id: '-', department: '-',
+                warehouse: '-', email: '-', status: 'active', roles: [roleId]
+            });
+
+            renderUsersTable(currentUsers);
+            e.target.reset();
+            toggleModal('addUserModal');
+        }
+        function handleRoleSubmit(e) {
+            e.preventDefault();
+            const id = document.getElementById('frmRoleId').value.trim().toUpperCase();
+            const name = document.getElementById('frmRoleName').value.trim();
+            const attachedPolicies = Array.from(document.querySelectorAll('input[name="rolePolicies"]:checked')).map(cb => cb.value);
+
+            const existing = mockApiData.roles.find(r => r.id === id);
+            if (existing) {
+                existing.name = name;
+                existing.policies = attachedPolicies;
+            } else {
+                mockApiData.roles.push({ id, name, description: '', userCount: 0, policies: attachedPolicies });
+            }
+
+            renderRolesTable();
+            switchView('roles', document.getElementById('nav-roles'));
+        }
+    </script>
+</body>
+</html>

@@ -15,6 +15,7 @@ import {
   CurrentUser,
   Public,
   RequirePermission,
+  SkipPermissionCheck,
   type IUserSession,
 } from '@lib/common';
 
@@ -65,6 +66,7 @@ export class AuthController {
   }
 
   @Post('logout')
+  @SkipPermissionCheck()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: LOGOUT_SUMMARY })
   async logout(
@@ -79,6 +81,7 @@ export class AuthController {
   }
 
   @Get('me')
+  @SkipPermissionCheck()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: ME_SUMMARY })
   me(@CurrentUser() currentUser: IUserSession): IUserSession {

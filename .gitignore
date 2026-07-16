@@ -3,6 +3,7 @@
 # ──────────────────────────────────────────────────────────────
 /dist
 /build
+apps/iam/dist/
 node_modules/
 .pnp
 .pnp.js

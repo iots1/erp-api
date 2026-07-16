@@ -1,0 +1,49 @@
+.auth-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 1rem;
+}
+.auth-modal-card {
+  background: var(--surface, #fff);
+  border-radius: 1rem;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.25);
+  width: 100%;
+  max-width: 24rem;
+  padding: 1.5rem;
+}
+.auth-modal-card h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--slate-800, #1e293b);
+}
+.auth-modal-card p {
+  margin: 0 0 1.25rem;
+  font-size: 0.85rem;
+  color: var(--text-muted, #64748b);
+}
+.auth-modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+.auth-modal-field label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--slate-700, #334155);
+}
+.auth-modal-error {
+  font-size: 0.8rem;
+  color: var(--pink-dk, #b91c1c);
+  margin: -0.4rem 0 1rem;
+}
+.auth-modal-submit {
+  width: 100%;
+}
