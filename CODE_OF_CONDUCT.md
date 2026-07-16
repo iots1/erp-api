@@ -44,6 +44,24 @@ ask — do not silently work around it.
   the most specific exception; never `throw new Error(...)` or a bare `new HttpException(...)`.
 - Query params come through `@ValidatedQuery(QueryParamsDTO)`, never plain `@Query()`.
 
+### Migrations
+- Schema changes begin in the **entity**, and the migration is produced by
+  `npm run migration:generate:<bc> --name=<Name>` (TypeORM diffs the entities against the live
+  DB). Hand-writing schema SQL that the generator could emit is a violation — it drifts from the
+  entities and the next generated diff will silently revert it. Always review the generated SQL
+  before committing.
+- Hand-written migrations (`migration:create`) are reserved for what the generator cannot derive:
+  data backfills, seeds, and index/constraint tuning.
+- The filename timestamp is a **real `Date.now()` epoch-ms** (`node -e "console.log(Date.now())"`)
+  — never a fabricated round number or a neighbour's value +1. It is the run order and the
+  `migrations` table key; a fake one collides with or reorders against later work. Class name and
+  the `name` property must match the filename exactly.
+- `synchronize` stays `false` for any BC that has migrations — it applies schema with no
+  migration record and desyncs the `migrations` table from reality.
+- `down()` must genuinely undo `up()`, or the docblock must state plainly why it cannot.
+- A change spanning two BC databases is two migrations, one per DB — never one migration reaching
+  across databases.
+
 ### Cross-context boundaries
 - Database-per-BC. **No cross-database foreign keys, ever.** Reference another BC's entity by
   UUID only.

@@ -153,6 +153,42 @@ the returned value into a **JSON:API** envelope (without the decorator, raw data
   `ui` permissions (`page:*`, `component:*`, frontend `data-permission` attributes) are managed
   manually and the script never touches them.
 
+### Migrations — generate from the entity diff, never hand-write schema
+
+Migrations live in `libs/database/src/migrations/erp_<bc>/` and run per BC
+(`pnpm run migration:run:<bc>`). Each BC has its own `migrations` table, so timestamps only
+need to be ordered *within* a BC.
+
+- **A schema change starts in the entity, not in SQL.** Edit the `*.entity.ts`, then let TypeORM
+  diff the entity against the live database:
+
+  ```bash
+  pnpm run migration:generate:<bc> --name=<DescriptiveName>
+  ```
+
+  Review the generated SQL before committing — the diff is a starting point, not gospel (it can
+  emit destructive `DROP`/re-create for a rename, and it reads whatever state your DB is
+  actually in). Never hand-write a `CREATE TABLE`/`ALTER TABLE` migration that the generator
+  could have produced: hand-written schema drifts from the entities, and the next
+  `migration:generate` silently "corrects" your table back.
+- **`migration:create` (hand-written) is only for what the generator cannot see**: data
+  backfills, seeds, index/constraint tuning, and anything requiring ordered DML.
+- **The filename timestamp must be a real `Date.now()` epoch-ms** — the value TypeORM itself
+  stamps on a generated file. Never invent a round/fake number (`1752800000000`) or copy a
+  neighbouring file's and bump it: the timestamp *is* the run order and the `migrations` table
+  key, so a made-up one reorders or collides against migrations authored later. Hand-created
+  migrations use `node -e "console.log(Date.now())"` for the same value. File is
+  `<epoch_ms>-<PascalCaseName>.ts`; the class is `<PascalCaseName><epoch_ms>` and its `name`
+  property must match the filename exactly.
+- **`synchronize` is never `true` for a BC with migrations** (`auth`, `iam`) — it silently
+  applies entity changes with no migration record and desyncs the `migrations` table from
+  reality.
+- `down()` must undo `up()`. When it genuinely cannot (a seed that truncates pre-existing rows),
+  say so in the docblock rather than leaving a misleading no-op.
+- A seed that spans two BCs must be **two migrations, one per database** (credentials in
+  `erp_auth`, the user profile in `erp_iam`) — no migration may touch another BC's DB. Keep the
+  linking UUIDs in sync and cross-reference the sibling file in both docblocks.
+
 ### Microservice (TCP) calls
 
 - Use `sendWithContext(...)` — the **no-throw** pattern: returns `defaultValue`/`null` on error
