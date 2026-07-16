@@ -55,8 +55,7 @@ export function createJsonApiResponseSchema(
       properties: {
         self: {
           type: 'string',
-          example:
-            'https://api.example.com/business-bc/v1/resource/id',
+          example: 'https://api.example.com/business-bc/v1/resource/id',
         },
       },
     };
@@ -92,8 +91,7 @@ export function createJsonApiResponseSchema(
       properties: {
         self: {
           type: 'string',
-          example:
-            'https://api.example.com/business-bc/v1/resource',
+          example: 'https://api.example.com/business-bc/v1/resource',
         },
       },
     };

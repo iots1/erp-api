@@ -1,0 +1,105 @@
+{
+    "window.commandCenter": true,
+    "cSpell.words": ["meditech", "Meditech", "bullmq", "Notif", "MOIS", "Trihydrate"],
+    "workbench.iconTheme": "material-icon-theme",
+    "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": "always",
+        "source.organizeImports": "never"
+    },
+    "editor.formatOnSave": true,
+    "prettier.requireConfig": true,
+    "files.watcherExclude": {
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "**/node_modules/**": true,
+        "**/dist/**": true
+    },
+    "todo-tree.general.tags": ["TODO", "INFO", "BUG", "REFACTOR", "INHOUSE", "OUTSORUCE"],
+    "todo-tree.highlights.customHighlight": {
+        "TODO": {
+            "icon": "checklist",
+            "type": "line",
+            "foreground": "#1E1E1E",
+            "background": "#2ECC71",
+            "iconColour": "#2ECC71",
+            "rulerColour": "#2ECC71",
+            "rulerLane": "full"
+        },
+        "INFO": {
+            "icon": "info",
+            "type": "line",
+            "foreground": "#FFFFFF",
+            "background": "#3498DB",
+            "iconColour": "#3498DB",
+            "rulerColour": "#3498DB",
+            "rulerLane": "full"
+        },
+        "BUG": {
+            "icon": "bug",
+            "type": "line",
+            "foreground": "#FFFFFF",
+            "background": "#E74C3C",
+            "iconColour": "#E74C3C",
+            "rulerColour": "#d29e98",
+            "rulerLane": "full"
+        },
+        "REFACTOR": {
+            "icon": "tools",
+            "type": "line",
+            "foreground": "#1E1E1E",
+            "background": "#F1C40F",
+            "iconColour": "#F1C40F",
+            "rulerColour": "#F1C40F",
+            "rulerLane": "full"
+        },
+        "INHOUSE": {
+            "icon": "home",
+            "type": "line",
+            "foreground": "#FFFFFF",
+            "background": "#9B59B6",
+            "iconColour": "#9B59B6",
+            "rulerColour": "#9B59B6",
+            "rulerLane": "full"
+        },
+        "OUTSORUCE": {
+            "icon": "globe",
+            "type": "line",
+            "foreground": "#FFFFFF",
+            "background": "#E67E22",
+            "iconColour": "#E67E22",
+            "rulerColour": "#E67E22",
+            "rulerLane": "full"
+        }
+    },
+    "[dart]": {
+        "editor.formatOnSave": true,
+        "editor.formatOnType": true,
+        "editor.rulers": [80],
+        "editor.selectionHighlight": false,
+        "editor.tabCompletion": "onlySnippets",
+        "editor.wordBasedSuggestions": "off"
+    },
+    "dart.devToolsLocation": {
+        "default": "beside",
+        "inspector": "sidebar"
+    },
+    "eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact"],
+    "eslint.useFlatConfig": true,
+    "eslint.enable": true,
+    "eslint.workingDirectories": [{ "mode": "auto" }],
+    "eslint.run": "onType",
+    "[typescript]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[javascript]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "typescript.preferences.importModuleSpecifier": "non-relative",
+    "typescript.updateImportsOnFileMove.enabled": "never",
+    "problems.showCurrentInStatus": true,
+    "typescript.suggest.autoImports": true,
+    "typescript.suggest.includeCompletionsForImportStatements": true
+}

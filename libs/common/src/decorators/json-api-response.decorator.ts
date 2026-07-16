@@ -169,8 +169,7 @@ export function ApiJsonApiCreatedResponse<TDto extends Type<unknown>>(
               properties: {
                 self: {
                   type: 'string',
-                  example:
-                    'https://api.example.com/business-bc/v1/resource',
+                  example: 'https://api.example.com/business-bc/v1/resource',
                 },
               },
             },
@@ -255,8 +254,7 @@ export function ApiJsonApiResponse<TDto extends Type<unknown>>(
               properties: {
                 self: {
                   type: 'string',
-                  example:
-                    'https://api.example.com/business-bc/v1/resource',
+                  example: 'https://api.example.com/business-bc/v1/resource',
                 },
               },
             },

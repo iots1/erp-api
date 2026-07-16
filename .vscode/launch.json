@@ -1,0 +1,124 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+
+
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Debug: AUTH Service",
+            "runtimeExecutable": "npx",
+            "runtimeArgs": ["nest", "start", "auth", "--debug", "9229", "--watch"],
+            "console": "integratedTerminal",
+            "restart": true
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Debug: IAM Service",
+            "runtimeExecutable": "npx",
+            "runtimeArgs": ["nest", "start", "iam", "--debug", "9230", "--watch"],
+            "console": "integratedTerminal",
+            "restart": true
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Debug: EMR Service",
+            "runtimeExecutable": "npx",
+            "runtimeArgs": ["nest", "start", "emr-bc", "--debug", "9231", "--watch"],
+            "console": "integratedTerminal",
+            "restart": true
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Debug: OPD Service",
+            "runtimeExecutable": "npx",
+            "runtimeArgs": ["nest", "start", "opd-bc", "--debug", "9232", "--watch"],
+            "console": "integratedTerminal",
+            "restart": true
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Debug: MasterData",
+            "runtimeExecutable": "npx",
+            "runtimeArgs": ["nest", "start", "masterdata", "--debug", "9233", "--watch"],
+            "console": "integratedTerminal",
+            "restart": true
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Debug: Appointment Service",
+            "runtimeExecutable": "npx",
+            "runtimeArgs": ["nest", "start", "appointment-bc", "--debug", "9233", "--watch"],
+            "console": "integratedTerminal",
+            "restart": true
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Debug: System admin Service",
+            "runtimeExecutable": "npx",
+            "runtimeArgs": ["nest", "start", "system-admin-bc", "--debug", "9233", "--watch"],
+            "console": "integratedTerminal",
+            "restart": true
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Debug: Pharmacy Service",
+            "runtimeExecutable": "npx",
+            "runtimeArgs": ["nest", "start", "pharmacy-bc", "--debug", "9233", "--watch"],
+            "console": "integratedTerminal",
+            "restart": true
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Debug: Laboratory Service",
+            "runtimeExecutable": "npx",
+            "runtimeArgs": ["nest", "start", "laboratory-bc", "--debug", "9234", "--watch"],
+            "console": "integratedTerminal",
+            "restart": true
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Debug: Nutrition Service",
+            "runtimeExecutable": "npx",
+            "runtimeArgs": ["nest", "start", "nutrition-bc", "--debug", "9233", "--watch"],
+            "console": "integratedTerminal",
+            "restart": true
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Debug: Radiology Service",
+            "runtimeExecutable": "npx",
+            "runtimeArgs": ["nest", "start", "radiology-bc", "--debug", "9233", "--watch"],
+            "console": "integratedTerminal",
+            "restart": true
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Debug: Fee schedule  Service",
+            "runtimeExecutable": "npx",
+            "runtimeArgs": ["nest", "start", "fee-schedule-bc", "--debug", "9233", "--watch"],
+            "console": "integratedTerminal",
+            "restart": true
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Debug: Patient Charge Service",
+            "runtimeExecutable": "npx",
+            "runtimeArgs": ["nest", "start", "patient-charge-bc", "--debug", "9233", "--watch"],
+            "console": "integratedTerminal",
+            "restart": true
+        }
+    ]
+}
