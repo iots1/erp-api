@@ -1,4 +1,3 @@
-import { v7 as uuidv7 } from 'uuid';
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
 /**
@@ -26,9 +25,14 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  * database and are seeded by `erp_auth/1784193120000-SeedAuthMockupData.ts`. The
  * two files must agree on the UUIDs below — users are cross-BC referenced by UUID
  * only, and `auth` rejects a login whose IAM user is missing or not `active`.
+ *
+ * These are fixed uuidv7 literals, not `uuidv7()` calls: `migration:run:iam` and
+ * `migration:run:auth` are separate CLI processes, so a call at module-import time
+ * would generate a *different* random value in each process and silently break the
+ * link between this file and the erp_auth seed that imports these constants.
  */
-export const SUPERADMIN_USER_ID = uuidv7();
-export const STAFF_USER_ID = uuidv7();
+export const SUPERADMIN_USER_ID = '019f761a-0742-744f-b8d5-6ec2468146b4';
+export const STAFF_USER_ID = '019f761d-2dbf-717a-b4c6-900f23b2c6f0';
 
 /**
  * Denied for staff. `user_account:create` guards POST, PUT *and* DELETE on
