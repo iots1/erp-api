@@ -53,6 +53,10 @@ function renderUsersTable() {
 
   tbody.innerHTML = state.users
     .map((user) => {
+      if (!user.id) {
+        console.warn('User missing id:', user);
+        return '';
+      }
       const statusClass = `status-${user.status}`;
       const canEdit = hasPermission('user_account:create');
       return `
@@ -87,6 +91,12 @@ export function exportUsersJson() {
 
 // ── Add / edit user modal ───────────────────────────────────────
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isValidUuid(uuid) {
+  return typeof uuid === 'string' && UUID_REGEX.test(uuid);
+}
+
 export async function openUserFormModal(userId) {
   const modal = document.getElementById('userFormModal');
   const form = document.getElementById('userForm');
@@ -96,7 +106,7 @@ export async function openUserFormModal(userId) {
     ? 'แก้ไขบุคลากร'
     : 'เพิ่มบุคลากร';
 
-  if (userId) {
+  if (userId && isValidUuid(userId)) {
     try {
       const user = await iamGet(`/users/${userId}`);
       document.getElementById('frmUsername').value = user.username;
@@ -109,6 +119,9 @@ export async function openUserFormModal(userId) {
       showApiError(error, 'โหลดข้อมูลผู้ใช้งานไม่สำเร็จ');
       return;
     }
+  } else if (userId && !isValidUuid(userId)) {
+    showToast(`Invalid user ID: ${userId}`, 'error');
+    return;
   } else {
     document.getElementById('frmStatus').value = 'pending';
   }
@@ -150,6 +163,10 @@ export async function handleUserFormSubmit(event) {
 }
 
 export async function confirmDeleteUser(userId, fullName) {
+  if (!isValidUuid(userId)) {
+    showToast(`Invalid user ID: ${userId}`, 'error');
+    return;
+  }
   if (!window.confirm(`ยืนยันการลบผู้ใช้งาน "${fullName}"?`)) return;
   try {
     await iamDelete(`/users/${userId}`);
@@ -163,6 +180,10 @@ export async function confirmDeleteUser(userId, fullName) {
 // ── Assign roles modal ──────────────────────────────────────────
 
 export async function openUserRolesModal(userId) {
+  if (!isValidUuid(userId)) {
+    showToast(`Invalid user ID: ${userId}`, 'error');
+    return;
+  }
   try {
     await ensureRolesLoaded();
     const { role_ids } = await iamGet(`/users/${userId}/roles`);
@@ -177,7 +198,7 @@ export async function openUserRolesModal(userId) {
       <label class="um-checkbox-row">
         <input type="checkbox" name="userRoleIds" value="${role.id}" ${role_ids.includes(role.id) ? 'checked' : ''}>
         <div>
-          <span class="um-checkbox-title">${escapeHtml(role.name_th)}</span>
+          <span class="um-checkbox-title">${escapeHtml(role.name?.th)}</span>
           <span class="um-checkbox-sub">${escapeHtml(role.code)}</span>
         </div>
       </label>

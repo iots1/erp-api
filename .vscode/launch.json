@@ -19,7 +19,8 @@
             "runtimeExecutable": "npx",
             "runtimeArgs": ["nest", "start", "iam", "--debug", "9230", "--watch"],
             "console": "integratedTerminal",
-            "restart": true
+            "restart": true,
+            "preLaunchTask": "watch:iam-assets"
         },
         {
             "type": "node",

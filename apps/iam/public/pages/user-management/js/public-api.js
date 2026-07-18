@@ -69,3 +69,17 @@ Object.assign(window, {
   removeStatementFromDraft,
   handlePolicyFormSubmit,
 });
+
+// Close dropdowns when clicking outside them
+document.addEventListener('click', (event) => {
+  const isDropdownTrigger = event.target.closest('.um-dropdown-trigger');
+  const isDropdown = event.target.closest('.um-multi-dropdown');
+  const isDropdownSearch = event.target.closest('.um-dropdown-search');
+  const isCheckbox = event.target.closest('.um-dropdown-option');
+
+  if (!isDropdownTrigger && !isDropdown && !isDropdownSearch && !isCheckbox) {
+    document.querySelectorAll('.um-multi-dropdown').forEach((dropdown) => {
+      dropdown.classList.add('hidden');
+    });
+  }
+});

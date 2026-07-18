@@ -39,7 +39,7 @@ function renderRolesTable() {
     <tr>
       <td>
         <p class="um-cell-title">${escapeHtml(role.code)}</p>
-        <p class="um-cell-sub">${escapeHtml(role.name_th)} / ${escapeHtml(role.name_en)}</p>
+        <p class="um-cell-sub">${escapeHtml(role.name?.th)} / ${escapeHtml(role.name?.en)}</p>
       </td>
       <td>${escapeHtml(role.description ?? '-')}</td>
       <td class="um-cell-mono">${role.id}</td>
@@ -76,8 +76,8 @@ export async function openRoleForm(roleId, navElement) {
         iamGet(`/roles/${roleId}/policies`),
       ]);
       document.getElementById('frmRoleCode').value = role.code;
-      document.getElementById('frmRoleNameTh').value = role.name_th;
-      document.getElementById('frmRoleNameEn').value = role.name_en;
+      document.getElementById('frmRoleNameTh').value = role.name?.th ?? '';
+      document.getElementById('frmRoleNameEn').value = role.name?.en ?? '';
       document.getElementById('frmRoleDescription').value = role.description ?? '';
       state.roleForm.selectedPolicyIds = policy_ids;
     }
@@ -101,7 +101,7 @@ function renderRolePolicyCheckboxes() {
     <label class="um-checkbox-card">
       <input type="checkbox" name="rolePolicyIds" value="${policy.id}" ${state.roleForm.selectedPolicyIds.includes(policy.id) ? 'checked' : ''}>
       <div>
-        <span class="um-checkbox-title">${escapeHtml(policy.name_th)}</span>
+        <span class="um-checkbox-title">${escapeHtml(policy.name?.th)}</span>
         <span class="um-checkbox-sub">${escapeHtml(policy.code)}</span>
         <span class="p-tag ${policy.is_active ? 'p-tag-mint' : 'p-tag-pink'}">${policy.is_active ? 'Active' : 'Inactive'}</span>
       </div>

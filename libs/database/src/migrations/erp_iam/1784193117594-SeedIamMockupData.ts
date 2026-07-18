@@ -1,3 +1,4 @@
+import { v7 as uuidv7 } from 'uuid';
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
 /**
@@ -26,8 +27,8 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  * two files must agree on the UUIDs below — users are cross-BC referenced by UUID
  * only, and `auth` rejects a login whose IAM user is missing or not `active`.
  */
-export const SUPERADMIN_USER_ID = '00000000-0000-0000-0000-000000000001';
-export const STAFF_USER_ID = '00000000-0000-0000-0000-000000000002';
+export const SUPERADMIN_USER_ID = uuidv7();
+export const STAFF_USER_ID = uuidv7();
 
 /**
  * Denied for staff. `user_account:create` guards POST, PUT *and* DELETE on

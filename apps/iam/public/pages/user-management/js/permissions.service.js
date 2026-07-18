@@ -24,7 +24,7 @@ export function getDropdown1Options(plane) {
     if (!seen.has(key)) {
       seen.set(key, {
         id: key,
-        label: plane === 'api' ? key : (row.permission_name_th ?? key),
+        label: plane === 'api' ? key : (row.permission_name?.th ?? key),
       });
     }
   }

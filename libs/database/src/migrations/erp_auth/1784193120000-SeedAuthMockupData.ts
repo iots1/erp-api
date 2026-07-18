@@ -1,5 +1,9 @@
 import * as bcrypt from 'bcrypt';
 import { MigrationInterface, QueryRunner } from 'typeorm';
+import {
+  SUPERADMIN_USER_ID,
+  STAFF_USER_ID,
+} from '../erp_iam/1784193117594-SeedIamMockupData';
 
 /**
  * Credentials for the mockup users seeded into erp_iam by
@@ -19,12 +23,12 @@ const MOCKUP_USERS: Array<{
   password: string;
 }> = [
   {
-    user_id: '00000000-0000-0000-0000-000000000001',
+    user_id: SUPERADMIN_USER_ID,
     username: 'superadmin',
     password: 'ErpSuper26',
   },
   {
-    user_id: '00000000-0000-0000-0000-000000000002',
+    user_id: STAFF_USER_ID,
     username: 'staff',
     password: 'ErpStaff26',
   },

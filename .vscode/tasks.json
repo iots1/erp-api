@@ -1,0 +1,28 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "watch:iam-assets",
+            "type": "shell",
+            "command": "npm run build:assets:iam:watch",
+            "isBackground": true,
+            "presentation": {
+                "reveal": "silent",
+                "panel": "dedicated",
+                "group": "iam"
+            },
+            "problemMatcher": {
+                "owner": "iam-assets",
+                "pattern": {
+                    "regexp": "^ERROR: (.*)$",
+                    "message": 1
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": ".",
+                    "endsPattern": "^\\[iam:build-assets\\] (watching for changes\\.\\.\\.|done)"
+                }
+            }
+        }
+    ]
+}

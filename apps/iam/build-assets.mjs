@@ -137,9 +137,12 @@ async function watch() {
 
   // Shared css files aren't part of esbuild's watch graph (copied, not bundled) —
   // poll them separately so global.css edits show up without a manual re-run.
-  setInterval(async () => {
-    await copySharedCss();
-    await writeManifest();
+  // Errors here (e.g. a transient ENOSPC) are logged, not thrown — this is a
+  // background convenience poll and must not take the whole watcher down.
+  setInterval(() => {
+    Promise.all([copySharedCss(), writeManifest()]).catch((error) => {
+      console.error('[iam:build-assets] shared-css poll failed:', error.message);
+    });
   }, 2000);
 }
 

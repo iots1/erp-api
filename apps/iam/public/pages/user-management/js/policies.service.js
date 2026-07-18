@@ -62,8 +62,8 @@ function renderPoliciesList() {
       (policy) => `
     <div class="p-card um-policy-card">
       <div class="um-policy-card-main">
-        <h4 class="um-cell-title">${escapeHtml(policy.name_th)}</h4>
-        <p class="um-cell-sub">${escapeHtml(policy.name_en)}</p>
+        <h4 class="um-cell-title">${escapeHtml(policy.name?.th)}</h4>
+        <p class="um-cell-sub">${escapeHtml(policy.name?.en)}</p>
         <p class="um-cell-mono">${escapeHtml(policy.code)}</p>
       </div>
       <div class="um-policy-card-side">
@@ -106,13 +106,13 @@ export async function openPolicyForm(policyId, navElement) {
     await ensurePermissionsCatalog();
 
     if (policyId) {
-      const [policy, statements] = await Promise.all([
+      const [policy, { items: statements }] = await Promise.all([
         iamGet(`/policies/${policyId}`),
         iamGet(`/policies/${policyId}/statements`),
       ]);
       document.getElementById('frmPolCode').value = policy.code;
-      document.getElementById('frmPolNameTh').value = policy.name_th;
-      document.getElementById('frmPolNameEn').value = policy.name_en;
+      document.getElementById('frmPolNameTh').value = policy.name?.th ?? '';
+      document.getElementById('frmPolNameEn').value = policy.name?.en ?? '';
       document.getElementById('frmPolActive').checked = policy.is_active;
 
       state.policyForm.statements = statements.map((statement) => {
@@ -281,8 +281,8 @@ export function renderActionCheckboxes() {
             <label class="um-checkbox-card">
               <input type="checkbox" name="stmtActions" value="${p.id}">
               <div>
-                <span class="um-checkbox-title">${escapeHtml(p.permission_name_th)}</span>
-                <span class="um-checkbox-sub">${escapeHtml(p.permission_name_en ?? p.permission)}</span>
+                <span class="um-checkbox-title">${escapeHtml(p.permission_name?.th)}</span>
+                <span class="um-checkbox-sub">${escapeHtml(p.permission_name?.en ?? p.permission)}</span>
               </div>
             </label>
           `,
@@ -392,7 +392,7 @@ export function addStatementToDraft() {
 
   const permissionIds = checked.map((cb) => cb.value);
   const permissionsDisplay = permissionIds
-    .map((id) => state.permissionsCatalog.find((p) => p.id === id)?.permission_name_th)
+    .map((id) => state.permissionsCatalog.find((p) => p.id === id)?.permission_name?.th)
     .filter(Boolean);
 
   const conditions = state.policyForm.conditionRows

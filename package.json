@@ -71,7 +71,15 @@
     "migration:revert:supplier": "npm run typeorm:supplier -- migration:revert",
     "migration:revert:sales": "npm run typeorm:sales -- migration:revert",
     "migration:revert:finance": "npm run typeorm:finance -- migration:revert",
-    "migration:revert:report": "npm run typeorm:report -- migration:revert"
+    "migration:revert:report": "npm run typeorm:report -- migration:revert",
+    "migration:show:auth": "npm run typeorm:auth -- migration:show",
+    "migration:show:iam": "npm run typeorm:iam -- migration:show",
+    "migration:show:inventory": "npm run typeorm:inventory -- migration:show",
+    "migration:show:supplier": "npm run typeorm:supplier -- migration:show",
+    "migration:show:sales": "npm run typeorm:sales -- migration:show",
+    "migration:show:finance": "npm run typeorm:finance -- migration:show",
+    "migration:show:report": "npm run typeorm:report -- migration:show",
+    "migration:show:all": "npm run migration:show:auth && npm run migration:show:iam && npm run migration:show:inventory && npm run migration:show:supplier && npm run migration:show:sales && npm run migration:show:finance && npm run migration:show:report"
   },
   "dependencies": {
     "@fastify/helmet": "^13.0.2",
