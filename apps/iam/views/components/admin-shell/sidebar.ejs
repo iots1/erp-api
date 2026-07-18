@@ -1,0 +1,53 @@
+<!-- Shared sidebar — every admin page passes `activeView` (one of dashboard,
+     users, roles, policies, audit-logs, sessions, system-setting) when
+     rendering so the matching nav item gets .active. Links are real page
+     navigations now (each sidebar item is its own server route), not a
+     client-side view switch. -->
+<aside class="um-sidebar">
+    <div class="um-sidebar-brand">
+        <div class="um-login-logo">E</div>
+        <span>ERP IAM</span>
+    </div>
+
+    <nav class="um-sidebar-nav">
+        <p class="um-nav-group-label">หน้าหลัก</p>
+        <a href="/<%= prefix %>/views/dashboard" class="um-nav-item <%= activeView === 'dashboard' ? 'active' : '' %>" data-permission="page:view_dashboard">
+            <i data-lucide="layout-dashboard"></i><span>แดชบอร์ด</span>
+        </a>
+
+        <p class="um-nav-group-label">การจัดการ</p>
+        <a href="/<%= prefix %>/views/users" class="um-nav-item <%= activeView === 'users' ? 'active' : '' %>" data-permission="page:view_users">
+            <i data-lucide="users"></i><span>จัดการผู้ใช้งาน</span>
+        </a>
+        <a href="/<%= prefix %>/views/roles" class="um-nav-item <%= activeView === 'roles' ? 'active' : '' %>" data-permission="page:view_roles">
+            <i data-lucide="shield-check"></i><span>สิทธิ์การใช้งาน (Roles)</span>
+        </a>
+        <a href="/<%= prefix %>/views/policies" class="um-nav-item <%= activeView === 'policies' ? 'active' : '' %>" data-permission="page:view_policies">
+            <i data-lucide="key"></i><span>นโยบายความปลอดภัย</span>
+        </a>
+
+        <p class="um-nav-group-label">ความปลอดภัย</p>
+        <a href="/<%= prefix %>/views/audit-logs" class="um-nav-item <%= activeView === 'audit-logs' ? 'active' : '' %>" data-permission="page:view_audit">
+            <i data-lucide="activity"></i><span>ประวัติการเข้าใช้งาน (Login History)</span>
+        </a>
+        <a href="/<%= prefix %>/views/sessions" class="um-nav-item <%= activeView === 'sessions' ? 'active' : '' %>" data-permission="page:view_sessions">
+            <i data-lucide="radio"></i><span>ผู้ใช้งานออนไลน์</span>
+        </a>
+
+        <p class="um-nav-group-label">ระบบ</p>
+        <a href="/<%= prefix %>/views/system-setting" class="um-nav-item <%= activeView === 'system-setting' ? 'active' : '' %>" data-permission="page:view_settings">
+            <i data-lucide="settings"></i><span>ตั้งค่าระบบ</span>
+        </a>
+    </nav>
+
+    <div class="um-sidebar-footer">
+        <div class="um-sidebar-user">
+            <div class="um-sidebar-user-avatar"><i data-lucide="user"></i></div>
+            <div class="um-sidebar-user-info">
+                <p id="currentLoginName">-</p>
+                <p id="currentLoginRole">-</p>
+            </div>
+            <button type="button" class="um-icon-btn" onclick="handleLogout()" title="ออกจากระบบ"><i data-lucide="log-out"></i></button>
+        </div>
+    </div>
+</aside>

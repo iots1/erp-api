@@ -44,7 +44,7 @@ function renderRolesTable() {
       <td>${escapeHtml(role.description ?? '-')}</td>
       <td class="um-cell-mono">${role.id}</td>
       <td class="um-cell-actions">
-        ${canManage ? `<button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="openRoleForm('${role.id}', document.getElementById('nav-roles'))"><i data-lucide="edit-3" class="um-icon-sm"></i> แก้ไข</button>` : ''}
+        ${canManage ? `<button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="openRoleForm('${role.id}')"><i data-lucide="edit-3" class="um-icon-sm"></i> แก้ไข</button>` : ''}
         ${canManage ? `<button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="confirmDeleteRole('${role.id}', '${escapeHtml(role.code).replace(/'/g, "\\'")}')"><i data-lucide="trash-2" class="um-icon-sm"></i></button>` : ''}
       </td>
     </tr>
@@ -56,8 +56,8 @@ function renderRolesTable() {
 
 // ── Create / edit role view ─────────────────────────────────────
 
-export async function openRoleForm(roleId, navElement) {
-  switchView('role-form', navElement);
+export async function openRoleForm(roleId) {
+  switchView('role-form');
   resetRoleFormDraft();
 
   const form = document.getElementById('roleForm');
@@ -133,7 +133,7 @@ export async function handleRoleFormSubmit(event) {
     await iamPut(`/roles/${role.id}/policies`, { policy_ids: policyIds });
 
     showToast('บันทึกบทบาทสำเร็จ', 'success');
-    switchView('roles', document.getElementById('nav-roles'));
+    switchView('roles');
     loadRoles();
   } catch (error) {
     showApiError(error, 'บันทึกบทบาทไม่สำเร็จ');

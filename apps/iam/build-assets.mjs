@@ -19,19 +19,38 @@ const OUT_DIR = join(APP_ROOT, 'dist', 'public');
 const isWatch = process.argv.includes('--watch');
 const isLocal = process.env.NODE_ENV === 'local';
 
-/** One entry per page under public/pages/{name}/. Set css:null if a page has no page-specific styles. */
-const PAGES = [
-  {
-    name: 'user-management',
+/**
+ * Every admin-shell page (dashboard/users/roles/policies/audit-logs/sessions/
+ * system-setting) shares one stylesheet — the `user-management` directory name
+ * is legacy (that used to be the single monolithic page) but now doubles as the
+ * shared JS/CSS library location the per-page controllers import from, so the
+ * css `entry` below intentionally points there for every page.
+ */
+const ADMIN_SHELL_CSS_ENTRY = join(SRC_DIR, 'pages/user-management/css/user-management.css');
+
+function adminShellPage(name) {
+  return {
+    name,
     js: {
-      entry: join(SRC_DIR, 'pages/user-management/js/entry.js'),
-      out: join(OUT_DIR, 'pages/user-management/js/bundle.js'),
+      entry: join(SRC_DIR, `pages/${name}/js/entry.js`),
+      out: join(OUT_DIR, `pages/${name}/js/bundle.js`),
     },
     css: {
-      entry: join(SRC_DIR, 'pages/user-management/css/user-management.css'),
-      out: join(OUT_DIR, 'pages/user-management/css/bundle.css'),
+      entry: ADMIN_SHELL_CSS_ENTRY,
+      out: join(OUT_DIR, `pages/${name}/css/bundle.css`),
     },
-  },
+  };
+}
+
+/** One entry per page under public/pages/{name}/. Set css:null if a page has no page-specific styles. */
+const PAGES = [
+  adminShellPage('dashboard'),
+  adminShellPage('users'),
+  adminShellPage('roles'),
+  adminShellPage('policies'),
+  adminShellPage('audit-logs'),
+  adminShellPage('sessions'),
+  adminShellPage('system-setting'),
 ];
 
 /** Shared static files copied as-is (no bundling — plain CSS, no @import graph). */

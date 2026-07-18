@@ -1,6 +1,6 @@
 import { iamGet } from './api.js';
+import { applyPermissionVisibility } from './shell.service.js';
 import { showApiError } from './toast.service.js';
-import { applyPermissionVisibility } from './views.service.js';
 import { refreshIcons } from './utils.js';
 
 async function countOf(path, extraFilter) {

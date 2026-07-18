@@ -1,0 +1,22 @@
+<!-- ═══════════ Initial login screen ═══════════ -->
+<div id="loginScreen" class="um-login-screen">
+    <div class="p-card um-login-card">
+        <div class="um-login-brand">
+            <div class="um-login-logo">E</div>
+            <span>ERP IAM Admin</span>
+        </div>
+        <p class="um-login-subtitle">เข้าสู่ระบบจัดการสิทธิ์ผู้ใช้งาน</p>
+        <form id="loginForm" onsubmit="handleInitialLoginSubmit(event)">
+            <div class="p-field">
+                <label for="loginUsername">ชื่อผู้ใช้งาน</label>
+                <input type="text" id="loginUsername" class="p-input" required autocomplete="username" autofocus>
+            </div>
+            <div class="p-field">
+                <label for="loginPassword">รหัสผ่าน</label>
+                <input type="password" id="loginPassword" class="p-input" required autocomplete="current-password">
+            </div>
+            <p id="loginError" class="auth-modal-error hidden"></p>
+            <button type="submit" class="p-btn p-btn-sky um-login-submit">เข้าสู่ระบบ</button>
+        </form>
+    </div>
+</div>

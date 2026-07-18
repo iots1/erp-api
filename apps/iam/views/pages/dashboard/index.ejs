@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="/<%= prefix %>/assets/css/global.css?v=<%= assetVersion %>">
+    <link rel="stylesheet" href="/<%= prefix %>/assets/pages/dashboard/css/bundle.css?v=<%= assetVersion %>">
+</head>
+<body class="um-body">
+
+    <%- include('../../components/admin-shell/login-screen') %>
+
+    <div id="appShell" class="um-shell hidden">
+        <%- include('../../components/admin-shell/sidebar', { activeView: 'dashboard' }) %>
+
+        <main class="um-main">
+            <%- include('../../components/admin-shell/topbar', { pageTitle: 'ภาพรวมระบบ (Dashboard)' }) %>
+
+            <div class="um-content">
+                <section id="view-dashboard" class="um-view active">
+                    <div class="page-header"><h1>ภาพรวมระบบ (Dashboard)</h1></div>
+                    <div class="stats-grid" id="dashboardStats"></div>
+                    <div class="p-card um-graph-placeholder" data-permission="component:widget_login_graph">
+                        <p>พื้นที่สำหรับแสดงกราฟการเข้าใช้งาน (Login Analytics Graph)</p>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <div id="toastStack" class="p-toast-stack"></div>
+
+    <link rel="stylesheet" href="/<%= prefix %>/assets/css/auth-modal.css?v=<%= assetVersion %>">
+    <%- include('../../components/auth-modal') %>
+
+    <%- include('../user-management/components/config') %>
+    <script src="/<%= prefix %>/assets/pages/dashboard/js/bundle.js?v=<%= assetVersion %>"></script>
+</body>
+</html>

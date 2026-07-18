@@ -293,6 +293,21 @@
   font-size: 0.78rem;
   color: var(--text-muted);
 }
+.um-cell-truncate {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.um-pager {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
 .um-empty-cell {
   text-align: center;
   color: var(--text-muted);

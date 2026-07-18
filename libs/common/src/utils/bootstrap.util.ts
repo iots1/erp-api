@@ -64,6 +64,7 @@ export interface SecurityOptions {
   cors?: {
     origin?: string | string[];
     exposedHeaders?: string | string[];
+    methods?: string | string[];
   };
 }
 
@@ -131,7 +132,20 @@ async function applySecurity(
   const corsOrigin =
     security?.cors?.origin ?? configService.get<string>('CORS_ORIGIN') ?? '*';
   const exposedHeaders = security?.cors?.exposedHeaders ?? ['X-Trace-Id'];
-  app.enableCors({ origin: corsOrigin, exposedHeaders });
+  // @fastify/cors defaults `methods` to 'GET,HEAD,POST' only (no PUT/PATCH/DELETE) —
+  // every BC needs the full REST verb set since browsers preflight cross-origin
+  // PUT/PATCH/DELETE calls (same-origin requests never preflight, so this only bit
+  // once a page started calling *another* BC's API directly, e.g. iam-view calling
+  // auth-bc's DELETE /auth/sessions/:jti — see the 2026-07-18 CORS incident).
+  const corsMethods = security?.cors?.methods ?? [
+    'GET',
+    'HEAD',
+    'PUT',
+    'PATCH',
+    'POST',
+    'DELETE',
+  ];
+  app.enableCors({ origin: corsOrigin, exposedHeaders, methods: corsMethods });
 
   if (security?.helmet !== false) {
     await app.register(fastifyHelmet, { contentSecurityPolicy: false });

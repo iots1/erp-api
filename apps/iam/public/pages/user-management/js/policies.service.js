@@ -68,7 +68,7 @@ function renderPoliciesList() {
       </div>
       <div class="um-policy-card-side">
         <span class="p-tag ${policy.is_active ? 'p-tag-mint' : 'p-tag-pink'}">${policy.is_active ? 'Active' : 'Inactive'}</span>
-        ${canManage ? `<button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="openPolicyForm('${policy.id}', document.getElementById('nav-policies'))"><i data-lucide="edit-3" class="um-icon-sm"></i> แก้ไข</button>` : ''}
+        ${canManage ? `<button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="openPolicyForm('${policy.id}')"><i data-lucide="edit-3" class="um-icon-sm"></i> แก้ไข</button>` : ''}
         ${canManage ? `<button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="confirmDeletePolicy('${policy.id}', '${escapeHtml(policy.code).replace(/'/g, "\\'")}')"><i data-lucide="trash-2" class="um-icon-sm"></i></button>` : ''}
       </div>
     </div>
@@ -91,8 +91,8 @@ export async function confirmDeletePolicy(policyId, code) {
 
 // ── Policy generator (create / edit) ────────────────────────────
 
-export async function openPolicyForm(policyId, navElement) {
-  switchView('policy-form', navElement);
+export async function openPolicyForm(policyId) {
+  switchView('policy-form');
   resetPolicyFormDraft();
   state.policyForm.editingId = policyId ?? null;
 
@@ -486,7 +486,7 @@ export async function handlePolicyFormSubmit(event) {
     await iamPut(`/policies/${policy.id}/statements`, { statements });
 
     showToast('บันทึก Policy สำเร็จ', 'success');
-    switchView('policies', document.getElementById('nav-policies'));
+    switchView('policies');
     loadPolicies();
   } catch (error) {
     showApiError(error, 'บันทึก Policy ไม่สำเร็จ');
