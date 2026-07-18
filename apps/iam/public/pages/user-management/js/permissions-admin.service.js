@@ -167,15 +167,18 @@ export function openPermissionModal(id) {
     document.getElementById('permissionFormTitle').textContent = 'แก้ไขสิทธิ์';
     serviceInput.value = existing.service;
     permissionInput.value = existing.permission;
-    document.getElementById('frmPermNameTh').value = existing.permission_name_th;
-    document.getElementById('frmPermNameEn').value = existing.permission_name_en;
+    document.getElementById('frmPermNameTh').value =
+      existing.permission_name?.th;
+    document.getElementById('frmPermNameEn').value =
+      existing.permission_name?.en;
 
     const editableIdentity = existing.is_manual;
     serviceInput.disabled = !editableIdentity;
     permissionInput.disabled = !editableIdentity;
     identityHint.classList.toggle('hidden', editableIdentity);
   } else {
-    document.getElementById('permissionFormTitle').textContent = 'เพิ่มสิทธิ์ด้วยตนเอง';
+    document.getElementById('permissionFormTitle').textContent =
+      'เพิ่มสิทธิ์ด้วยตนเอง';
     serviceInput.disabled = false;
     permissionInput.disabled = false;
     identityHint.classList.add('hidden');
@@ -211,7 +214,10 @@ export async function handlePermissionFormSubmit(event) {
   if (!permissionInput.disabled) {
     const permission = permissionInput.value.trim();
     if (!PERMISSION_PATTERN.test(permission)) {
-      showToast('Permission ต้องขึ้นต้นด้วย page: หรือ component: เท่านั้น', 'error');
+      showToast(
+        'Permission ต้องขึ้นต้นด้วย page: หรือ component: เท่านั้น',
+        'error',
+      );
       return;
     }
     payload.permission = permission;
