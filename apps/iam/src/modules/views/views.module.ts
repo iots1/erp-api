@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 
 import { AuditLogsViewController } from './controllers/audit-logs.controller';
 import { DashboardViewController } from './controllers/dashboard.controller';
+import { PermissionsViewController } from './controllers/permissions.controller';
 import { PoliciesViewController } from './controllers/policies.controller';
 import { RolesViewController } from './controllers/roles.controller';
 import { SessionsViewController } from './controllers/sessions.controller';
@@ -16,6 +17,7 @@ import { ViewsIndexController } from './controllers/views-index.controller';
     UsersViewController,
     RolesViewController,
     PoliciesViewController,
+    PermissionsViewController,
     AuditLogsViewController,
     SessionsViewController,
     SystemSettingViewController,

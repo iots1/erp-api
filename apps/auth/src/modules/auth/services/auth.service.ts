@@ -10,14 +10,10 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import * as bcrypt from 'bcrypt';
-import Redis from 'ioredis';
 import { ClientProxy } from '@nestjs/microservices';
 import { IsNull, MoreThan, Repository } from 'typeorm';
 
-import {
-  AppMicroservice,
-  RedisService,
-} from '@lib/common/enum/app-microservice.enum';
+import { AppMicroservice } from '@lib/common/enum/app-microservice.enum';
 import { ErpDatabases } from '@lib/common/enum/erp-databases.enum';
 import {
   IamMessagePatterns,
@@ -28,6 +24,7 @@ import {
 } from '@lib/common/constants/iam-message-patterns';
 import { LogsService } from '@lib/common/modules/log/logs.service';
 import { MicroserviceClientService } from '@lib/common/services/microservice-client.service';
+import { SessionStoreService } from '@lib/common/services/session-store.service';
 import { ConfigService } from '@lib/config';
 
 import { SetCredentialDTO } from '../dto/set-credential.dto';
@@ -58,8 +55,7 @@ export class AuthService {
     private readonly microserviceClient: MicroserviceClientService,
     @Inject(AppMicroservice.Iam.name)
     private readonly iamClient: ClientProxy,
-    @Inject(RedisService.name)
-    private readonly redisClient: Redis,
+    private readonly sessionStore: SessionStoreService,
     @InjectRepository(Credential, ErpDatabases.AUTH)
     private readonly credentialRepository: Repository<Credential>,
     @InjectRepository(RefreshToken, ErpDatabases.AUTH)
@@ -251,7 +247,7 @@ export class AuthService {
     refreshTokenRaw?: string,
   ): Promise<void> {
     if (jti) {
-      await this.redisClient.del(`session:${jti}`);
+      await this.sessionStore.revoke(jti);
     }
     if (refreshTokenRaw) {
       await this.refreshTokenRepository.update(
@@ -308,14 +304,14 @@ export class AuthService {
     const accessTtlSeconds = parseDurationToSeconds(accessExpiresIn);
     const refreshTtlSeconds = parseDurationToSeconds(refreshExpiresIn);
 
+    // Roles/permissions live in the Redis session blob, not the JWT — keeps the
+    // token small and constant-size regardless of how many permissions a user
+    // has, and lets an admin revoke effective access mid-token-lifetime.
     const payload: Record<string, unknown> = {
       sub: iamUser.id,
       username: iamUser.username,
       fullname: iamUser.full_name,
       email: iamUser.email,
-      roles: resolved.roles,
-      permissions: resolved.permissions,
-      conditional_permissions: resolved.conditional_permissions,
       jti,
     };
 
@@ -333,10 +329,18 @@ export class AuthService {
       }),
     );
 
-    await this.redisClient.setex(
-      `session:${jti}`,
+    await this.sessionStore.create(
+      jti,
+      {
+        user_id: iamUser.id,
+        username: iamUser.username,
+        fullname: iamUser.full_name,
+        email: iamUser.email,
+        roles: resolved.roles,
+        permissions: resolved.permissions,
+        conditional_permissions: resolved.conditional_permissions,
+      },
       accessTtlSeconds,
-      iamUser.id,
     );
 
     return {

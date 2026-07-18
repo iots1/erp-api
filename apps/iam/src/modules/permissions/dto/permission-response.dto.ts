@@ -28,4 +28,11 @@ export class PermissionResponseDTO extends BaseResponseDTO {
 
   @ApiProperty({ example: 'Submit goods receipt' })
   permission_name_en: string;
+
+  @ApiProperty({
+    example: false,
+    description:
+      'true = added manually via the Permissions page · false = synced from code (permissions:sync) — only manual rows can be deleted',
+  })
+  is_manual: boolean;
 }

@@ -1,28 +1,25 @@
 import {
   CanActivate,
   ExecutionContext,
-  Inject,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Reflector } from '@nestjs/core';
 
-import Redis from 'ioredis';
 import type { FastifyRequest } from 'fastify';
 
 import { IS_PUBLIC_KEY } from '@lib/common/decorators/public.decorator';
-import { RedisService } from '@lib/common/enum/app-microservice.enum';
 import { IUserSession } from '@lib/common/interfaces/auth.interface';
+import { SessionStoreService } from '@lib/common/services/session-store.service';
 
+/** JWT claims only — identity + token id. Roles/permissions live in the Redis
+ * session blob (see {@link SessionStoreService}), not the token itself. */
 interface IAccessTokenPayload {
   sub: string;
   username: string;
   fullname: string | null;
   email: string;
-  roles: string[];
-  permissions: string[];
-  conditional_permissions: string[];
   jti: string;
 }
 
@@ -45,7 +42,7 @@ export class AuthGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly jwtService: JwtService,
-    @Inject(RedisService.name) private readonly redisClient: Redis,
+    private readonly sessionStore: SessionStoreService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -70,10 +67,8 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException('Invalid or expired access token.');
     }
 
-    const sessionExists = await this.redisClient.exists(
-      `session:${payload.jti}`,
-    );
-    if (sessionExists === 0) {
+    const session = await this.sessionStore.get(payload.jti);
+    if (!session) {
       throw new UnauthorizedException(
         'Session has been revoked. Please log in again.',
       );
@@ -82,14 +77,14 @@ export class AuthGuard implements CanActivate {
     request.user = {
       user_session: {
         id: payload.sub,
-        username: payload.username,
-        fullname: payload.fullname,
-        email: payload.email,
-        roles: payload.roles,
-        permissions: payload.permissions,
+        username: session.username,
+        fullname: session.fullname,
+        email: session.email,
+        roles: session.roles,
+        permissions: session.permissions,
         jti: payload.jti,
       },
-      conditional_permissions: payload.conditional_permissions ?? [],
+      conditional_permissions: session.conditional_permissions ?? [],
     };
 
     return true;

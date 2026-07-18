@@ -1,6 +1,7 @@
 // Active-sessions page — lists live Redis `session:<jti>` keys and lets an
 // admin force-logout one (GET/DELETE /auth/sessions, see
 // apps/auth/src/modules/auth/controllers/sessions.controller.ts).
+import { hasPermission } from '../../../js/login.service.js';
 import { authAdminDelete, authAdminGet } from './auth-admin-api.js';
 import { showApiError, showToast } from './toast.service.js';
 import { escapeHtml, refreshIcons } from './utils.js';
@@ -38,6 +39,7 @@ function renderTable(items) {
     return;
   }
 
+  const canRevoke = hasPermission('session:revoke');
   tbody.innerHTML = items
     .map(
       (session) => `
@@ -49,9 +51,13 @@ function renderTable(items) {
       <td class="um-cell-mono" title="${escapeHtml(session.jti)}">${escapeHtml(session.jti.slice(0, 8))}…</td>
       <td>${formatTtl(session.ttl_seconds)}</td>
       <td class="um-cell-actions">
-        <button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="revokeSession('${session.jti}', '${escapeHtml(session.username ?? session.user_id).replace(/'/g, "\\'")}')">
-          <i data-lucide="log-out" class="um-icon-sm"></i> Revoke
-        </button>
+        ${
+          canRevoke
+            ? `<button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="revokeSession('${session.jti}', '${escapeHtml(session.username ?? session.user_id).replace(/'/g, "\\'")}')">
+                <i data-lucide="log-out" class="um-icon-sm"></i> Revoke
+              </button>`
+            : ''
+        }
       </td>
     </tr>
   `,

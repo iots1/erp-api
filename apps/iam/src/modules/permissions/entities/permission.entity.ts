@@ -58,4 +58,12 @@ export class Permission extends BaseEntity {
     comment: 'ชื่อที่แสดงในหน้า Policy Generator (English)',
   })
   permission_name_en: string;
+
+  @Column({
+    type: 'boolean',
+    default: false,
+    comment:
+      'true = เพิ่มด้วยมือผ่าน iam-view (Permissions page) · false = มาจาก permissions:sync (@RequirePermission()/data-permission scan) — sync ไม่แตะแถว is_manual=true เลย, และห้ามลบแถว is_manual=false ผ่าน API (ต้องแก้ที่ source แล้ว sync ใหม่)',
+  })
+  is_manual: boolean;
 }

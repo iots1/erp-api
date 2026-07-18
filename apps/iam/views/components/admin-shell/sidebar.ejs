@@ -1,6 +1,6 @@
 <!-- Shared sidebar — every admin page passes `activeView` (one of dashboard,
-     users, roles, policies, audit-logs, sessions, system-setting) when
-     rendering so the matching nav item gets .active. Links are real page
+     users, roles, policies, permissions, audit-logs, sessions, system-setting)
+     when rendering so the matching nav item gets .active. Links are real page
      navigations now (each sidebar item is its own server route), not a
      client-side view switch. -->
 <aside class="um-sidebar">
@@ -24,6 +24,9 @@
         </a>
         <a href="/<%= prefix %>/views/policies" class="um-nav-item <%= activeView === 'policies' ? 'active' : '' %>" data-permission="page:view_policies">
             <i data-lucide="key"></i><span>นโยบายความปลอดภัย</span>
+        </a>
+        <a href="/<%= prefix %>/views/permissions" class="um-nav-item <%= activeView === 'permissions' ? 'active' : '' %>" data-permission="page:view_permissions">
+            <i data-lucide="list-checks"></i><span>จัดการสิทธิ์ (Permissions)</span>
         </a>
 
         <p class="um-nav-group-label">ความปลอดภัย</p>

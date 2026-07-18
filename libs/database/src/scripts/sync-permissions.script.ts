@@ -233,7 +233,11 @@ function scanUiPermissions(): IScannedPermission[] {
  * and is skipped rather than failing the whole platform-wide sync, since
  * one frontend's bad manifest shouldn't block every other service's rows. */
 function scanUiPermissionsManifest(service: string): IScannedPermission[] {
-  const manifestPath = join(APPS_ROOT, service, UI_PERMISSIONS_MANIFEST_FILENAME);
+  const manifestPath = join(
+    APPS_ROOT,
+    service,
+    UI_PERMISSIONS_MANIFEST_FILENAME,
+  );
   try {
     if (!statSync(manifestPath).isFile()) return [];
   } catch {
@@ -242,7 +246,9 @@ function scanUiPermissionsManifest(service: string): IScannedPermission[] {
 
   let manifest: IUiPermissionsManifest;
   try {
-    manifest = JSON.parse(readFileSync(manifestPath, 'utf-8')) as IUiPermissionsManifest;
+    manifest = JSON.parse(
+      readFileSync(manifestPath, 'utf-8'),
+    ) as IUiPermissionsManifest;
   } catch (error) {
     console.warn(
       `⚠ Skipping ${manifestPath}: not valid JSON (${(error as Error).message})`,
@@ -302,11 +308,17 @@ async function syncPlane(
   scanned: IScannedPermission[],
   removedReason: string,
 ): Promise<IPlaneDiff> {
+  // is_manual = false only — rows added through the iam-view Permissions page
+  // are invisible to this diff entirely: never counted as "removed" (so never
+  // soft-deleted) and never conflict-matched for an update, since a manual
+  // row's identity is admin-owned, not code-owned. See PermissionsService
+  // (apps/iam/src/modules/permissions/services/permissions.service.ts) for
+  // the API-side half of this guarantee (DELETE refuses non-manual rows).
   const { rows: existingRows } = await client.query<{
     service: string;
     permission: string;
   }>(
-    `SELECT service, permission FROM permissions WHERE is_deleted = false AND plane = $1`,
+    `SELECT service, permission FROM permissions WHERE is_deleted = false AND plane = $1 AND is_manual = false`,
     [plane],
   );
   const existing = new Set(
@@ -335,9 +347,13 @@ async function syncPlane(
     const nameTh = p.name?.th ?? placeholder;
     const nameEn = p.name?.en ?? placeholder;
 
+    // is_manual is intentionally absent from the UPDATE SET clause — if this
+    // insert happens to conflict with a row an admin already added manually
+    // (e.g. code catches up to a permission pre-declared via the Permissions
+    // page), it stays is_manual = true. New rows are always is_manual = false.
     await client.query(
-      `INSERT INTO permissions (service, permission, resource, action, plane, permission_name_th, permission_name_en, is_deleted, deleted_at, deleted_reason)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, false, NULL, NULL)
+      `INSERT INTO permissions (service, permission, resource, action, plane, permission_name_th, permission_name_en, is_deleted, deleted_at, deleted_reason, is_manual)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, false, NULL, NULL, false)
        ON CONFLICT (service, permission) DO UPDATE SET
          resource = EXCLUDED.resource,
          action = EXCLUDED.action,
@@ -363,7 +379,7 @@ async function syncPlane(
   for (const r of removed) {
     await client.query(
       `UPDATE permissions SET is_deleted = true, deleted_at = now(), deleted_reason = $3
-       WHERE service = $1 AND permission = $2`,
+       WHERE service = $1 AND permission = $2 AND is_manual = false`,
       [r.service, r.permission, removedReason],
     );
   }
@@ -430,7 +446,9 @@ async function main(): Promise<void> {
 
     await client.query('COMMIT');
 
-    const withExplicitName = apiScanned.filter((p) => p.name !== undefined).length;
+    const withExplicitName = apiScanned.filter(
+      (p) => p.name !== undefined,
+    ).length;
 
     console.log(`Added:     ${added.length}`);
     added.forEach((p) =>

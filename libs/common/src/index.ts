@@ -63,6 +63,7 @@ export * from './modules/redis/redis.module';
 
 // Services
 export * from './services/microservice-client.service';
+export * from './services/session-store.service';
 
 // Guards
 export * from './guards/auth.guard';

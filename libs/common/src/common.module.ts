@@ -9,6 +9,7 @@ import { PermissionGuard } from '@lib/common/guards/permission.guard';
 import { LogModule } from '@lib/common/modules/log/log.module';
 import { RedisModule } from '@lib/common/modules/redis/redis.module';
 import { MicroserviceClientService } from '@lib/common/services/microservice-client.service';
+import { SessionStoreService } from '@lib/common/services/session-store.service';
 import { buildClientProvider } from '@lib/common/utils/microservice-transport.util';
 import { ConfigModule, ConfigService } from '@lib/config';
 
@@ -49,6 +50,7 @@ import { ConfigModule, ConfigService } from '@lib/config';
   ],
   providers: [
     MicroserviceClientService,
+    SessionStoreService,
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_GUARD, useClass: PermissionGuard },
   ],
@@ -59,6 +61,7 @@ import { ConfigModule, ConfigService } from '@lib/config';
     LogModule,
     RedisModule,
     MicroserviceClientService,
+    SessionStoreService,
   ],
 })
 export class CommonModule {}

@@ -58,7 +58,7 @@ function buildUrl(path, query) {
 async function request(path, { method = 'GET', body, query } = {}) {
   const response = await fetchWithAuth(buildUrl(path, query), {
     method,
-    headers: { 'Content-Type': 'application/json' },
+    headers: body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
 
