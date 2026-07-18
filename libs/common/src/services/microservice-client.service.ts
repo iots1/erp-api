@@ -15,7 +15,7 @@ import { REQUEST } from '@nestjs/core';
 import { ClientProxy } from '@nestjs/microservices';
 
 import Redis from 'ioredis';
-import { lastValueFrom } from 'rxjs';
+import { lastValueFrom, timeout, TimeoutError } from 'rxjs';
 
 import { RedisService } from '@lib/common/enum/app-microservice.enum';
 import {
@@ -25,6 +25,21 @@ import {
   IRpcErrorResponse,
 } from '@lib/common/interfaces';
 import { ILogger } from '@lib/common/modules/log/abstracts/logger.abstract';
+
+/**
+ * Hard ceiling for every inter-service RPC call.
+ *
+ * A NestJS TCP client multiplexes all requests over ONE socket per target and
+ * correlates responses by id. If that socket goes half-open (the peer is
+ * OOM-killed / restarted, or the connection is silently dropped without
+ * FIN/RST), the response observable never emits — and without this timeout the
+ * awaiting HTTP handler hangs until the gateway cuts it (~60s), with NO error
+ * logged. 15s is comfortably under Kong's 60s read timeout, so the caller
+ * fails fast (and logs) instead of stalling. See the opd-bc upstream-timeout
+ * incident (2026-07-13): thousands of RPCs hung with zero error logs precisely
+ * because there was no client-side timeout.
+ */
+export const DEFAULT_RPC_TIMEOUT_MS = 15_000;
 
 /**
  * @description
@@ -121,6 +136,7 @@ export class MicroserviceClientService {
     payload: TInput,
     defaultValue: TResult | null = null,
     cacheOptions?: MicroserviceCacheOptions,
+    timeoutMs: number = DEFAULT_RPC_TIMEOUT_MS,
   ): Promise<TResult | null> {
     // Step 1: Build the call context and the trace fields shared by every log line.
     const { context, correlationId, traceFields } = this.buildTraceContext();
@@ -192,11 +208,14 @@ export class MicroserviceClientService {
     const startTime = Date.now();
     try {
       // Step 5: Execute the microservice call and await the response.
+      // `timeout({ each })` guarantees the observable rejects with a
+      // TimeoutError if the peer never replies (half-open socket), instead
+      // of hanging forever. Handled in the catch below.
       const result = await lastValueFrom(
-        client.send<TResult>(cmd, dataToSend),
-        {
-          defaultValue,
-        },
+        client
+          .send<TResult>(cmd, dataToSend)
+          .pipe(timeout({ each: timeoutMs })),
+        { defaultValue },
       );
       const duration = Date.now() - startTime;
 
@@ -212,11 +231,7 @@ export class MicroserviceClientService {
       });
 
       // Step 7: Cache the result if caching is enabled and result is valid
-      if (
-        cacheOptions?.enabled === true &&
-        result !== null &&
-        result !== undefined
-      ) {
+      if (cacheOptions?.enabled && result !== null && result !== undefined) {
         const cacheKey = this.generateCacheKey(
           cmd.cmd,
           payload,
@@ -257,6 +272,33 @@ export class MicroserviceClientService {
       // Step 6: Log the error with full context internally
       const duration = Date.now() - startTime;
 
+      // A silent RPC: the response observable never emitted within timeoutMs.
+      // This is the signature of a half-open TCP reply channel (peer OOM /
+      // restart / silent drop) — the exact failure mode of the opd-bc
+      // upstream-timeout incident, where such calls previously hung with NO
+      // log at all. Log it (so it is finally visible), drop the socket so the
+      // ClientProxy reconnects on the next call (self-heal instead of a
+      // permanent stall), then return the fallback like any other failure.
+      if (error instanceof TimeoutError) {
+        logger.error(
+          `[Microservice Timeout] No response for command '${cmd.cmd}' within ${timeoutMs}ms`,
+          error,
+          {
+            action: `MICROSERVICE_TIMEOUT_${cmd.cmd.toUpperCase()}`,
+            ...traceFields,
+            duration_ms: duration,
+            cmd: cmd.cmd,
+            timeout_ms: timeoutMs,
+          },
+        );
+
+        this.closeClientQuietly(client, logger, cmd.cmd);
+
+        return defaultValue !== null && defaultValue !== undefined
+          ? defaultValue
+          : null;
+      }
+
       // Debug: Log error type information
       // const errorObj = error as Record<string, unknown>;
       // logger.info({
@@ -295,9 +337,17 @@ export class MicroserviceClientService {
         this.handleRpcError(logger, cmd.cmd, correlationId, duration, error);
       }
 
-      // Type guard to safely access error properties
+      // Type guard to safely access error properties. A raw RPC error can be a
+      // plain object that matches neither IRpcErrorPayload nor IRpcErrorResponse
+      // (e.g. an unwrapped TypeORMError serialized over TCP); `String(obj)` on it
+      // yields the useless "[object Object]", so JSON-stringify objects to keep the
+      // real cause in the log/error message.
       const errorMessage =
-        error instanceof Error ? error.message : String(error);
+        error instanceof Error
+          ? error.message
+          : typeof error === 'object' && error !== null
+            ? JSON.stringify(error)
+            : String(error);
 
       // Determine if connection/timeout error for better logging
       const isServiceUnavailable =
@@ -649,6 +699,36 @@ export class MicroserviceClientService {
 
   /**
    * @description
+   * Closes a ClientProxy after an RPC timeout so a potentially half-open socket
+   * is dropped and the next `send()` transparently reconnects (NestJS connects
+   * lazily). Wrapped so a close failure can never mask the original timeout.
+   * Note: this drops the shared connection, so other in-flight calls on the same
+   * client are flushed too — which is the intended self-heal, since a half-open
+   * socket's other pending calls are equally doomed.
+   */
+  private closeClientQuietly(
+    client: ClientProxy,
+    logger: ILogger,
+    cmd: string,
+  ): void {
+    try {
+      client.close();
+    } catch (closeError) {
+      logger.warn({
+        message: `[Microservice Timeout] Failed to close client after timeout for '${cmd}'`,
+        context: {
+          action: `MICROSERVICE_TIMEOUT_CLOSE_ERROR_${cmd.toUpperCase()}`,
+          error:
+            closeError instanceof Error
+              ? closeError.message
+              : String(closeError),
+        },
+      });
+    }
+  }
+
+  /**
+   * @description
    * Checks if the response/error is a new standardized RPC error payload (IRpcErrorPayload).
    * This format is returned by RpcExceptionsFilter.
    */
@@ -729,9 +809,11 @@ export class MicroserviceClientService {
         : detailMessage;
 
     // Log the RPC error.
-    // A 404 is an expected business outcome (e.g. "no assessment yet"),
-    // so log it at `warn` level to keep error logs reserved for genuine
-    // failures — otherwise these routine 404s drown out real errors.
+    // Any 4xx is a client / business outcome (bad input, unauthorized, not
+    // found, conflict) — not a server fault — so log it at `warn` and keep
+    // `error` reserved for genuine 5xx failures; otherwise routine 4xx (e.g.
+    // a 404 "no assessment yet", or a 400 from a malformed filter value)
+    // drown out the real errors.
     const logContext = {
       action: `MICROSERVICE_RPC_ERROR_${cmd.toUpperCase()}`,
       correlation_id: correlationId,
@@ -742,14 +824,14 @@ export class MicroserviceClientService {
       error_details: errorDetails,
     };
 
-    if (statusCode === 404) {
+    if (statusCode >= 400 && statusCode < 500) {
       logger.warn({
-        message: `[Microservice RPC] Not found for command '${cmd}'`,
+        message: `[Microservice RPC] Client error ${statusCode} for command '${cmd}'`,
         context: logContext,
       });
     } else {
       logger.error(
-        `[Microservice RPC Error] Business error for command '${cmd}'`,
+        `[Microservice RPC Error] Server error for command '${cmd}'`,
         new Error(detailMessage),
         logContext,
       );
@@ -792,8 +874,8 @@ export class MicroserviceClientService {
     const message = error.message ?? 'Internal server error';
     const errorDetail = error.error;
 
-    // Log the RPC error. A 404 is an expected business outcome, so log it
-    // at `warn` level to keep error logs reserved for genuine failures.
+    // Log the RPC error. Any 4xx is a client / business outcome, so log it
+    // at `warn` and keep `error` reserved for genuine 5xx failures.
     const logContext = {
       action: `MICROSERVICE_RPC_ERROR_${cmd.toUpperCase()}`,
       correlation_id: correlationId,
@@ -804,14 +886,14 @@ export class MicroserviceClientService {
       error_detail: errorDetail,
     };
 
-    if (statusCode === 404) {
+    if (statusCode >= 400 && statusCode < 500) {
       logger.warn({
-        message: `[Microservice RPC] Not found for command '${cmd}'`,
+        message: `[Microservice RPC] Client error ${statusCode} for command '${cmd}'`,
         context: logContext,
       });
     } else {
       logger.error(
-        `[Microservice RPC Error] Business error for command '${cmd}'`,
+        `[Microservice RPC Error] Server error for command '${cmd}'`,
         new Error(message),
         logContext,
       );
