@@ -7,7 +7,7 @@ import { ITimestamp } from '@lib/common/interfaces/timestamp.interface';
 
 import {
   BaseServiceOperations,
-  UpdateOptions,
+  IUpdateOptions,
 } from './base-service-operations.util';
 
 /**
@@ -97,7 +97,7 @@ export abstract class BaseControllerOperations<
     id: string,
     updateDTO: UpdateDTO,
     currentUser?: IUserSession,
-    options?: UpdateOptions,
+    options?: IUpdateOptions,
   ): Promise<EntityType> {
     return this.service.update(id, updateDTO, currentUser, options);
   }

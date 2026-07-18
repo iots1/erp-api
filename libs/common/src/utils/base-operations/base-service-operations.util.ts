@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 
@@ -10,6 +11,7 @@ import {
   EntityPropertyNotFoundError,
   FindOneOptions,
   FindOptionsWhere,
+  In,
   IsNull,
   ObjectLiteral,
   OptimisticLockVersionMismatchError,
@@ -30,9 +32,24 @@ import { ISoftDeletable } from '@lib/common/interfaces/soft-deletable.interface'
 import { ITimestamp } from '@lib/common/interfaces/timestamp.interface';
 import { ILogger } from '@lib/common/modules/log/abstracts/logger.abstract';
 import { NoOpLogsService } from '@lib/common/modules/log/logs.service';
-import { PostgresErrorMapper } from '@lib/common/utils/http-exception/postgres-error-mapper.util';
 
 import { TypeOrmQueryBuilder } from './typeorm-query-builder.util';
+
+/**
+ * Optional knobs for {@link BaseServiceOperations.findPaginated}.
+ */
+export interface IFindPaginatedOptions {
+  /**
+   * TypeORM relation load strategy for this query.
+   * - `'join'` (TypeORM default): all relations loaded in one query via LEFT JOINs.
+   *   On a large result set with a OneToMany relation this fans the row count out
+   *   multiplicatively and TypeORM de-duplicates in JS — pathologically slow.
+   * - `'query'`: each relation loaded via a separate batched (`WHERE id IN (…)`)
+   *   query, then stitched. Avoids the fan-out. Prefer this for list endpoints
+   *   that eager-load OneToMany relations over many rows.
+   */
+  relationLoadStrategy?: 'join' | 'query';
+}
 
 /**
  * @description
@@ -264,6 +281,7 @@ export abstract class BaseServiceOperations<
    */
   private async _findEntitiesWithPagination(
     query: QueryParamsDTO,
+    options?: IFindPaginatedOptions,
   ): Promise<{ data: TargetRepository[]; pagination: IPagination }> {
     const safeQuery = query ?? {};
     const queryBuilder = new TypeOrmQueryBuilder(
@@ -271,6 +289,13 @@ export abstract class BaseServiceOperations<
       safeQuery,
     );
     const findOptions = queryBuilder.build(this.getFinalAllowedRelations());
+
+    // Opt-in: split relation loading into separate batched queries instead of
+    // one fan-out JOIN (see IFindPaginatedOptions). Applies to every branch
+    // below since findOptions is shared.
+    if (options?.relationLoadStrategy !== undefined) {
+      findOptions.relationLoadStrategy = options.relationLoadStrategy;
+    }
 
     // Handle soft delete filter + where clause merge
     // Case 1: where is an array (OR conditions from query.or)
@@ -294,11 +319,26 @@ export abstract class BaseServiceOperations<
     // enhance case : get_count_only mode
     // ---------------------------------------------------------
     if (safeQuery.get_count_only === true) {
-      const [total, totalRecord] = await Promise.all([
+      // const [total, totalRecord] = await Promise.all([
+      //     this.typeOrmRepository.count({ where: findOptions.where }),
+      //     this.typeOrmRepository.count({
+      //         where: this.softDeleteFilter as FindOptionsWhere<TargetRepository>,
+      //     }),
+      // ]);
+
+      // return {
+      //     data: [],
+      //     pagination: {
+      //         page: page,
+      //         page_size: limit,
+      //         total,
+      //         total_records: totalRecord,
+      //         total_pages: Math.ceil(total / limit),
+      //     },
+      // };
+
+      const [total] = await Promise.all([
         this.typeOrmRepository.count({ where: findOptions.where }),
-        this.typeOrmRepository.count({
-          where: this.softDeleteFilter as FindOptionsWhere<TargetRepository>,
-        }),
       ]);
 
       return {
@@ -307,18 +347,18 @@ export abstract class BaseServiceOperations<
           page: page,
           page_size: limit,
           total,
-          total_records: totalRecord,
+          total_records: total,
           total_pages: Math.ceil(total / limit),
         },
       };
     }
 
-    // ignore_limit: fetch all rows — must know totalRecord before setting take
+    // ignore_limit: fetch all rows that match the filter (no pagination cap).
+    // Remove take/skip so findAndCount returns every matching row; the
+    // returned `total` is the filtered count — no separate count needed.
     if (safeQuery.ignore_limit === true) {
-      const totalRecord = await this.typeOrmRepository.count({
-        where: this.softDeleteFilter as FindOptionsWhere<TargetRepository>,
-      });
-      findOptions.take = totalRecord;
+      findOptions.take = undefined;
+      findOptions.skip = undefined;
       const [entities, total] =
         await this.typeOrmRepository.findAndCount(findOptions);
 
@@ -326,22 +366,20 @@ export abstract class BaseServiceOperations<
         data: entities,
         pagination: {
           page: page,
-          page_size: totalRecord,
+          page_size: entities.length,
           total,
-          total_records: totalRecord,
+          total_records: total,
           total_pages: 1,
         },
       };
     }
 
-    // Normal paginated case: totalRecord count and data query are independent —
-    // run in parallel to save one sequential DB round-trip per request.
-    const [[entities, total], totalRecord] = await Promise.all([
-      this.typeOrmRepository.findAndCount(findOptions),
-      this.typeOrmRepository.count({
-        where: this.softDeleteFilter as FindOptionsWhere<TargetRepository>,
-      }),
-    ]);
+    // Normal paginated case: a separate unfiltered totalRecord count was previously run
+    // alongside findAndCount, tripling DB round-trips per request. Reuse the filtered
+    // `total` for `total_records` instead (same simplification already applied to the
+    // get_count_only branch above).
+    const [entities, total] =
+      await this.typeOrmRepository.findAndCount(findOptions);
 
     return {
       data: entities,
@@ -349,7 +387,7 @@ export abstract class BaseServiceOperations<
         page: page,
         page_size: limit,
         total,
-        total_records: totalRecord,
+        total_records: total,
         total_pages: Math.ceil(total / limit),
       },
     };
@@ -462,48 +500,77 @@ export abstract class BaseServiceOperations<
     dataArray: (CreateType | UpdateType)[],
     filter: Record<string, unknown>,
     user?: IUserSession | string,
+    options?: { skipDelete?: boolean },
   ): Promise<TargetRepository[]> {
     if (dataArray.length === 0) {
       return [];
     }
 
     const userId = this._extractUserId(user);
+    const skipDelete = options?.skipDelete === true;
 
-    // 1. Fetch existing entities matching the filter
-    const existingEntities = await this._fetchExistingEntities({
-      ...filter,
-      ...this.softDeleteFilter,
-    });
+    // Runs inside a transaction: create/update/reconcile-delete must land atomically,
+    // otherwise a mid-batch failure leaves the desired-state reconcile half-applied.
+    return this.typeOrmRepository.manager.transaction(
+      async (transactionalManager) => {
+        const txRepo = transactionalManager.getRepository<TargetRepository>(
+          this.typeOrmRepository.target,
+        );
 
-    // 2. Categorize incoming data
-    const { toCreate, toUpdate, incomingIds } =
-      this._categorizeIncomingData(dataArray);
+        // 1. Fetch existing entities matching the filter (skipped when the caller
+        // has determined the incoming batch cannot safely reconcile deletions,
+        // e.g. it does not carry a scope narrow enough to diff against)
+        const existingEntities = skipDelete
+          ? []
+          : await this._fetchExistingEntities(
+              {
+                ...filter,
+                ...this.softDeleteFilter,
+              },
+              txRepo,
+            );
 
-    // 3. Identify entities to delete
-    const idsToDelete = existingEntities
-      .filter((entity) => !incomingIds.has(String(entity.id)))
-      .map((entity) => String(entity.id));
+        // 2. Categorize incoming data
+        const { toCreate, toUpdate, incomingIds } =
+          this._categorizeIncomingData(dataArray);
 
-    // 4. Process all operations
-    // แยก _processCreates ออกมาเพราะเป็น Synchronous (ป้องกัน eslint await-thenable)
-    const createdEntities = this._processCreates(toCreate, filter, userId);
+        // 3. Identify entities to delete
+        const idsToDelete = skipDelete
+          ? []
+          : existingEntities
+              .filter((entity) => !incomingIds.has(String(entity.id)))
+              .map((entity) => String(entity.id));
 
-    // รันเฉพาะที่เป็น Async ใน Promise.all
-    const [updatedEntities] = await Promise.all([
-      this._processUpdates(toUpdate, userId),
-      this._processDeletes(idsToDelete, user),
-    ]);
+        // 4. Process all operations
+        // แยก _processCreates ออกมาเพราะเป็น Synchronous (ป้องกัน eslint await-thenable)
+        const createdEntities = this._processCreates(
+          toCreate,
+          filter,
+          userId,
+          txRepo,
+        );
 
-    // 5. Save all entities
-    const entitiesToSave = [...createdEntities, ...updatedEntities];
+        // รันเฉพาะที่เป็น Async ใน Promise.all
+        const [updatedEntities] = await Promise.all([
+          this._processUpdates(toUpdate, userId, txRepo),
+          this._processDeletes(
+            idsToDelete,
+            user,
+            'delete with bulk reconcile',
+            txRepo,
+          ),
+        ]);
 
-    if (entitiesToSave.length === 0) {
-      return [];
-    }
+        // 5. Save all entities
+        const entitiesToSave = [...createdEntities, ...updatedEntities];
 
-    // ใช้ Type Assertion เพื่อแก้ปัญหา Generic Overload ของ TypeORM
-    return this.typeOrmRepository.save(
-      entitiesToSave as DeepPartial<TargetRepository>[],
+        if (entitiesToSave.length === 0) {
+          return [];
+        }
+
+        // ใช้ Type Assertion เพื่อแก้ปัญหา Generic Overload ของ TypeORM
+        return txRepo.save(entitiesToSave as DeepPartial<TargetRepository>[]);
+      },
     );
   }
 
@@ -520,8 +587,9 @@ export abstract class BaseServiceOperations<
    */
   private async _fetchExistingEntities(
     filter: Record<string, unknown>,
+    repo: Repository<TargetRepository> = this.typeOrmRepository,
   ): Promise<TargetRepository[]> {
-    return this.typeOrmRepository.find({
+    return repo.find({
       where: {
         ...this.softDeleteFilter,
         ...filter,
@@ -562,9 +630,10 @@ export abstract class BaseServiceOperations<
     toCreate: CreateType[],
     filter: Record<string, unknown>,
     userId?: string,
+    repo: Repository<TargetRepository> = this.typeOrmRepository,
   ): TargetRepository[] {
     return toCreate.map((data) => {
-      const entity = this.typeOrmRepository.create({
+      const entity = repo.create({
         ...data,
         ...filter,
       } as DeepPartial<TargetRepository>);
@@ -584,6 +653,7 @@ export abstract class BaseServiceOperations<
   private async _processUpdates(
     toUpdate: UpdateType[],
     userId?: string,
+    repo: Repository<TargetRepository> = this.typeOrmRepository,
   ): Promise<TargetRepository[]> {
     if (toUpdate.length === 0) {
       return [];
@@ -593,7 +663,7 @@ export abstract class BaseServiceOperations<
       const preloadData =
         userId !== undefined ? { ...data, updated_by: userId } : data;
 
-      return this.typeOrmRepository.preload(preloadData);
+      return repo.preload(preloadData);
     });
 
     const results = await Promise.all(updatePromises);
@@ -609,18 +679,22 @@ export abstract class BaseServiceOperations<
   private async _processDeletes(
     idsToDelete: string[],
     user?: IUserSession | string,
+    reason?: string,
+    repo: Repository<TargetRepository> = this.typeOrmRepository,
   ): Promise<void> {
     if (idsToDelete.length === 0) {
       return;
     }
 
-    await this._deleteBulkEntities(idsToDelete, true, user);
+    await this._deleteBulkEntities(idsToDelete, true, user, reason, repo);
   }
 
   private _deleteBulkEntities(
     ids: string[],
     softDelete: boolean,
     user?: IUserSession | string,
+    reason?: string,
+    repo: Repository<TargetRepository> = this.typeOrmRepository,
   ): Promise<UpdateResult | DeleteResult> {
     if (softDelete) {
       const updateData: Record<string, unknown> = {
@@ -633,12 +707,22 @@ export abstract class BaseServiceOperations<
         updateData.deleted_by = userId;
       }
 
-      return this.typeOrmRepository.update(
-        ids,
+      if (reason !== undefined) {
+        updateData.deleted_reason = reason;
+      }
+
+      // Scope to still-active rows so ids already soft-deleted by a
+      // prior call (e.g. a separate reconcile-delete) don't get their
+      // deleted_at/deleted_by re-stamped with this call's timestamp/user.
+      return repo.update(
+        {
+          id: In(ids),
+          ...this.softDeleteFilter,
+        } as unknown as FindOptionsWhere<TargetRepository>,
         updateData as QueryDeepPartialEntity<TargetRepository>,
       );
     } else {
-      return this.typeOrmRepository.delete(ids);
+      return repo.delete(ids);
     }
   }
 
@@ -647,8 +731,11 @@ export abstract class BaseServiceOperations<
   // ===================================================================================
 
   /**
-   * Executes a database operation and maps driver-level errors to HTTP exceptions.
-   * Postgres-specific error translation is delegated to {@link PostgresErrorMapper} (OCP).
+   * @description
+   * A wrapper function that executes all database operations.
+   * It provides centralized error handling for common database exceptions.
+   * @param operation - A function that returns a Promise of the database operation result.
+   * @returns The result of the database operation.
    */
   protected async executeDbOperation<T>(
     operation: () => Promise<T>,
@@ -656,7 +743,9 @@ export abstract class BaseServiceOperations<
     try {
       return await operation();
     } catch (error) {
-      if (error instanceof BadRequestException) throw error;
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
 
       if (error instanceof EntityPropertyNotFoundError) {
         throw new BadRequestException({
@@ -673,10 +762,191 @@ export abstract class BaseServiceOperations<
       }
 
       if (error instanceof QueryFailedError) {
-        const mapper = new PostgresErrorMapper(this.tableName, this.logger);
-        mapper.map(error.driverError as Record<string, string | undefined>);
-      }
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const driverError = error.driverError;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        console.error(`Database Error Code: ${driverError?.code}`, driverError);
 
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        switch (driverError?.code) {
+          // Postgres error code for unique constraint violation.
+          case '23505': {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            const constraintName = driverError.constraint as string | undefined;
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            const pgDetail = driverError.detail as string | undefined;
+
+            this.logger.error(
+              `[DB Constraint Violation] Unique constraint violation in ${this.tableName}`,
+              error,
+              {
+                detail: pgDetail,
+                code: '23505',
+                table: this.tableName,
+                constraint: constraintName,
+              },
+            );
+
+            // Postgres detail format: "Key (col1, col2)=(val1, val2) already exists."
+            // Extract column names directly — more reliable than parsing the constraint name.
+            const columnMatch = pgDetail?.match(/Key \(([^)]+)\)=/);
+            let errorMessage: string;
+
+            if (columnMatch?.[1] != null) {
+              const columns = columnMatch[1]
+                .split(',')
+                .map((c) => c.trim().replace(/_/g, ' '))
+                .join(' and ');
+              errorMessage = `A record with this ${columns} already exists.`;
+            } else {
+              errorMessage =
+                'A record with the provided details already exists.';
+            }
+
+            throw new ConflictException({
+              code: '23505',
+              message: errorMessage,
+            });
+          }
+          // Postgres error code for foreign key violation.
+          case '23503': {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            const fkConstraintName = driverError.constraint as
+              string | undefined;
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            const fkDetail = (driverError.detail as string) ?? '';
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            const fkTable = (driverError.table as string) ?? this.tableName;
+
+            this.logger.error(
+              `[DB Constraint Violation] Foreign key violation in ${fkTable}`,
+              error,
+              {
+                detail: fkDetail,
+                code: '23503',
+                table: fkTable,
+                constraint: fkConstraintName,
+              },
+            );
+
+            // DELETE blocked: "Key (id)=(x) is still referenced from table "xxx""
+            if (fkDetail.includes('is still referenced from table')) {
+              const referencedTable = fkDetail.match(
+                /is still referenced from table "(\w+)"/,
+              );
+              const friendlyTable =
+                referencedTable?.[1]?.replace(/_/g, ' ') ?? 'another record';
+
+              throw new ConflictException({
+                code: '23503',
+                message: `Cannot delete this ${fkTable.replace(/_/g, ' ')} because it is still referenced by ${friendlyTable}.`,
+              });
+            }
+
+            // INSERT/UPDATE: referenced record does not exist
+            const fkErrorMessage =
+              fkConstraintName !== undefined
+                ? `Invalid reference for '${fkConstraintName.replace(/^fk_.*?_/, '').replace(/_/g, ' ')}'. The referenced record does not exist.`
+                : `Invalid reference to another record. Please check your input.`;
+
+            throw new BadRequestException({
+              code: '23503',
+              message: fkErrorMessage,
+            });
+          }
+          // Postgres error code for not-null violation.
+          case '23502': {
+            // Extract column name from error
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            const columnName = driverError.column as string | undefined;
+
+            // Log full details internally for debugging
+            this.logger.error(
+              `[DB Constraint Violation] NOT NULL violation in ${this.tableName}`,
+              error,
+              {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                detail: driverError.detail,
+                code: '23502',
+                table: this.tableName,
+                column: columnName,
+              },
+            );
+
+            const errorMessage =
+              columnName !== undefined
+                ? `Required field '${columnName}' cannot be empty.`
+                : `A required field was left empty. Please check your input.`;
+
+            throw new BadRequestException({
+              code: '23502',
+              message: errorMessage,
+            });
+          }
+          // Postgres error code for invalid text representation (e.g., wrong UUID format).
+          case '22P02': {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            const pgDetail = driverError.detail as string | undefined;
+            // The caller sent a value Postgres can't parse for the target type
+            // (e.g. a bad uuid/int, or a URL-encoded enum like "Present%20Illness"
+            // in a filter). That's a 400 — client input, not a server fault — so
+            // log at warn to keep it out of the error dashboards, then surface a
+            // clean BadRequest.
+            this.logger.warn({
+              message: `[Invalid input] Invalid text representation in ${this.tableName}`,
+              context: { code: '22P02', table: this.tableName },
+              details: pgDetail,
+            });
+            throw new BadRequestException({
+              code: '22P02',
+              message: `Invalid format for a field. Please check your input.`,
+            });
+          }
+          case '22001': {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            const pgDetail = driverError.detail as string | undefined;
+            // Value longer than the column allows — client input (400), not a
+            // server fault. Log at warn so it doesn't pollute error dashboards.
+            this.logger.warn({
+              message: `[Invalid input] String data too long in ${this.tableName}`,
+              context: { code: '22001', table: this.tableName },
+              details: pgDetail,
+            });
+            throw new BadRequestException({
+              code: '22001',
+              message: `The value provided for a field is too long. Please shorten the input.`,
+            });
+          }
+          default: {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            const dbCode = driverError?.code as string | undefined;
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            const dbMessage = driverError?.message as string | undefined;
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            const dbDetail = driverError?.detail as string | undefined;
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            const dbHint = driverError?.hint as string | undefined;
+
+            this.logger.error(
+              `[DB Error] Unhandled database error code ${dbCode} in ${this.tableName}`,
+              error,
+              {
+                detail: dbDetail,
+                code: dbCode,
+                hint: dbHint,
+                table: this.tableName,
+              },
+            );
+
+            throw new InternalServerErrorException({
+              code: dbCode ?? 'DATABASE_ERROR',
+              message: `Database error (${dbCode ?? 'UNKNOWN'}) on table ${this.tableName}: ${dbMessage ?? 'Unknown error'}`,
+              detail: dbDetail,
+            });
+          }
+        }
+      }
+      // Re-throw any other non-database errors.
       throw error;
     }
   }
@@ -724,9 +994,10 @@ export abstract class BaseServiceOperations<
    */
   async findPaginated(
     query: QueryParamsDTO,
+    options?: IFindPaginatedOptions,
   ): Promise<IResponsePaginatedService<TargetRepository[]>> {
     return this.executeDbOperation(() =>
-      this._findEntitiesWithPagination(query),
+      this._findEntitiesWithPagination(query, options),
     );
   }
   /**
@@ -757,7 +1028,7 @@ export abstract class BaseServiceOperations<
     id: string,
     data: UpdateType,
     currentUser?: IUserSession | string,
-    options?: UpdateOptions,
+    options?: IUpdateOptions,
   ): Promise<TargetRepository> {
     return this.executeDbOperation(() =>
       this.typeOrmRepository.manager.transaction(
@@ -863,7 +1134,7 @@ export abstract class BaseServiceOperations<
               // - Explicit children array (even empty): apply orphan handling with defaults
               if (explicitlySetOneToMany.has(rel.propertyName)) {
                 // Resolve options with defaults
-                const resolvedOptions = new UpdateOptions(options);
+                const resolvedOptions = new IUpdateOptions(options);
 
                 if (
                   resolvedOptions.hardDeleteOneToMany === true ||
@@ -1030,12 +1301,13 @@ export abstract class BaseServiceOperations<
     updates: UpdateType[],
     filter: Record<string, unknown>,
     currentUser?: IUserSession | string,
+    options?: { skipDelete?: boolean },
   ): Promise<TargetRepository[]> {
     if (updates.length === 0) {
       return [];
     }
     return this.executeDbOperation(() =>
-      this._updateBulkEntities(updates, filter, currentUser),
+      this._updateBulkEntities(updates, filter, currentUser, options),
     );
   }
 
@@ -1075,6 +1347,14 @@ export abstract class BaseServiceOperations<
     }
   }
 
+  /**
+   * Bulk delete is set-based and idempotent by design: it reports how many rows it
+   * actually affected instead of throwing when zero match. "Zero matched" is a normal
+   * outcome (ids already deleted by a concurrent/prior call, partial-match batches),
+   * not an error — the desired end-state (those ids are gone) still holds. Any endpoint
+   * that needs strict "all ids must exist" semantics enforces that at its own layer
+   * before calling here (see PresetDoctorsService.softDeleteBulk).
+   */
   async deleteBulk(
     ids: string[],
     softDelete = true,
@@ -1087,12 +1367,6 @@ export abstract class BaseServiceOperations<
     const result = await this.executeDbOperation(() =>
       this._deleteBulkEntities(ids, softDelete, currentUser),
     );
-
-    if (result.affected === 0) {
-      throw new NotFoundException(
-        `No records found in ${this.tableName} for the provided IDs.`,
-      );
-    }
 
     return { deleted_count: result.affected ?? 0, soft_delete: softDelete };
   }
@@ -1131,7 +1405,7 @@ export interface BaseServiceOptions {
  *
  * Priority: `hardDeleteOneToMany` beats `softDeleteOneToMany` when both are true.
  */
-export class UpdateOptions {
+export class IUpdateOptions {
   /**
    * Permanently DELETE orphaned child rows from the database.
    * @default false
@@ -1151,7 +1425,7 @@ export class UpdateOptions {
    */
   softDeleteOneToMany?: boolean = true;
 
-  constructor(partial?: Partial<UpdateOptions>) {
+  constructor(partial?: Partial<IUpdateOptions>) {
     if (partial) {
       Object.assign(this, partial);
     }

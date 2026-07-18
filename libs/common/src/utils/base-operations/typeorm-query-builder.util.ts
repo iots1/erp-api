@@ -66,7 +66,7 @@ type SearchOperator = (typeof SEARCH_OPERATORS)[number];
 
 const SEARCH_OPERATOR_SET: ReadonlySet<string> = new Set(SEARCH_OPERATORS);
 
-const FILTER_OPERATORS = [
+export const FILTER_OPERATORS = [
   '$eq',
   '$ieq',
   '$ne',
@@ -84,9 +84,11 @@ const FILTER_OPERATORS = [
   '$between',
 ] as const;
 
-type FilterOperator = (typeof FILTER_OPERATORS)[number];
+export type FilterOperator = (typeof FILTER_OPERATORS)[number];
 
-const FILTER_OPERATOR_SET: ReadonlySet<string> = new Set(FILTER_OPERATORS);
+export const FILTER_OPERATOR_SET: ReadonlySet<string> = new Set(
+  FILTER_OPERATORS,
+);
 
 /**
  * Canonical operator vocabulary for JSONB conditions.
@@ -158,6 +160,16 @@ const DATE_COMPARISON_SEARCH_OPERATORS = new Set<SearchOperator>([
   '<',
   '<=',
   '!=',
+]);
+
+// Operators whose value(s) are compared directly against a Postgres `enum` column.
+// An unrecognized value reaches Postgres verbatim and throws 22P02 (invalid_text_representation)
+// as a raw 500 instead of a clean 400 — validate against the column's enum members first.
+const ENUM_COMPARISON_FILTER_OPERATORS = new Set<FilterOperator>([
+  '$eq',
+  '$ne',
+  '$in',
+  '$notin',
 ]);
 
 const DATE_ONLY_REGEX = /^\d{4}-\d{2}-\d{2}$/;
@@ -748,6 +760,8 @@ export class TypeOrmQueryBuilder<T extends ObjectLiteral> {
         continue;
       }
 
+      this.validateEnumValueForFilter(field, operator, value);
+
       const isDateColumn = this.isDateColumnRecursive(field);
       const processedValue = isDateColumn
         ? this.processDateValueForFilter(value, operator)
@@ -857,6 +871,8 @@ export class TypeOrmQueryBuilder<T extends ObjectLiteral> {
         continue;
       }
 
+      this.validateEnumValueForFilter(field, operator, value);
+
       const isDateColumn = this.isDateColumnRecursive(field);
       const processedValue = isDateColumn
         ? this.processDateValueForFilter(value, operator)
@@ -878,6 +894,39 @@ export class TypeOrmQueryBuilder<T extends ObjectLiteral> {
     }
 
     return where;
+  }
+
+  /**
+   * Validates a filter value against a Postgres `enum` column's allowed members before it
+   * reaches the driver. Without this, an unrecognized value (wrong case, typo, stale client
+   * constant) throws a raw 22P02 from Postgres instead of a descriptive 400.
+   */
+  private validateEnumValueForFilter(
+    field: string,
+    operator: FilterOperator,
+    value: string,
+  ): void {
+    if (!ENUM_COMPARISON_FILTER_OPERATORS.has(operator)) return;
+
+    const allowedValues = this.getEnumValuesRecursive(field);
+    if (!allowedValues) return;
+
+    const candidates =
+      operator === '$in' || operator === '$notin'
+        ? this.parseCommaSeparatedValues(value)
+        : [value];
+
+    for (const candidate of candidates) {
+      if (candidate === '' || this.isNullishLiteral(candidate)) continue;
+      if (!allowedValues.includes(candidate)) {
+        throw new InvalidParameterException([
+          {
+            field,
+            message: `Invalid value '${candidate}' for enum field '${field}'. Allowed values are: [${allowedValues.join(', ')}]`,
+          },
+        ]);
+      }
+    }
   }
 
   private processDateValueForFilter(
@@ -939,14 +988,14 @@ export class TypeOrmQueryBuilder<T extends ObjectLiteral> {
   ): unknown {
     switch (operator) {
       case '$eq':
-        // A literal "null" reaches Postgres verbatim and throws 22P02 (invalid input
-        // syntax) on typed columns such as uuid/int/timestamp. Treat it as an IS NULL
+        // A literal "null"/"undefined" reaches Postgres verbatim and throws 22P02 (invalid
+        // input syntax) on typed columns such as uuid/int/timestamp. Treat it as an IS NULL
         // check, consistent with how empty values are handled in transformNullValues().
-        return this.isNullLiteral(value) ? IsNull() : value;
+        return this.isNullishLiteral(value) ? IsNull() : value;
       case '$ieq':
         return ILike(value);
       case '$ne':
-        return this.isNullLiteral(value) ? Not(IsNull()) : Not(value);
+        return this.isNullishLiteral(value) ? Not(IsNull()) : Not(value);
       case '$gt':
         return MoreThan(value);
       case '$lt':
@@ -985,12 +1034,14 @@ export class TypeOrmQueryBuilder<T extends ObjectLiteral> {
   }
 
   /**
-   * A filter value of the literal string "null" (case-insensitive) represents an IS NULL
-   * intent — typically sent when a UI serializes a cleared filter. Without this guard the
-   * string is passed straight to Postgres and throws 22P02 on typed columns (uuid/int/date).
+   * A filter value of the literal string "null" or "undefined" (case-insensitive) represents
+   * an IS NULL intent — typically sent when a UI serializes a cleared filter and the field's
+   * JS value was `null`/`undefined`. Without this guard the string is passed straight to
+   * Postgres and throws 22P02 (invalid input syntax) on typed columns (uuid/int/date).
    */
-  private isNullLiteral(value: string): boolean {
-    return value.trim().toLowerCase() === 'null';
+  private isNullishLiteral(value: string): boolean {
+    const normalized = value.trim().toLowerCase();
+    return normalized === 'null' || normalized === 'undefined';
   }
 
   private createBetweenFromString(value: string): ReturnType<typeof Between> {
@@ -1027,6 +1078,11 @@ export class TypeOrmQueryBuilder<T extends ObjectLiteral> {
 
       if (value === undefined || value === '') {
         transformed[key] = IsNull();
+      } else if (typeof value === 'string' && this.isNullishLiteral(value)) {
+        // Plain-equality path (e.g. search `s`) never routes through applyFilterOperator,
+        // so a literal "null"/"undefined" string would otherwise hit Postgres verbatim
+        // and throw 22P02 on typed columns. Normalize it to IS NULL here.
+        transformed[key] = IsNull();
       } else if (this.isPlainObject(value) && !this.isTypeOrmOperator(value)) {
         transformed[key] = this.transformNullValues(
           value as FindOptionsWhere<T>,
@@ -1046,42 +1102,51 @@ export class TypeOrmQueryBuilder<T extends ObjectLiteral> {
     return this.query?.timezone ?? TypeOrmQueryBuilder.DEFAULT_TIMEZONE;
   }
 
-  private isDateColumn(columnName: string): boolean {
-    const column =
-      this.repository.metadata.findColumnWithPropertyName(columnName);
-    if (column === undefined || column === null) return false;
-
-    return DATE_COLUMN_TYPES.includes(
-      column.type as (typeof DATE_COLUMN_TYPES)[number],
-    );
-  }
-
-  private isDateColumnRecursive(fieldPath: string): boolean {
+  /**
+   * Resolves the column metadata for a (possibly dot-nested, relation-qualified)
+   * field path, e.g. `finding_type` or `visit_order.status`. Shared by date and
+   * enum column checks so both stay in sync on how relation traversal works.
+   */
+  private resolveColumnMetadata(
+    fieldPath: string,
+  ): ReturnType<EntityMetadata['findColumnWithPropertyName']> {
     if (!fieldPath.includes('.')) {
-      return this.isDateColumn(fieldPath);
+      return this.repository.metadata.findColumnWithPropertyName(fieldPath);
     }
 
     const parts = fieldPath.split('.');
     let currentMetadata: EntityMetadata = this.repository.metadata;
 
     for (let i = 0; i < parts.length - 1; i++) {
-      const relationName = parts[i];
-      const relation =
-        currentMetadata.findRelationWithPropertyPath(relationName);
+      const relation = currentMetadata.findRelationWithPropertyPath(parts[i]);
 
-      if (!relation) return false;
+      if (!relation) return undefined;
 
       currentMetadata = relation.inverseEntityMetadata;
     }
 
-    const columnName = parts[parts.length - 1];
-    const column = currentMetadata.findColumnWithPropertyName(columnName);
+    return currentMetadata.findColumnWithPropertyName(parts[parts.length - 1]);
+  }
 
+  private isDateColumnRecursive(fieldPath: string): boolean {
+    const column = this.resolveColumnMetadata(fieldPath);
     if (!column) return false;
 
     return DATE_COLUMN_TYPES.includes(
       column.type as (typeof DATE_COLUMN_TYPES)[number],
     );
+  }
+
+  /**
+   * Returns the allowed enum values for a field path, or `null` when the field
+   * is not a Postgres `enum` column.
+   */
+  private getEnumValuesRecursive(fieldPath: string): string[] | null {
+    const column = this.resolveColumnMetadata(fieldPath);
+    if (!column || column.type !== 'enum' || !Array.isArray(column.enum))
+      return null;
+
+    return column.enum.map((value) => String(value));
   }
 
   private processDateValue(
