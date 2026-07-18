@@ -8,6 +8,7 @@ import { LogsService } from '@lib/common/modules/log/logs.service';
 import { BaseServiceOperations } from '@lib/common/utils/base-operations/base-service-operations.util';
 import { ConfigService } from '@lib/config';
 
+import { SessionSyncService } from '../../access/services/session-sync.service';
 import { PolicyStatementInputDTO } from '../dto/set-statements.dto';
 import { CreatePolicyDTO } from '../dto/create-policy.dto';
 import { UpdatePolicyDTO } from '../dto/update-policy.dto';
@@ -49,6 +50,7 @@ export class PoliciesService extends BaseServiceOperations<
     private readonly actionRepository: Repository<StatementAction>,
     @InjectRepository(StatementCondition, ErpDatabases.IAM)
     private readonly conditionRepository: Repository<StatementCondition>,
+    private readonly sessionSync: SessionSyncService,
   ) {
     super(policyRepository, {
       logging: {
@@ -125,6 +127,7 @@ export class PoliciesService extends BaseServiceOperations<
         }
       }),
     );
+    await this.sessionSync.syncUsersByPolicy(policyId);
   }
 
   /** Expanded statement tree for a policy — used by the Policy Generator UI. */

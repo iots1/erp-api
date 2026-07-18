@@ -101,6 +101,27 @@ export class SessionsService {
     };
   }
 
+  /** Every device this one user is currently logged in on — via the
+   * `user_sessions:<user_id>` index, not a platform-wide scan. */
+  async findActiveForUser(userId: string): Promise<{
+    id: string;
+    user_id: string;
+    count: number;
+    sessions: Array<{ jti: string; ttl_seconds: number; expires_at: Date }>;
+  }> {
+    const active = await this.sessionStore.listActiveSessions(userId);
+    return {
+      id: userId,
+      user_id: userId,
+      count: active.length,
+      sessions: active.map((entry) => ({
+        jti: entry.jti,
+        ttl_seconds: entry.ttl_seconds,
+        expires_at: new Date(Date.now() + entry.ttl_seconds * 1000),
+      })),
+    };
+  }
+
   /** Kills a session immediately (Redis key) and revokes every active refresh
    * token for its owner, so the client can't silently mint a new access token. */
   async revoke(jti: string, revokedBy: string | null): Promise<void> {

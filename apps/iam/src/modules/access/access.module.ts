@@ -15,6 +15,7 @@ import { User } from '../users/entities/user.entity';
 import { UserRole } from '../users/entities/user-role.entity';
 import { AccessEventsController } from './controllers/access-events.controller';
 import { PermissionResolverService } from './services/permission-resolver.service';
+import { SessionSyncService } from './services/session-sync.service';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { PermissionResolverService } from './services/permission-resolver.servic
     ),
   ],
   controllers: [AccessEventsController],
-  providers: [PermissionResolverService],
+  providers: [PermissionResolverService, SessionSyncService],
+  exports: [SessionSyncService],
 })
 export class AccessModule {}

@@ -19,8 +19,10 @@ import { ResourceType } from '@lib/common/decorators/resource-type.decorator';
 
 import {
   GET_SESSIONS_SUMMARY,
+  GET_USER_SESSIONS_SUMMARY,
   REVOKE_SESSION_SUMMARY,
   SESSION_JTI_PARAM_DESCRIPTION,
+  SESSION_USER_ID_PARAM_DESCRIPTION,
 } from '../constants/sessions.swagger';
 import { SessionsService } from '../services/sessions.service';
 
@@ -43,6 +45,17 @@ export class SessionsController {
       page ? Number(page) : 1,
       limit ? Number(limit) : 20,
     );
+  }
+
+  @Get('users/:user_id')
+  @RequirePermission('session:read', {
+    th: 'ดูผู้ใช้งานที่ออนไลน์',
+    en: 'View active sessions',
+  })
+  @ApiOperation({ summary: GET_USER_SESSIONS_SUMMARY })
+  @ApiParam({ name: 'user_id', description: SESSION_USER_ID_PARAM_DESCRIPTION })
+  findActiveForUser(@Param('user_id', ParseUuidParamPipe) userId: string) {
+    return this.sessionsService.findActiveForUser(userId);
   }
 
   @Delete(':jti')

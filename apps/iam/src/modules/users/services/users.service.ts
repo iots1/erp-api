@@ -8,6 +8,7 @@ import { LogsService } from '@lib/common/modules/log/logs.service';
 import { BaseServiceOperations } from '@lib/common/utils/base-operations/base-service-operations.util';
 import { ConfigService } from '@lib/config';
 
+import { SessionSyncService } from '../../access/services/session-sync.service';
 import { CreateUserDTO } from '../dto/create-user.dto';
 import { UpdateUserDTO } from '../dto/update-user.dto';
 import { User } from '../entities/user.entity';
@@ -26,6 +27,7 @@ export class UsersService extends BaseServiceOperations<
     userRepository: Repository<User>,
     @InjectRepository(UserRole, ErpDatabases.IAM)
     private readonly userRoleRepository: Repository<UserRole>,
+    private readonly sessionSync: SessionSyncService,
   ) {
     super(userRepository, {
       logging: {
@@ -56,6 +58,7 @@ export class UsersService extends BaseServiceOperations<
       );
       await this.userRoleRepository.save(entities);
     });
+    await this.sessionSync.syncUser(userId);
   }
 
   async findRoleIds(userId: string): Promise<string[]> {

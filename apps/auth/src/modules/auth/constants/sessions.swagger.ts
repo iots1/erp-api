@@ -4,6 +4,9 @@
 
 export const GET_SESSIONS_SUMMARY =
   'List currently active sessions (live Redis `session:<jti>` keys) — who is logged in right now';
+export const GET_USER_SESSIONS_SUMMARY =
+  "List one user's currently active sessions (every device they're logged in on) via the per-user Redis index";
 export const REVOKE_SESSION_SUMMARY =
   "Force-logout a session: deletes its Redis key and revokes the owning user's refresh tokens";
 export const SESSION_JTI_PARAM_DESCRIPTION = 'Session id (JWT `jti`)';
+export const SESSION_USER_ID_PARAM_DESCRIPTION = 'User id (iam-bc `users.id`)';

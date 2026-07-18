@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { CommonModule, ErpDatabases } from '@lib/common';
 
+import { AccessModule } from '../access/access.module';
 import { PoliciesController } from './controllers/policies.controller';
 import { Policy } from './entities/policy.entity';
 import { PolicyStatement } from './entities/policy-statement.entity';
@@ -14,6 +15,7 @@ import { PoliciesService } from './services/policies.service';
 @Module({
   imports: [
     CommonModule,
+    AccessModule,
     TypeOrmModule.forFeature(
       [
         Policy,

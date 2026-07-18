@@ -28,6 +28,9 @@
                                 <i data-lucide="plus"></i><span>เพิ่มสิทธิ์</span>
                             </button>
                             <input type="text" id="permSearchFilter" class="p-input um-filter-input" placeholder="ค้นหา service, permission, ชื่อ...">
+                            <select id="permServiceFilter" class="p-select">
+                                <option value="">ทุก service</option>
+                            </select>
                             <select id="permPlaneFilter" class="p-select">
                                 <option value="">ทุก plane</option>
                                 <option value="ui">UI</option>
@@ -56,13 +59,23 @@
                             <tbody id="permissionsTableBody"></tbody>
                         </table>
                         <div class="um-pager">
-                            <span id="permissionsPagerInfo"></span>
-                            <button type="button" class="p-btn p-btn-ghost p-btn-sm" id="permissionsPrevBtn" onclick="goToPermissionsPage(-1)">
-                                <i data-lucide="chevron-left" class="um-icon-sm"></i> ก่อนหน้า
-                            </button>
-                            <button type="button" class="p-btn p-btn-ghost p-btn-sm" id="permissionsNextBtn" onclick="goToPermissionsPage(1)">
-                                ถัดไป <i data-lucide="chevron-right" class="um-icon-sm"></i>
-                            </button>
+                            <div class="um-pager-size">
+                                <label for="permPageSize">แสดงต่อหน้า</label>
+                                <select id="permPageSize" class="p-select">
+                                    <option value="50">50</option>
+                                    <option value="100">100</option>
+                                    <option value="1000">1000</option>
+                                </select>
+                            </div>
+                            <div class="um-pager-nav">
+                                <span id="permissionsPagerInfo" class="um-pager-pages"></span>
+                                <button type="button" class="p-btn p-btn-ghost p-btn-sm" id="permissionsPrevBtn" onclick="goToPermissionsPage(-1)">
+                                    <i data-lucide="chevron-left" class="um-icon-sm"></i> ก่อนหน้า
+                                </button>
+                                <button type="button" class="p-btn p-btn-ghost p-btn-sm" id="permissionsNextBtn" onclick="goToPermissionsPage(1)">
+                                    ถัดไป <i data-lucide="chevron-right" class="um-icon-sm"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </section>

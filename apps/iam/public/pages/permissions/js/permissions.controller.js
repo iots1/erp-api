@@ -2,11 +2,13 @@ import { handleAuthLogin } from '../../../js/auth-guard.service.js';
 import {
   closePermissionModal,
   confirmDeletePermission,
+  ensureServiceFilterOptions,
   goToPermissionsPage,
   handlePermissionFormSubmit,
   loadPermissions,
   openPermissionModal,
   setPermissionsFilter,
+  setPermissionsPageSize,
 } from '../../user-management/js/permissions-admin.service.js';
 import {
   bootAdminPage,
@@ -33,6 +35,11 @@ function wireFilters() {
     debounce((e) => setPermissionsFilter({ search: e.target.value }), 350),
   );
 
+  const serviceSelect = document.getElementById('permServiceFilter');
+  serviceSelect?.addEventListener('change', (e) =>
+    setPermissionsFilter({ service: e.target.value }),
+  );
+
   const planeSelect = document.getElementById('permPlaneFilter');
   planeSelect?.addEventListener('change', (e) =>
     setPermissionsFilter({ plane: e.target.value }),
@@ -42,7 +49,18 @@ function wireFilters() {
   sourceSelect?.addEventListener('change', (e) =>
     setPermissionsFilter({ source: e.target.value }),
   );
+
+  const pageSizeSelect = document.getElementById('permPageSize');
+  pageSizeSelect?.addEventListener('change', (e) =>
+    setPermissionsPageSize(e.target.value),
+  );
 }
 
 wireFilters();
-bootAdminPage({ pagePermission: 'page:view_permissions', loader: () => loadPermissions(1) });
+bootAdminPage({
+  pagePermission: 'page:view_permissions',
+  loader: () => {
+    ensureServiceFilterOptions();
+    loadPermissions(1);
+  },
+});

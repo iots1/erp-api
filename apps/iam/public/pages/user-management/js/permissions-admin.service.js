@@ -10,23 +10,57 @@ import { escapeHtml, refreshIcons } from './utils.js';
 
 const PERMISSION_PATTERN = /^(page|component):[a-zA-Z0-9_]+$/;
 const SERVICE_PATTERN = /^[a-z][a-z0-9-]*$/;
+const DEFAULT_PAGE_SIZE = 50;
 
-const query = { search: '', plane: '', source: '' };
+const query = { search: '', service: '', plane: '', source: '' };
+let pageSize = DEFAULT_PAGE_SIZE;
 let currentPage = 1;
 let currentPagination = null;
 let currentItems = [];
+let serviceOptionsLoaded = false;
 
-export function setPermissionsFilter({ search, plane, source }) {
+export function setPermissionsFilter({ search, service, plane, source }) {
   if (search !== undefined) query.search = search.trim();
+  if (service !== undefined) query.service = service;
   if (plane !== undefined) query.plane = plane;
   if (source !== undefined) query.source = source;
   loadPermissions(1);
+}
+
+export function setPermissionsPageSize(size) {
+  pageSize = Number(size) || DEFAULT_PAGE_SIZE;
+  loadPermissions(1);
+}
+
+/** Populates the service filter <select> from the distinct services already
+ * in the catalog — fetched once (ignore_limit), independent of the paginated
+ * table load/filters, so the dropdown always lists every service regardless
+ * of the current page/filter. */
+export async function ensureServiceFilterOptions() {
+  if (serviceOptionsLoaded) return;
+  const select = document.getElementById('permServiceFilter');
+  if (!select) return;
+
+  try {
+    const { items } = await iamGet('/permissions', { ignore_limit: true });
+    const services = [...new Set(items.map((p) => p.service))].sort();
+    for (const service of services) {
+      const option = document.createElement('option');
+      option.value = service;
+      option.textContent = service;
+      select.appendChild(option);
+    }
+    serviceOptionsLoaded = true;
+  } catch (error) {
+    showApiError(error, 'โหลดรายชื่อ service ไม่สำเร็จ');
+  }
 }
 
 export async function loadPermissions(page = 1) {
   currentPage = page;
   try {
     const filter = [];
+    if (query.service) filter.push(`service||$eq||${query.service}`);
     if (query.plane) filter.push(`plane||$eq||${query.plane}`);
     if (query.source === 'manual') filter.push('is_manual||$eq||true');
     if (query.source === 'synced') filter.push('is_manual||$eq||false');
@@ -42,7 +76,7 @@ export async function loadPermissions(page = 1) {
 
     const { items, pagination } = await iamGet('/permissions', {
       page,
-      limit: 15,
+      limit: pageSize,
       sort: 'service:asc,permission:asc',
       filter,
       or,
