@@ -11,7 +11,7 @@
     <% if (typeof actions !== 'undefined' && actions.length) { %>
     <div class="um-topbar-right">
         <% actions.forEach(function (btn) { %>
-        <button type="button" class="<%= btn.btnClass %>" <% if (btn.permission) { %>data-permission="<%= btn.permission %>" <% } %>onclick="<%- btn.onClick %>">
+        <button type="button" class="<%= btn.btnClass %><%= btn.hidden ? ' hidden' : '' %>" <% if (btn.view) { %>data-view-for="<%= btn.view %>" <% } %><% if (btn.permission) { %>data-permission="<%= btn.permission %>" <% } %>onclick="<%- btn.onClick %>">
             <i data-lucide="<%= btn.icon %>"></i><span><%= btn.label %></span>
         </button>
         <% }) %>

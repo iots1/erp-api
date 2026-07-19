@@ -1,15 +1,14 @@
 <%- include('../../components/layout/page-head', { pageName: 'policies' }) %>
-<%- include('../../components/admin-shell/shell-open', { activeView: 'policies', pageTitle: 'นโยบายความปลอดภัย' }) %>
+<%
+const topbarActions = [
+    { btnClass: 'p-btn p-btn-sky p-btn-sm', icon: 'file-json', label: 'สร้าง Policy ใหม่', onClick: 'openPolicyForm(null)', permission: 'policy:create', view: 'policies' },
+    { btnClass: 'p-btn p-btn-sky p-btn-sm', icon: 'save', label: 'บันทึก', onClick: "document.getElementById('policyForm').requestSubmit()", view: 'policy-form', hidden: true },
+];
+%>
+<%- include('../../components/admin-shell/shell-open', { activeView: 'policies', pageTitle: 'นโยบายความปลอดภัย', topbarActions: topbarActions }) %>
 
                 <!-- VIEW: Policies -->
                 <section id="view-policies" class="um-view active">
-                    <%- include('../../components/ui/toolbar-action-button', {
-                        btnClass: 'p-btn p-btn-lavender',
-                        icon: 'file-json',
-                        label: 'สร้าง Policy ใหม่',
-                        onClick: 'openPolicyForm(null)',
-                        permission: 'policy:create',
-                    }) %>
                     <article class="um-table-card">
                         <div class="um-table-toolbar">
                             <input type="text" id="policySearchFilter" class="um-filter-input" placeholder="ค้นหา code, ชื่อ...">
@@ -156,13 +155,6 @@
                                 </table>
                             </div>
                         </article>
-
-                        <%- include('../../components/ui/form-actions', {
-                            cancelOnClick: "switchView('policies')",
-                            cancelLabel: 'Cancel',
-                            submitClass: 'p-btn p-btn-lavender',
-                            submitLabel: 'Generate Policy',
-                        }) %>
                     </form>
                 </section>
 

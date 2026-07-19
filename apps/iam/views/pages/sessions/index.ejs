@@ -1,13 +1,12 @@
 <%- include('../../components/layout/page-head', { pageName: 'sessions' }) %>
-<%- include('../../components/admin-shell/shell-open', { activeView: 'sessions', pageTitle: 'ผู้ใช้งานที่ออนไลน์' }) %>
+<%
+const topbarActions = [
+    { btnClass: 'p-btn p-btn-ghost p-btn-sm', icon: 'refresh-cw', label: 'รีเฟรช', onClick: 'loadSessions(1)' },
+];
+%>
+<%- include('../../components/admin-shell/shell-open', { activeView: 'sessions', pageTitle: 'ผู้ใช้งานที่ออนไลน์', topbarActions: topbarActions }) %>
 
                 <section id="view-sessions" class="um-view active">
-                    <%- include('../../components/ui/toolbar-action-button', {
-                        btnClass: 'p-btn p-btn-ghost',
-                        icon: 'refresh-cw',
-                        label: 'รีเฟรช',
-                        onClick: 'loadSessions(1)',
-                    }) %>
                     <p class="um-view-subtitle">
                         รายการนี้อ่านจาก session ที่ยังไม่หมดอายุใน Redis — กด "Revoke" เพื่อบังคับออกจากระบบทันที
                     </p>

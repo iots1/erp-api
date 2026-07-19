@@ -1,14 +1,12 @@
 <%- include('../../components/layout/page-head', { pageName: 'permissions' }) %>
-<%- include('../../components/admin-shell/shell-open', { activeView: 'permissions', pageTitle: 'จัดการสิทธิ์ (Permissions)' }) %>
+<%
+const topbarActions = [
+    { btnClass: 'p-btn p-btn-sky p-btn-sm', icon: 'plus', label: 'เพิ่มสิทธิ์', onClick: 'openPermissionModal()', permission: 'permission:create' },
+];
+%>
+<%- include('../../components/admin-shell/shell-open', { activeView: 'permissions', pageTitle: 'จัดการสิทธิ์ (Permissions)', topbarActions: topbarActions }) %>
 
                 <section id="view-permissions" class="um-view active">
-                    <%- include('../../components/ui/toolbar-action-button', {
-                        btnClass: 'p-btn p-btn-sky',
-                        icon: 'plus',
-                        label: 'เพิ่มสิทธิ์',
-                        onClick: 'openPermissionModal()',
-                        permission: 'permission:create',
-                    }) %>
                     <p class="um-view-subtitle">Plane <b>api</b> มาจาก <span class="mono">@RequirePermission()</span> ในโค้ดเท่านั้น แก้ชื่อได้แต่ลบไม่ได้ที่นี่ — ลบได้เฉพาะสิทธิ์ที่เพิ่มด้วยตนเอง (Manual)</p>
 
                     <article class="um-table-card">

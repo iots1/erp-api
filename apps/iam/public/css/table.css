@@ -17,6 +17,9 @@
 .p-table td {
   padding: 0.4rem 0.75rem;
 }
+.p-table tbody tr {
+  background: var(--surface);
+}
 .p-table tbody tr:hover {
   background: var(--slate-50);
 }
