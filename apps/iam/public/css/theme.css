@@ -5,67 +5,276 @@
    This file only holds the brand's color/spacing tokens, the retint of
    Pico's own CSS variables, and resets that apply document-wide. Component
    styles live in button.css / form.css / table.css / modal.css / layout.css;
-   page-specific styles live in public/pages/{page}/css/{page}.css. */
+   page-specific styles live in public/pages/{page}/css/{page}.css.
+
+   Palette: Frappe Desk's real "Espresso Design System" tokens, pulled from
+   the user's ERPNext clone (banking/src/index.css) — gray/blue/violet/green/
+   amber/red scales, both light and dark. Token *names* below are unchanged
+   from before this pass (--sky, --lavender, --mint, --peach, --pink, etc.)
+   so no other CSS file or view needed to change — only what these tokens
+   point to. Font stays Sarabun (Frappe's Inter has no Thai glyphs, and this
+   app is bilingual TH/EN — see CLAUDE.md). */
 
 :root {
-  --slate-50: #f8fafc;
-  --slate-100: #f1f5f9;
-  --slate-200: #e2e8f0;
-  --slate-300: #cbd5e1;
-  --slate-400: #94a3b8;
-  --slate-500: #64748b;
-  --slate-600: #475569;
-  --slate-700: #334155;
-  --slate-800: #1e293b;
-  --slate-900: #0f172a;
-
-  --sky: #3b82f6;
-  --sky-lt: #eff6ff;
-  --sky-dk: #1d4ed8;
-  --lavender: #6366f1;
-  --lavender-lt: #eef2ff;
-  --lavender-dk: #4338ca;
-  --mint: #10b981;
-  --mint-lt: #ecfdf5;
-  --mint-dk: #047857;
-  --peach: #f59e0b;
-  --peach-lt: #fffbeb;
-  --peach-dk: #b45309;
-  --pink: #ef4444;
-  --pink-lt: #fef2f2;
-  --pink-dk: #b91c1c;
-
-  --text: var(--slate-800);
-  --text-muted: var(--slate-500);
-  --border: var(--slate-200);
-  --surface: #ffffff;
-  --bg: var(--slate-50);
-
-  /* Retint Pico's default blue theme to the brand sky color so bare Pico
-     elements (buttons, links, focus rings, dialogs) match without per-element
-     overrides. See https://picocss.com/docs/css-variables */
+  /* Theme-independent — Pico doesn't vary these by light/dark, so a plain
+     :root here is fine (no specificity fight with Pico's own rules; see the
+     light/dark blocks below for why those need to match Pico's selectors). */
   --pico-font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, sans-serif;
-  --pico-primary: var(--sky-dk);
-  --pico-primary-background: var(--sky);
-  --pico-primary-border: var(--sky);
-  --pico-primary-hover: var(--sky-dk);
-  --pico-primary-hover-background: var(--sky-dk);
-  --pico-primary-hover-border: var(--sky-dk);
-  --pico-primary-focus: rgba(59, 130, 246, 0.35);
-  --pico-primary-inverse: #fff;
-  --pico-form-element-focus-color: var(--sky);
-  --pico-border-radius: 0.5rem;
-
-  /* Compact density — an admin managing lists/forms all day needs more rows
-     and fields on screen, not Lumo/Aura-style breathing room. Buttons share
-     --pico-form-element-spacing-* with inputs, so this one pair shrinks both;
-     --pico-block-spacing-* shrinks <article>/<dialog> padding the same way. */
+  /* Pin the root size — Pico's own :root media queries scale --pico-font-size
+     up to 137.5% on wide viewports (it's a marketing-site default, meant for
+     readability on huge screens). Every rem-based size in this app inherits
+     from that, so on a normal desktop width it was rendering ~20px+ root
+     instead of 16px — every input/table-row/spacing value 20-40% larger
+     than designed. Fixing this one value is what actually fixes "everything
+     looks bigger than Frappe", not re-tuning individual component rules. */
+  --pico-font-size: 100%;
+  --pico-border-radius: 0.25rem; /* 4px — Frappe's --radius-sm */
   --pico-form-element-spacing-vertical: 0.42rem;
   --pico-form-element-spacing-horizontal: 0.7rem;
   --pico-spacing: 0.75rem;
   --pico-typography-spacing-vertical: 0.5rem;
   --pico-block-spacing-vertical: 0.85rem;
   --pico-block-spacing-horizontal: 1rem;
+  --pico-switch-color: #fff;
+}
+
+/* Pico itself scopes its light/dark palettes to `:root:not([data-theme=dark])`
+   and `@media(prefers-color-scheme:dark){:root:not([data-theme])}` — both as
+   specific as a single attribute selector on :root. A plain `:root{}`
+   override loses that specificity fight (Pico's own hardcoded colors win
+   over ours for things like form-element background). Matching Pico's exact
+   selector pattern here — and loading after its <link> — makes ours win the
+   tie on source order instead. */
+
+/* ── LIGHT — default, or explicit data-theme="light" ─────────────────── */
+:root:not([data-theme="dark"]) {
+  --slate-50: #F8F8F8;
+  --slate-100: #F3F3F3;
+  --slate-200: #EDEDED;
+  --slate-300: #E2E2E2;
+  --slate-400: #C7C7C7;
+  --slate-500: #999999;
+  --slate-600: #7C7C7C;
+  --slate-700: #525252;
+  --slate-800: #383838;
+  --slate-900: #171717;
+
+  --sky: #0289F7;
+  --sky-lt: #F2F9FF;
+  --sky-dk: #0070CC;
+  --lavender: #6846E3;
+  --lavender-lt: #FBFAFF;
+  --lavender-dk: #4F3DA1;
+  --mint: #46B37E;
+  --mint-lt: #F2FDF4;
+  --mint-dk: #137949;
+  --peach: #E79913;
+  --peach-lt: #FDFAED;
+  --peach-dk: #B35309;
+  --pink: #E03636;
+  --pink-lt: #FFF7F7;
+  --pink-dk: #B52A2A;
+
+  --text: var(--slate-900);
+  --text-muted: var(--slate-600);
+  --border: var(--slate-300);
+  --surface: #ffffff;
+  --bg: var(--slate-50);
+
+  --pico-background-color: var(--bg);
+  --pico-color: var(--text);
+  --pico-h1-color: var(--text);
+  --pico-h2-color: var(--text);
+  --pico-muted-color: var(--text-muted);
+  --pico-muted-border-color: var(--border);
+
+  --pico-primary: var(--sky-dk);
+  --pico-primary-background: var(--sky);
+  --pico-primary-border: var(--sky);
+  --pico-primary-hover: var(--sky-dk);
+  --pico-primary-hover-background: var(--sky-dk);
+  --pico-primary-hover-border: var(--sky-dk);
+  --pico-primary-focus: rgba(2, 137, 247, 0.25);
+  --pico-primary-inverse: #fff;
+  --pico-form-element-focus-color: var(--sky);
+
+  --pico-secondary: var(--slate-700);
+  --pico-secondary-background: var(--surface);
+  --pico-secondary-border: var(--slate-400);
+  --pico-secondary-hover: var(--slate-900);
+  --pico-secondary-hover-background: var(--slate-50);
+  --pico-secondary-hover-border: var(--slate-400);
+  --pico-secondary-focus: rgba(124, 124, 124, 0.2);
+  --pico-secondary-inverse: var(--text);
+
+  --pico-card-background-color: var(--surface);
+  --pico-card-border-color: var(--border);
+  --pico-card-box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.06);
+  --pico-card-sectioning-background-color: var(--slate-50);
+
+  --pico-form-element-background-color: var(--surface);
+  --pico-form-element-border-color: var(--slate-400);
+  --pico-form-element-color: var(--text);
+  --pico-form-element-placeholder-color: var(--slate-500);
+  --pico-form-element-active-background-color: var(--surface);
+  --pico-form-element-active-border-color: var(--sky);
+
+  --pico-switch-background-color: var(--slate-300);
+  --pico-switch-checked-background-color: var(--sky);
+}
+
+/* ── DARK — system preference, no explicit override ──────────────────── */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    /* Frappe's own dark gray scale keeps low numbers light (for text) and
+       high numbers dark — literally the same ramp direction as light mode,
+       just relabeled "the dark theme's ramp". But every other component
+       file here (button/form/table/user-management.css) reuses --slate-N
+       as "distance from the surface" (50 = subtle tint next to bg, 900 =
+       strongest text) in BOTH themes — that's what makes e.g.
+       `.um-type-toggle{background:var(--slate-100)}` or a muted label at
+       `--slate-500` work without a light/dark branch of their own. Re-index
+       Frappe's dark hex values (same authentic colors, swapped position) so
+       that contract holds: 50 stays "closest to bg", 900 stays "strongest
+       contrast" — now bg-relative to a dark surface instead of a light one. */
+    --slate-50: #1C1C1C;
+    --slate-100: #232323;
+    --slate-200: #2B2B2B;
+    --slate-300: #343434;
+    --slate-400: #424242;
+    --slate-500: #717171;
+    --slate-600: #808080;
+    --slate-700: #AFAFAF;
+    --slate-800: #D9D9D9;
+    --slate-900: #F8F8F8;
+
+    /* "-dk" keeps its role as the higher-emphasis variant (button hover
+       fill, readable tag text) — in dark mode that means brighter, not
+       literally darker, so it maps to the lighter step of the dark scale. */
+    --sky: #1580D8;
+    --sky-dk: #3294E3;
+    --sky-lt: rgba(21, 128, 216, 0.16);
+    --lavender: #5A3EBA;
+    --lavender-dk: #8363F1;
+    --lavender-lt: rgba(90, 62, 186, 0.18);
+    --mint: #0C9150;
+    --mint-dk: #1DB269;
+    --mint-lt: rgba(12, 145, 80, 0.18);
+    --peach: #CB6D10;
+    --peach-dk: #E27E1B;
+    --peach-lt: rgba(203, 109, 16, 0.18);
+    --pink: #B01F1F;
+    --pink-dk: #D82727;
+    --pink-lt: rgba(176, 31, 31, 0.18);
+
+    --text: var(--slate-900);
+    --text-muted: var(--slate-600);
+    --border: var(--slate-300);
+    --surface: var(--slate-100);
+    --bg: #0F0F0F;
+
+    --pico-background-color: var(--bg);
+    --pico-color: var(--text);
+    --pico-h1-color: var(--text);
+    --pico-h2-color: var(--text);
+    --pico-muted-color: var(--text-muted);
+    --pico-muted-border-color: var(--border);
+
+    --pico-primary: var(--sky-dk);
+    --pico-primary-background: var(--sky);
+    --pico-primary-border: var(--sky);
+    --pico-primary-hover: var(--sky-dk);
+    --pico-primary-hover-background: var(--sky-dk);
+    --pico-primary-hover-border: var(--sky-dk);
+    --pico-primary-focus: rgba(50, 148, 227, 0.35);
+    --pico-primary-inverse: #fff;
+    --pico-form-element-focus-color: var(--sky);
+
+    --pico-secondary: var(--slate-700);
+    --pico-secondary-background: var(--surface);
+    --pico-secondary-border: var(--slate-400);
+    --pico-secondary-hover: var(--slate-900);
+    --pico-secondary-hover-background: var(--slate-50);
+    --pico-secondary-hover-border: var(--slate-400);
+    --pico-secondary-focus: rgba(128, 128, 128, 0.25);
+    --pico-secondary-inverse: var(--text);
+
+    --pico-card-background-color: var(--surface);
+    --pico-card-border-color: var(--border);
+    --pico-card-box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.4);
+    --pico-card-sectioning-background-color: var(--slate-50);
+
+    --pico-form-element-background-color: var(--surface);
+    --pico-form-element-border-color: var(--slate-400);
+    --pico-form-element-color: var(--text);
+    --pico-form-element-placeholder-color: var(--slate-500);
+    --pico-form-element-active-background-color: var(--surface);
+    --pico-form-element-active-border-color: var(--sky);
+
+    --pico-switch-background-color: var(--slate-300);
+    --pico-switch-checked-background-color: var(--sky);
+  }
+}
+
+/* ── DARK — explicit toggle override, regardless of system preference ── */
+:root[data-theme="dark"] {
+  /* Same re-indexing as the media-query block above — see its comment. */
+  --slate-50: #1C1C1C; --slate-100: #232323; --slate-200: #2B2B2B; --slate-300: #343434;
+  --slate-400: #424242; --slate-500: #717171; --slate-600: #808080; --slate-700: #AFAFAF;
+  --slate-800: #D9D9D9; --slate-900: #F8F8F8;
+
+  --sky: #1580D8; --sky-dk: #3294E3; --sky-lt: rgba(21, 128, 216, 0.16);
+  --lavender: #5A3EBA; --lavender-dk: #8363F1; --lavender-lt: rgba(90, 62, 186, 0.18);
+  --mint: #0C9150; --mint-dk: #1DB269; --mint-lt: rgba(12, 145, 80, 0.18);
+  --peach: #CB6D10; --peach-dk: #E27E1B; --peach-lt: rgba(203, 109, 16, 0.18);
+  --pink: #B01F1F; --pink-dk: #D82727; --pink-lt: rgba(176, 31, 31, 0.18);
+
+  --text: var(--slate-900);
+  --text-muted: var(--slate-600);
+  --border: var(--slate-300);
+  --surface: var(--slate-100);
+  --bg: #0F0F0F;
+
+  --pico-background-color: var(--bg);
+  --pico-color: var(--text);
+  --pico-h1-color: var(--text);
+  --pico-h2-color: var(--text);
+  --pico-muted-color: var(--text-muted);
+  --pico-muted-border-color: var(--border);
+
+  --pico-primary: var(--sky-dk);
+  --pico-primary-background: var(--sky);
+  --pico-primary-border: var(--sky);
+  --pico-primary-hover: var(--sky-dk);
+  --pico-primary-hover-background: var(--sky-dk);
+  --pico-primary-hover-border: var(--sky-dk);
+  --pico-primary-focus: rgba(50, 148, 227, 0.35);
+  --pico-primary-inverse: #fff;
+  --pico-form-element-focus-color: var(--sky);
+
+  --pico-secondary: var(--slate-700);
+  --pico-secondary-background: var(--surface);
+  --pico-secondary-border: var(--slate-400);
+  --pico-secondary-hover: var(--slate-900);
+  --pico-secondary-hover-background: var(--slate-50);
+  --pico-secondary-hover-border: var(--slate-400);
+  --pico-secondary-focus: rgba(128, 128, 128, 0.25);
+  --pico-secondary-inverse: var(--text);
+
+  --pico-card-background-color: var(--surface);
+  --pico-card-border-color: var(--border);
+  --pico-card-box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.4);
+  --pico-card-sectioning-background-color: var(--slate-50);
+
+  --pico-form-element-background-color: var(--surface);
+  --pico-form-element-border-color: var(--slate-400);
+  --pico-form-element-color: var(--text);
+  --pico-form-element-placeholder-color: var(--slate-500);
+  --pico-form-element-active-background-color: var(--surface);
+  --pico-form-element-active-border-color: var(--sky);
+
+  --pico-switch-background-color: var(--slate-300);
+  --pico-switch-checked-background-color: var(--sky);
 }
 
 /* ── Global resets ────────────────────────────────────────────── */

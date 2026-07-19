@@ -4,6 +4,7 @@
 // share one login gate + sidebar + topbar shell, so that wiring lives here
 // once instead of being copy-pasted into every page controller.
 import { getCurrentUser, hasPermission, isAuthenticated, login, logout } from '../../../js/login.service.js';
+import { initThemeIcon } from '../../../js/theme.service.js';
 import { refreshIcons } from './utils.js';
 
 export async function handleInitialLoginSubmit(event) {
@@ -77,6 +78,7 @@ function showLogin() {
  */
 export function bootAdminPage({ pagePermission, loader } = {}) {
   refreshIcons();
+  initThemeIcon();
 
   if (!isAuthenticated()) {
     showLogin();

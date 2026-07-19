@@ -111,10 +111,8 @@ function renderTable() {
       return `
     <tr>
       <td><span class="p-tag ${planeTag}">${escapeHtml(p.plane)}</span></td>
-      <td>
-        <p class="um-cell-title">${escapeHtml(p.permission)}</p>
-        <p class="um-cell-sub">${escapeHtml(p.service)}</p>
-      </td>
+      <td><p class="um-cell-mono">${escapeHtml(p.service)}</p></td>
+      <td><p class="um-cell-title">${escapeHtml(p.permission)}</p></td>
       <td>
         <p class="um-cell-title">${escapeHtml(p.permission_name_th)}</p>
         <p class="um-cell-sub">${escapeHtml(p.permission_name_en)}</p>

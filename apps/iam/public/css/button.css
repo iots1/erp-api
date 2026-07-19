@@ -99,12 +99,9 @@
   background: var(--slate-100);
   color: var(--slate-700);
 }
-.um-sidebar-user .um-icon-btn {
-  color: var(--slate-400);
-}
 .um-sidebar-user .um-icon-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
+  background: var(--slate-100);
+  color: var(--text);
 }
 
 /* ── Inline text link styled as a <button> ───────────────────────── */
@@ -143,17 +140,13 @@
   cursor: pointer;
 }
 .um-type-toggle-btn.active {
-  background: #fff;
+  background: var(--surface);
   color: var(--sky-dk);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
 /* ── Pager prev/next buttons (pill-shaped variant of .p-btn) ─────────── */
 
-.um-pager-nav .p-btn {
-  border-radius: 999px;
-  padding-inline: 0.7rem;
-}
 .um-pager-nav .p-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;

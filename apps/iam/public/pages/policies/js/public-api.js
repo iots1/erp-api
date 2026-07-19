@@ -4,6 +4,7 @@
 // public-api.js bridge instead of assigning window at the bottom of a
 // single controller file).
 import { handleAuthLogin } from '../../../js/auth-guard.service.js';
+import { toggleTheme } from '../../../js/theme.service.js';
 import {
   addConditionRow,
   addStatementToDraft,
@@ -32,6 +33,7 @@ Object.assign(window, {
   handleAuthLogin,
   handleInitialLoginSubmit,
   handleLogout,
+  toggleTheme,
   switchView,
   openPolicyForm,
   confirmDeletePolicy,

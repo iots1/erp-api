@@ -1,4 +1,5 @@
 import { handleAuthLogin } from '../../../js/auth-guard.service.js';
+import { toggleTheme } from '../../../js/theme.service.js';
 import {
   closePermissionModal,
   confirmDeletePermission,
@@ -21,6 +22,7 @@ Object.assign(window, {
   handleAuthLogin,
   handleInitialLoginSubmit,
   handleLogout,
+  toggleTheme,
   openPermissionModal,
   closePermissionModal,
   handlePermissionFormSubmit,

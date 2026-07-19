@@ -1,4 +1,5 @@
 import { handleAuthLogin } from '../../../js/auth-guard.service.js';
+import { toggleTheme } from '../../../js/theme.service.js';
 import {
   bootAdminPage,
   handleInitialLoginSubmit,
@@ -22,6 +23,7 @@ Object.assign(window, {
   handleAuthLogin,
   handleInitialLoginSubmit,
   handleLogout,
+  toggleTheme,
   openUserFormModal,
   closeUserFormModal,
   handleUserFormSubmit,

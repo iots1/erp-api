@@ -108,8 +108,9 @@
 .um-sidebar {
   width: 14rem;
   flex-shrink: 0;
-  background: var(--slate-900);
-  color: var(--slate-300);
+  background: var(--surface);
+  color: var(--text-muted);
+  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
 }
@@ -118,7 +119,7 @@
   align-items: center;
   gap: 0.6rem;
   padding: 1.25rem 1.5rem;
-  color: #fff;
+  color: var(--text);
   font-weight: 700;
   font-size: 1.05rem;
   letter-spacing: 0.02em;
@@ -137,27 +138,34 @@
   margin: 1.25rem 0.5rem 0.5rem;
 }
 .um-nav-item {
+  /* Padding/radius/margin match Frappe's .standard-sidebar-item exactly
+     (8px 12px, 8px radius, 2px bottom margin) — font-size is this app's
+     own, left as-is. */
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.65rem 0.85rem;
+  padding: 0.5rem 0.75rem;
   border-radius: 0.5rem;
-  color: var(--slate-300);
+  color: var(--text-muted);
   text-decoration: none;
   font-size: 0.88rem;
-  margin-bottom: 0.15rem;
-  transition: background-color 0.15s ease;
+  margin-bottom: 0.125rem;
+  border-left: 3px solid transparent;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 .um-nav-item:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--slate-100);
+  color: var(--text);
 }
 .um-nav-item.active {
-  background: var(--sky);
-  color: #fff;
+  background: var(--sky-lt);
+  color: var(--sky-dk);
+  border-left-color: var(--sky);
+  font-weight: 600;
 }
 .um-sidebar-footer {
   padding: 1rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--border);
 }
 .um-sidebar-user {
   display: flex;
@@ -168,11 +176,11 @@
   width: 2rem;
   height: 2rem;
   border-radius: 9999px;
-  background: var(--slate-700);
+  background: var(--sky-lt);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--sky-dk);
   flex-shrink: 0;
 }
 .um-sidebar-user-info {
@@ -186,12 +194,12 @@
   text-overflow: ellipsis;
 }
 .um-sidebar-user-info p:first-child {
-  color: #fff;
+  color: var(--text);
   font-size: 0.85rem;
   font-weight: 600;
 }
 .um-sidebar-user-info p:last-child {
-  color: var(--slate-500);
+  color: var(--text-muted);
   font-size: 0.72rem;
 }
 
@@ -211,6 +219,11 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 1.25rem;
+}
+.um-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
 }
 .um-topbar h1 {
   margin: 0;

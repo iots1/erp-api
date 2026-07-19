@@ -4,11 +4,25 @@
        render scope (every views/*.controller.ts already returns them via
        buildAdminViewConfig). Pair with components/layout/page-foot.ejs. -->
 <!DOCTYPE html>
-<html lang="th" data-theme="light">
+<html lang="th">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><%= title %></title>
+    <!-- Sets data-theme from the saved preference before any CSS paints, so a
+         user who chose dark mode doesn't see a light flash on load. No saved
+         preference = no attribute = theme.css's @media(prefers-color-scheme)
+         block decides, same as a first-time visitor. -->
+    <script>
+        (function () {
+            try {
+                var saved = localStorage.getItem('iam-theme');
+                if (saved === 'dark' || saved === 'light') {
+                    document.documentElement.setAttribute('data-theme', saved);
+                }
+            } catch (e) {}
+        })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>

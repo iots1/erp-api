@@ -52,7 +52,10 @@ dialog article {
   background: var(--pink-dk);
 }
 .p-toast-info {
-  background: var(--slate-800);
+  /* Fixed dark neutral fill (not the theme-relative --slate-800, which
+     flips light in dark mode) — toasts always use light text on a dark
+     chip regardless of app theme, same as the success/error variants. */
+  background: #383838;
 }
 @keyframes p-toast-in {
   from {

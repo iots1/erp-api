@@ -8,11 +8,14 @@
 /* ── Login screen ─────────────────────────────────────────────── */
 
 .um-login-screen {
+  /* Deliberately always a dark backdrop regardless of app theme (matches
+     the original design intent) — a literal, not the theme-relative
+     --slate-900 (which flips light in dark mode). */
   height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--slate-900);
+  background: #171717;
   padding: 1rem;
 }
 .um-login-card {
@@ -218,9 +221,12 @@
   padding: 0.5rem;
 }
 .um-condition-preview {
+  /* Deliberately always a dark terminal/JSON look regardless of app theme —
+     a literal, not the theme-relative --slate-900 (which flips light in
+     dark mode). */
   margin: 0;
   padding: 0.5rem;
-  background: var(--slate-900);
+  background: #171717;
   color: #86efac;
   border-radius: 0.4rem;
   font-size: 0.7rem;

@@ -3,10 +3,15 @@
 
                 <section id="view-permissions" class="um-view active">
                     <div class="um-toolbar">
-                        <div class="um-toolbar-left">
-                            <button type="button" class="p-btn p-btn-sky" data-permission="permission:create" onclick="openPermissionModal()">
-                                <i data-lucide="plus"></i><span>เพิ่มสิทธิ์</span>
-                            </button>
+                        <h2 class="um-view-title">จัดการสิทธิ์ (Permissions)</h2>
+                        <button type="button" class="p-btn p-btn-sky" data-permission="permission:create" onclick="openPermissionModal()">
+                            <i data-lucide="plus"></i><span>เพิ่มสิทธิ์</span>
+                        </button>
+                    </div>
+                    <p class="um-view-subtitle">Plane <b>api</b> มาจาก <span class="mono">@RequirePermission()</span> ในโค้ดเท่านั้น แก้ชื่อได้แต่ลบไม่ได้ที่นี่ — ลบได้เฉพาะสิทธิ์ที่เพิ่มด้วยตนเอง (Manual)</p>
+
+                    <article class="um-table-card">
+                        <div class="um-table-toolbar">
                             <input type="text" id="permSearchFilter" class="um-filter-input" placeholder="ค้นหา service, permission, ชื่อ...">
                             <select id="permServiceFilter">
                                 <option value="">ทุก service</option>
@@ -22,22 +27,21 @@
                                 <option value="synced">Synced</option>
                             </select>
                         </div>
-                    </div>
-                    <p class="um-view-subtitle">Plane <b>api</b> มาจาก <span class="mono">@RequirePermission()</span> ในโค้ดเท่านั้น แก้ชื่อได้แต่ลบไม่ได้ที่นี่ — ลบได้เฉพาะสิทธิ์ที่เพิ่มด้วยตนเอง (Manual)</p>
-
-                    <article class="um-table-card">
-                        <table class="p-table">
-                            <thead>
-                                <tr>
-                                    <th>Plane</th>
-                                    <th>Service / Permission</th>
-                                    <th>ชื่อ (TH / EN)</th>
-                                    <th>ที่มา</th>
-                                    <th class="um-th-right">จัดการ</th>
-                                </tr>
-                            </thead>
-                            <tbody id="permissionsTableBody"></tbody>
-                        </table>
+                        <div class="um-table-scroll-area">
+                            <table class="p-table">
+                                <thead>
+                                    <tr>
+                                        <th>Plane</th>
+                                        <th>Service</th>
+                                        <th>Permission</th>
+                                        <th>ชื่อ (TH / EN)</th>
+                                        <th>ที่มา</th>
+                                        <th class="um-th-right">จัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="permissionsTableBody"></tbody>
+                            </table>
+                        </div>
                         <%- include('../../components/ui/pager', {
                             infoId: 'permissionsPagerInfo',
                             prevId: 'permissionsPrevBtn',
@@ -45,6 +49,7 @@
                             onPrev: 'goToPermissionsPage(-1)',
                             onNext: 'goToPermissionsPage(1)',
                             pageSizeId: 'permPageSize',
+                            pageSizeOptions: [20, 50, 100, 1000],
                         }) %>
                     </article>
                 </section>

@@ -4,5 +4,9 @@
         <% if (typeof showSearch !== 'undefined' && showSearch) { %>
             <input type="text" id="globalSearch" class="um-search-input" placeholder="ค้นหาด่วน (ชื่อ, username, อีเมล)...">
         <% } %>
+        <button type="button" class="um-icon-btn" onclick="toggleTheme()" aria-label="สลับโหมดสว่าง/มืด" title="สลับโหมดสว่าง/มืด">
+            <i data-lucide="sun" id="themeToggleSun"></i>
+            <i data-lucide="moon" id="themeToggleMoon" class="hidden"></i>
+        </button>
     </div>
 </header>
