@@ -1,5 +1,13 @@
 <header class="um-topbar">
-    <h1 id="pageTitle"><%= pageTitle %></h1>
+    <nav class="um-breadcrumb" aria-label="breadcrumb">
+        <a href="/<%= prefix %>/views/dashboard" class="um-breadcrumb-home" aria-label="กลับไปแดชบอร์ด" title="แดชบอร์ด">
+            <i data-lucide="home" class="um-icon-sm"></i>
+        </a>
+        <% if (activeView !== 'dashboard') { %>
+        <i data-lucide="chevron-right" class="um-icon-sm"></i>
+        <span id="pageTitle" class="um-breadcrumb-current"><%= pageTitle %></span>
+        <% } %>
+    </nav>
     <div class="um-topbar-right">
         <% if (typeof showSearch !== 'undefined' && showSearch) { %>
             <input type="text" id="globalSearch" class="um-search-input" placeholder="ค้นหาด่วน (ชื่อ, username, อีเมล)...">

@@ -3,12 +3,13 @@
 
                 <!-- VIEW: Policies -->
                 <section id="view-policies" class="um-view active">
-                    <div class="um-toolbar">
-                        <h2 class="um-view-title">นโยบายความปลอดภัย (Policies)</h2>
-                        <button type="button" class="p-btn p-btn-lavender" data-permission="policy:create" onclick="openPolicyForm(null)">
-                            <i data-lucide="file-json"></i><span>สร้าง Policy ใหม่</span>
-                        </button>
-                    </div>
+                    <%- include('../../components/ui/toolbar-action-button', {
+                        btnClass: 'p-btn p-btn-lavender',
+                        icon: 'file-json',
+                        label: 'สร้าง Policy ใหม่',
+                        onClick: 'openPolicyForm(null)',
+                        permission: 'policy:create',
+                    }) %>
                     <div id="policyListContainer" class="um-policy-list"></div>
                 </section>
 

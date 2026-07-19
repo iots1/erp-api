@@ -2,28 +2,30 @@
 <%- include('../../components/admin-shell/shell-open', { activeView: 'sessions', pageTitle: 'ผู้ใช้งานที่ออนไลน์' }) %>
 
                 <section id="view-sessions" class="um-view active">
-                    <div class="um-toolbar">
-                        <h2 class="um-view-title">ผู้ใช้งานที่กำลังออนไลน์ (Active Sessions)</h2>
-                        <button type="button" class="p-btn p-btn-ghost" onclick="loadSessions(1)">
-                            <i data-lucide="refresh-cw"></i><span>รีเฟรช</span>
-                        </button>
-                    </div>
+                    <%- include('../../components/ui/toolbar-action-button', {
+                        btnClass: 'p-btn p-btn-ghost',
+                        icon: 'refresh-cw',
+                        label: 'รีเฟรช',
+                        onClick: 'loadSessions(1)',
+                    }) %>
                     <p class="um-view-subtitle">
                         รายการนี้อ่านจาก session ที่ยังไม่หมดอายุใน Redis — กด "Revoke" เพื่อบังคับออกจากระบบทันที
                     </p>
 
                     <article class="um-table-card">
-                        <table class="p-table">
-                            <thead>
-                                <tr>
-                                    <th>ผู้ใช้งาน</th>
-                                    <th>Session ID (jti)</th>
-                                    <th>หมดอายุใน</th>
-                                    <th class="um-th-right">จัดการ</th>
-                                </tr>
-                            </thead>
-                            <tbody id="sessionsTableBody"></tbody>
-                        </table>
+                        <div class="um-table-scroll-area">
+                            <table class="p-table">
+                                <thead>
+                                    <tr>
+                                        <th>ผู้ใช้งาน</th>
+                                        <th>Session ID (jti)</th>
+                                        <th>หมดอายุใน</th>
+                                        <th class="um-th-right">จัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sessionsTableBody"></tbody>
+                            </table>
+                        </div>
                         <%- include('../../components/ui/pager', {
                             infoId: 'sessionsPagerInfo',
                             prevId: 'sessionsPrevBtn',

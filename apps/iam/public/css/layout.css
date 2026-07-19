@@ -225,8 +225,23 @@
   align-items: center;
   gap: 0.6rem;
 }
-.um-topbar h1 {
-  margin: 0;
+.um-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.um-breadcrumb-home {
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-muted);
+}
+.um-breadcrumb-home:hover {
+  color: var(--slate-800);
+}
+.um-breadcrumb .um-icon-sm {
+  color: var(--text-muted);
+}
+.um-breadcrumb-current {
   font-size: 1.05rem;
   font-weight: 700;
   color: var(--slate-800);
@@ -266,6 +281,15 @@
   margin-bottom: 0.85rem;
 }
 .um-toolbar-left {
+  display: flex;
+  gap: 0.6rem;
+}
+/* Now that um-view-title is gone (the breadcrumb already shows the page
+   name), a toolbar holding just an action button (no filter/search on the
+   other side) needs an explicit right-align — `justify-content:
+   space-between` puts a lone child at flex-start, not flex-end. */
+.um-toolbar-right {
+  margin-left: auto;
   display: flex;
   gap: 0.6rem;
 }

@@ -4,8 +4,7 @@ export const state = {
   currentView: 'dashboard',
 
   users: [],
-  usersPagination: null,
-  usersQuery: { search: '', department: '' },
+  usersQuery: { search: '', department: '', status: '' },
 
   roles: [],
   rolesLoaded: false,

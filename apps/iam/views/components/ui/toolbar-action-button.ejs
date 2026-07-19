@@ -1,0 +1,18 @@
+<!-- The um-toolbar/um-toolbar-right pattern repeated by every list page that
+     has one or more right-aligned action buttons (create/refresh/export) and
+     no filters on the other side. Locals:
+     - buttons: array of { btnClass, icon, label, onClick, permission? }
+       OR pass the single-button fields (btnClass/icon/label/onClick/permission)
+       directly for the common one-button case. -->
+<%
+const btns = typeof buttons !== 'undefined' ? buttons : [{ btnClass, icon, label, onClick, permission: typeof permission !== 'undefined' ? permission : undefined }];
+%>
+<div class="um-toolbar">
+    <div class="um-toolbar-right">
+        <% btns.forEach(function (btn) { %>
+        <button type="button" class="<%= btn.btnClass %>" <% if (btn.permission) { %>data-permission="<%= btn.permission %>" <% } %>onclick="<%- btn.onClick %>">
+            <i data-lucide="<%= btn.icon %>"></i><span><%= btn.label %></span>
+        </button>
+        <% }) %>
+    </div>
+</div>

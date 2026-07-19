@@ -3,7 +3,6 @@
 
                 <section id="view-audit-logs" class="um-view active">
                     <div class="um-toolbar">
-                        <h2 class="um-view-title">ประวัติการเข้าใช้งาน (Login History)</h2>
                         <div class="um-toolbar-left">
                             <input type="text" id="auditUsernameFilter" class="um-filter-input" placeholder="ค้นหาชื่อผู้ใช้งาน...">
                             <select id="auditResultFilter">
@@ -15,18 +14,20 @@
                     </div>
 
                     <article class="um-table-card">
-                        <table class="p-table">
-                            <thead>
-                                <tr>
-                                    <th>ผู้ใช้งาน</th>
-                                    <th>IP Address</th>
-                                    <th>User Agent</th>
-                                    <th>ผลลัพธ์</th>
-                                    <th>เวลาเข้าใช้งาน</th>
-                                </tr>
-                            </thead>
-                            <tbody id="auditLogTableBody"></tbody>
-                        </table>
+                        <div class="um-table-scroll-area">
+                            <table class="p-table">
+                                <thead>
+                                    <tr>
+                                        <th>ผู้ใช้งาน</th>
+                                        <th>IP Address</th>
+                                        <th>User Agent</th>
+                                        <th>ผลลัพธ์</th>
+                                        <th>เวลาเข้าใช้งาน</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="auditLogTableBody"></tbody>
+                            </table>
+                        </div>
                         <%- include('../../components/ui/pager', {
                             infoId: 'auditLogPagerInfo',
                             prevId: 'auditLogPrevBtn',

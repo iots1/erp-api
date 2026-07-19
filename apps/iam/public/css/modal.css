@@ -11,6 +11,16 @@ dialog article {
   max-width: 32rem;
 }
 
+/* Cancel/submit action row at the bottom of every dialog form — Pico's bare
+   <footer> has no layout of its own, so without this the buttons just stack
+   per the browser's default block flow instead of sitting together in the
+   bottom-right corner. */
+dialog footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
 /* ── Session-expired re-login form (components/auth-modal.ejs) — also
    reused by the initial login-screen for the same inline error text. ── */
 

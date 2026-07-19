@@ -2,32 +2,47 @@
 <%- include('../../components/admin-shell/shell-open', { activeView: 'users', pageTitle: 'จัดการผู้ใช้งาน', showSearch: true }) %>
 
                 <section id="view-users" class="um-view active">
-                    <div class="um-toolbar">
-                        <div class="um-toolbar-left">
-                            <button type="button" class="p-btn p-btn-sky" data-permission="component:btn_add_user" onclick="openUserFormModal()">
-                                <i data-lucide="plus"></i><span>เพิ่มบุคลากร</span>
-                            </button>
-                            <button type="button" class="p-btn" data-permission="component:btn_export_users" onclick="exportUsersJson()">
-                                <i data-lucide="download"></i><span>Export JSON</span>
-                            </button>
-                        </div>
-                        <input type="text" id="filterDept" class="um-filter-input" placeholder="กรองตามแผนก (Department)...">
-                    </div>
+                    <%- include('../../components/ui/toolbar-action-button', {
+                        buttons: [
+                            { btnClass: 'p-btn p-btn-sky', icon: 'plus', label: 'เพิ่มบุคลากร', onClick: 'openUserFormModal()', permission: 'component:btn_add_user' },
+                            { btnClass: 'p-btn', icon: 'download', label: 'Export JSON', onClick: 'exportUsersJson()', permission: 'component:btn_export_users' },
+                        ],
+                    }) %>
 
                     <article class="um-table-card">
-                        <table class="p-table">
-                            <thead>
-                                <tr>
-                                    <th>ผู้ใช้งาน</th>
-                                    <th>รหัสพนักงาน</th>
-                                    <th>แผนก</th>
-                                    <th>บทบาท</th>
-                                    <th>สถานะ</th>
-                                    <th class="um-th-right">จัดการ</th>
-                                </tr>
-                            </thead>
-                            <tbody id="userTableBody"></tbody>
-                        </table>
+                        <div class="um-table-toolbar">
+                            <input type="text" id="filterDept" class="um-filter-input" placeholder="กรองตามแผนก (Department)...">
+                            <select id="filterStatus">
+                                <option value="">ทุกสถานะ</option>
+                                <option value="pending">Pending</option>
+                                <option value="active">Active</option>
+                                <option value="suspended">Suspended</option>
+                            </select>
+                        </div>
+                        <div class="um-table-scroll-area">
+                            <table class="p-table">
+                                <thead>
+                                    <tr>
+                                        <th>ผู้ใช้งาน</th>
+                                        <th>รหัสพนักงาน</th>
+                                        <th>แผนก</th>
+                                        <th>บทบาท</th>
+                                        <th>สถานะ</th>
+                                        <th class="um-th-right">จัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="userTableBody"></tbody>
+                            </table>
+                        </div>
+                        <%- include('../../components/ui/pager', {
+                            infoId: 'usersPagerInfo',
+                            prevId: 'usersPrevBtn',
+                            nextId: 'usersNextBtn',
+                            onPrev: 'goToUsersPage(-1)',
+                            onNext: 'goToUsersPage(1)',
+                            pageSizeId: 'usersPageSize',
+                            pageSizeOptions: [10, 20, 50, 100],
+                        }) %>
                     </article>
                 </section>
 

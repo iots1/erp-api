@@ -11,12 +11,14 @@ import {
   closeUserRolesModal,
   confirmDeleteUser,
   exportUsersJson,
+  goToUsersPage,
   handleAssignRolesSubmit,
   handleUserFormSubmit,
   loadUsers,
   openUserFormModal,
   openUserRolesModal,
   setUsersFilter,
+  setUsersPageSize,
 } from '../../user-management/js/users.service.js';
 
 Object.assign(window, {
@@ -32,6 +34,7 @@ Object.assign(window, {
   openUserRolesModal,
   closeUserRolesModal,
   handleAssignRolesSubmit,
+  goToUsersPage,
 });
 
 function wireFilters() {
@@ -46,6 +49,12 @@ function wireFilters() {
     'input',
     debounce((e) => setUsersFilter({ department: e.target.value }), 350),
   );
+
+  const statusSelect = document.getElementById('filterStatus');
+  statusSelect?.addEventListener('change', (e) => setUsersFilter({ status: e.target.value }));
+
+  const pageSizeSelect = document.getElementById('usersPageSize');
+  pageSizeSelect?.addEventListener('change', (e) => setUsersPageSize(e.target.value));
 }
 
 wireFilters();

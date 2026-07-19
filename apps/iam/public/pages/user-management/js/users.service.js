@@ -1,6 +1,7 @@
 import { hasPermission } from '../../../js/login.service.js';
 import { closeModal, openModal } from '../../../js/modal.service.js';
 import { iamDelete, iamGet, iamPost, iamPut } from './api.js';
+import { createPaginatedList } from './paginated-list.js';
 import { ensureRolesLoaded } from './roles.service.js';
 import { state } from './state.js';
 import { showApiError, showToast } from './toast.service.js';
@@ -8,39 +9,62 @@ import { downloadJson, escapeHtml, refreshIcons } from './utils.js';
 
 const STATUS_LABEL = { active: 'Active', pending: 'Pending', suspended: 'Suspended' };
 
-export async function loadUsers(page = 1) {
-  try {
-    const filter = [];
-    if (state.usersQuery.department) {
-      filter.push(`department||$cont||${state.usersQuery.department}`);
-    }
-    const or = state.usersQuery.search
-      ? [
-          `full_name||$cont||${state.usersQuery.search}`,
-          `username||$cont||${state.usersQuery.search}`,
-          `email||$cont||${state.usersQuery.search}`,
-        ]
-      : undefined;
+const pager = createPaginatedList({
+  defaultPageSize: 10,
+  infoId: 'usersPagerInfo',
+  prevId: 'usersPrevBtn',
+  nextId: 'usersNextBtn',
+  fetchPage: async (page, pageSize) => {
+    try {
+      const filter = [];
+      if (state.usersQuery.department) {
+        filter.push(`department||$cont||${state.usersQuery.department}`);
+      }
+      if (state.usersQuery.status) {
+        filter.push(`status||$eq||${state.usersQuery.status}`);
+      }
+      const or = state.usersQuery.search
+        ? [
+            `full_name||$cont||${state.usersQuery.search}`,
+            `username||$cont||${state.usersQuery.search}`,
+            `email||$cont||${state.usersQuery.search}`,
+          ]
+        : undefined;
 
-    const { items, pagination } = await iamGet('/users', {
-      page,
-      limit: 10,
-      sort: 'created_at:desc',
-      filter,
-      or,
-    });
-    state.users = items;
-    state.usersPagination = pagination;
-    renderUsersTable();
-  } catch (error) {
-    showApiError(error, 'โหลดรายชื่อผู้ใช้งานไม่สำเร็จ');
-  }
+      const { items, pagination } = await iamGet('/users', {
+        page,
+        limit: pageSize,
+        sort: 'created_at:desc',
+        filter,
+        or,
+      });
+      state.users = items;
+      renderUsersTable();
+      return pagination;
+    } catch (error) {
+      showApiError(error, 'โหลดรายชื่อผู้ใช้งานไม่สำเร็จ');
+      return undefined;
+    }
+  },
+});
+
+export function loadUsers(page = 1) {
+  return pager.load(page);
 }
 
-export function setUsersFilter({ search, department }) {
+export function setUsersFilter({ search, department, status }) {
   if (search !== undefined) state.usersQuery.search = search.trim();
   if (department !== undefined) state.usersQuery.department = department.trim();
-  loadUsers(1);
+  if (status !== undefined) state.usersQuery.status = status;
+  pager.load(1);
+}
+
+export function setUsersPageSize(size) {
+  pager.setPageSize(size);
+}
+
+export function goToUsersPage(direction) {
+  return pager.goToPage(direction);
 }
 
 function renderUsersTable() {
@@ -157,7 +181,7 @@ export async function handleUserFormSubmit(event) {
       showToast('เพิ่มบุคลากรสำเร็จ', 'success');
     }
     closeUserFormModal();
-    loadUsers(state.usersPagination?.page ?? 1);
+    loadUsers(pager.getCurrentPage());
   } catch (error) {
     showApiError(error, 'บันทึกข้อมูลผู้ใช้งานไม่สำเร็จ');
   }
@@ -172,7 +196,7 @@ export async function confirmDeleteUser(userId, fullName) {
   try {
     await iamDelete(`/users/${userId}`);
     showToast('ลบผู้ใช้งานสำเร็จ', 'success');
-    loadUsers(state.usersPagination?.page ?? 1);
+    loadUsers(pager.getCurrentPage());
   } catch (error) {
     showApiError(error, 'ลบผู้ใช้งานไม่สำเร็จ');
   }

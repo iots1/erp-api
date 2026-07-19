@@ -6,6 +6,6 @@
     <%- include('sidebar', { activeView: activeView }) %>
 
     <main class="um-main">
-        <%- include('topbar', { pageTitle: pageTitle, showSearch: typeof showSearch !== 'undefined' ? showSearch : false }) %>
+        <%- include('topbar', { activeView: activeView, pageTitle: pageTitle, showSearch: typeof showSearch !== 'undefined' ? showSearch : false }) %>
 
         <div class="um-content">

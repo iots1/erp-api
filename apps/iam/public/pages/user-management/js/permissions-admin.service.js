@@ -6,31 +6,66 @@
 import { hasPermission } from '../../../js/login.service.js';
 import { closeModal, openModal } from '../../../js/modal.service.js';
 import { iamDelete, iamGet, iamPost, iamPut } from './api.js';
+import { createPaginatedList } from './paginated-list.js';
 import { showApiError, showToast } from './toast.service.js';
 import { escapeHtml, refreshIcons } from './utils.js';
 
 const PERMISSION_PATTERN = /^(page|component):[a-zA-Z0-9_]+$/;
 const SERVICE_PATTERN = /^[a-z][a-z0-9-]*$/;
-const DEFAULT_PAGE_SIZE = 50;
 
 const query = { search: '', service: '', plane: '', source: '' };
-let pageSize = DEFAULT_PAGE_SIZE;
-let currentPage = 1;
-let currentPagination = null;
 let currentItems = [];
 let serviceOptionsLoaded = false;
+
+const pager = createPaginatedList({
+  defaultPageSize: 50,
+  infoId: 'permissionsPagerInfo',
+  prevId: 'permissionsPrevBtn',
+  nextId: 'permissionsNextBtn',
+  fetchPage: async (page, pageSize) => {
+    try {
+      const filter = [];
+      if (query.service) filter.push(`service||$eq||${query.service}`);
+      if (query.plane) filter.push(`plane||$eq||${query.plane}`);
+      if (query.source === 'manual') filter.push('is_manual||$eq||true');
+      if (query.source === 'synced') filter.push('is_manual||$eq||false');
+
+      const or = query.search
+        ? [
+            `service||$cont||${query.search}`,
+            `permission||$cont||${query.search}`,
+            `permission_name_th||$cont||${query.search}`,
+            `permission_name_en||$cont||${query.search}`,
+          ]
+        : undefined;
+
+      const { items, pagination } = await iamGet('/permissions', {
+        page,
+        limit: pageSize,
+        sort: 'service:asc,permission:asc',
+        filter,
+        or,
+      });
+      currentItems = items;
+      renderTable();
+      return pagination;
+    } catch (error) {
+      showApiError(error, 'โหลดแคตตาล็อกสิทธิ์ไม่สำเร็จ');
+      return undefined;
+    }
+  },
+});
 
 export function setPermissionsFilter({ search, service, plane, source }) {
   if (search !== undefined) query.search = search.trim();
   if (service !== undefined) query.service = service;
   if (plane !== undefined) query.plane = plane;
   if (source !== undefined) query.source = source;
-  loadPermissions(1);
+  pager.load(1);
 }
 
 export function setPermissionsPageSize(size) {
-  pageSize = Number(size) || DEFAULT_PAGE_SIZE;
-  loadPermissions(1);
+  pager.setPageSize(size);
 }
 
 /** Populates the service filter <select> from the distinct services already
@@ -57,38 +92,8 @@ export async function ensureServiceFilterOptions() {
   }
 }
 
-export async function loadPermissions(page = 1) {
-  currentPage = page;
-  try {
-    const filter = [];
-    if (query.service) filter.push(`service||$eq||${query.service}`);
-    if (query.plane) filter.push(`plane||$eq||${query.plane}`);
-    if (query.source === 'manual') filter.push('is_manual||$eq||true');
-    if (query.source === 'synced') filter.push('is_manual||$eq||false');
-
-    const or = query.search
-      ? [
-          `service||$cont||${query.search}`,
-          `permission||$cont||${query.search}`,
-          `permission_name_th||$cont||${query.search}`,
-          `permission_name_en||$cont||${query.search}`,
-        ]
-      : undefined;
-
-    const { items, pagination } = await iamGet('/permissions', {
-      page,
-      limit: pageSize,
-      sort: 'service:asc,permission:asc',
-      filter,
-      or,
-    });
-    currentItems = items;
-    currentPagination = pagination;
-    renderTable();
-    renderPager();
-  } catch (error) {
-    showApiError(error, 'โหลดแคตตาล็อกสิทธิ์ไม่สำเร็จ');
-  }
+export function loadPermissions(page = 1) {
+  return pager.load(page);
 }
 
 function renderTable() {
@@ -129,22 +134,8 @@ function renderTable() {
   refreshIcons();
 }
 
-function renderPager() {
-  const info = document.getElementById('permissionsPagerInfo');
-  const prevBtn = document.getElementById('permissionsPrevBtn');
-  const nextBtn = document.getElementById('permissionsNextBtn');
-  if (!info || !currentPagination) return;
-
-  info.textContent = `หน้า ${currentPagination.page} / ${currentPagination.total_pages} (ทั้งหมด ${currentPagination.total_records} รายการ)`;
-  if (prevBtn) prevBtn.disabled = currentPage <= 1;
-  if (nextBtn) nextBtn.disabled = currentPage >= currentPagination.total_pages;
-}
-
 export function goToPermissionsPage(direction) {
-  const nextPage = currentPage + direction;
-  if (nextPage < 1) return;
-  if (currentPagination && nextPage > currentPagination.total_pages) return;
-  loadPermissions(nextPage);
+  return pager.goToPage(direction);
 }
 
 // ── Add / edit modal ────────────────────────────────────────────
@@ -231,7 +222,7 @@ export async function handlePermissionFormSubmit(event) {
       showToast('เพิ่มสิทธิ์สำเร็จ', 'success');
     }
     closePermissionModal();
-    loadPermissions(currentPagination?.page ?? 1);
+    loadPermissions(pager.getCurrentPage());
   } catch (error) {
     showApiError(error, 'บันทึกสิทธิ์ไม่สำเร็จ');
   }
@@ -242,7 +233,7 @@ export async function confirmDeletePermission(id, label) {
   try {
     await iamDelete(`/permissions/${id}`);
     showToast('ลบสิทธิ์สำเร็จ', 'success');
-    loadPermissions(currentPagination?.page ?? 1);
+    loadPermissions(pager.getCurrentPage());
   } catch (error) {
     showApiError(error, 'ลบสิทธิ์ไม่สำเร็จ');
   }
