@@ -1,5 +1,23 @@
 <!-- Shared page shell (bottom half). Locals: pageName (matches page-head.ejs).
      Pair with components/layout/page-head.ejs. -->
+    <!-- Resolve #loginScreen vs #appShell synchronously, before first paint,
+         same trick page-head.ejs uses for the dark-theme flash: both start
+         `hidden` in markup so a logged-in user doesn't see the login screen
+         flash on every route change while bundle.js (deferred to the end of
+         body) is still loading. Kept in sync with isAuthenticated() in
+         login.service.js and re-applied there by shell.service.js's
+         bootAdminPage — this is just the pre-JS-load guess. -->
+    <script>
+        (function () {
+            try {
+                var raw = localStorage.getItem('iam_view.session.v1');
+                var session = raw ? JSON.parse(raw) : null;
+                var authenticated = Boolean(session && session.access_token && session.user);
+                document.getElementById('loginScreen').classList.toggle('hidden', authenticated);
+                document.getElementById('appShell').classList.toggle('hidden', !authenticated);
+            } catch (e) {}
+        })();
+    </script>
     <div id="toastStack" class="p-toast-stack"></div>
 
     <%- include('../auth-modal') %>

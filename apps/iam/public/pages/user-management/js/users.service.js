@@ -5,7 +5,7 @@ import { createPaginatedList } from './paginated-list.js';
 import { ensureRolesLoaded } from './roles.service.js';
 import { state } from './state.js';
 import { showApiError, showToast } from './toast.service.js';
-import { downloadJson, escapeHtml, refreshIcons } from './utils.js';
+import { escapeHtml, refreshIcons } from './utils.js';
 
 const STATUS_LABEL = { active: 'Active', pending: 'Pending', suspended: 'Suspended' };
 
@@ -107,11 +107,6 @@ function renderUsersTable() {
     })
     .join('');
   refreshIcons();
-}
-
-export function exportUsersJson() {
-  downloadJson('users.json', state.users);
-  showToast('Export ผู้ใช้งานสำเร็จ', 'success');
 }
 
 // ── Add / edit user modal ───────────────────────────────────────

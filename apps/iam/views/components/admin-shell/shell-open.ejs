@@ -1,11 +1,13 @@
 <!-- Opens the post-login app shell (sidebar + topbar + content wrapper) shared
-     by every admin-shell page. Locals: activeView, pageTitle, showSearch
-     (optional). Pair with shell-close.ejs; the page's own content goes
-     between the two includes. -->
+     by every admin-shell page. Locals: activeView, pageTitle, topbarActions
+     (optional array of { btnClass, icon, label, onClick, permission? } —
+     rendered right-aligned in the topbar, same shape as
+     components/ui/toolbar-action-button.ejs). Pair with shell-close.ejs; the
+     page's own content goes between the two includes. -->
 <div id="appShell" class="um-shell hidden">
     <%- include('sidebar', { activeView: activeView }) %>
 
     <main class="um-main">
-        <%- include('topbar', { activeView: activeView, pageTitle: pageTitle, showSearch: typeof showSearch !== 'undefined' ? showSearch : false }) %>
+        <%- include('topbar', { activeView: activeView, pageTitle: pageTitle, actions: typeof topbarActions !== 'undefined' ? topbarActions : [] }) %>
 
         <div class="um-content">

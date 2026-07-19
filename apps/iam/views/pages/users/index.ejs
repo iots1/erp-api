@@ -1,14 +1,12 @@
 <%- include('../../components/layout/page-head', { pageName: 'users' }) %>
-<%- include('../../components/admin-shell/shell-open', { activeView: 'users', pageTitle: 'จัดการผู้ใช้งาน', showSearch: true }) %>
+<%
+const topbarActions = [
+    { btnClass: 'p-btn p-btn-sky p-btn-sm', icon: 'plus', label: 'เพิ่มบุคลากร', onClick: 'openUserFormModal()', permission: 'component:btn_add_user' },
+];
+%>
+<%- include('../../components/admin-shell/shell-open', { activeView: 'users', pageTitle: 'จัดการผู้ใช้งาน', topbarActions: topbarActions }) %>
 
                 <section id="view-users" class="um-view active">
-                    <%- include('../../components/ui/toolbar-action-button', {
-                        buttons: [
-                            { btnClass: 'p-btn p-btn-sky', icon: 'plus', label: 'เพิ่มบุคลากร', onClick: 'openUserFormModal()', permission: 'component:btn_add_user' },
-                            { btnClass: 'p-btn', icon: 'download', label: 'Export JSON', onClick: 'exportUsersJson()', permission: 'component:btn_export_users' },
-                        ],
-                    }) %>
-
                     <article class="um-table-card">
                         <div class="um-table-toolbar">
                             <input type="text" id="filterDept" class="um-filter-input" placeholder="กรองตามแผนก (Department)...">

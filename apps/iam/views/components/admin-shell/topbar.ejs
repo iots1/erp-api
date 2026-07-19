@@ -8,13 +8,13 @@
         <span id="pageTitle" class="um-breadcrumb-current"><%= pageTitle %></span>
         <% } %>
     </nav>
+    <% if (typeof actions !== 'undefined' && actions.length) { %>
     <div class="um-topbar-right">
-        <% if (typeof showSearch !== 'undefined' && showSearch) { %>
-            <input type="text" id="globalSearch" class="um-search-input" placeholder="ค้นหาด่วน (ชื่อ, username, อีเมล)...">
-        <% } %>
-        <button type="button" class="um-icon-btn" onclick="toggleTheme()" aria-label="สลับโหมดสว่าง/มืด" title="สลับโหมดสว่าง/มืด">
-            <i data-lucide="sun" id="themeToggleSun"></i>
-            <i data-lucide="moon" id="themeToggleMoon" class="hidden"></i>
+        <% actions.forEach(function (btn) { %>
+        <button type="button" class="<%= btn.btnClass %>" <% if (btn.permission) { %>data-permission="<%= btn.permission %>" <% } %>onclick="<%- btn.onClick %>">
+            <i data-lucide="<%= btn.icon %>"></i><span><%= btn.label %></span>
         </button>
+        <% }) %>
     </div>
+    <% } %>
 </header>
