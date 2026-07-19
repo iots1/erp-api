@@ -13,6 +13,9 @@
                     </p>
 
                     <article class="um-table-card">
+                        <div class="um-table-toolbar">
+                            <input type="text" id="sessionUserIdFilter" class="um-filter-input" placeholder="ค้นหาด้วย user_id (UUID)...">
+                        </div>
                         <div class="um-table-scroll-area">
                             <table class="p-table">
                                 <thead>
@@ -32,6 +35,8 @@
                             nextId: 'sessionsNextBtn',
                             onPrev: 'goToSessionsPage(-1)',
                             onNext: 'goToSessionsPage(1)',
+                            pageSizeId: 'sessionsPageSize',
+                            pageSizeOptions: [15, 30, 50, 100],
                         }) %>
                     </article>
                 </section>

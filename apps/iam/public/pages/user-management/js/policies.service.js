@@ -1,5 +1,6 @@
 import { hasPermission } from '../../../js/login.service.js';
 import { iamDelete, iamGet, iamPost, iamPut } from './api.js';
+import { createPaginatedList } from './paginated-list.js';
 import {
   ensurePermissionsCatalog,
   findPermissionByStringInPlane,
@@ -31,6 +32,9 @@ const CONDITION_KEY_SUGGESTIONS = [
   'context.business_hours',
 ];
 
+// Full, un-paginated list — cached for consumers that need every policy at
+// once (the "attach policies" checkbox grid in roles.service.js), independent
+// of the policies *index page*'s own paginated/filtered list below.
 export async function ensurePoliciesLoaded(force = false) {
   if (state.policies.length > 0 && !force) return state.policies;
   const { items } = await iamGet('/policies', { ignore_limit: true, sort: 'name_th:asc' });
@@ -38,26 +42,76 @@ export async function ensurePoliciesLoaded(force = false) {
   return items;
 }
 
-export async function loadPolicies() {
-  try {
-    await ensurePoliciesLoaded(true);
-    renderPoliciesList();
-  } catch (error) {
-    showApiError(error, 'โหลดรายการนโยบายไม่สำเร็จ');
-  }
+// ── Policies index list — search + status filter + pagination ──────
+
+const query = { search: '', status: '' };
+let currentItems = [];
+
+const pager = createPaginatedList({
+  defaultPageSize: 20,
+  infoId: 'policiesPagerInfo',
+  prevId: 'policiesPrevBtn',
+  nextId: 'policiesNextBtn',
+  fetchPage: async (page, pageSize) => {
+    try {
+      const filter = [];
+      if (query.status === 'active') filter.push('is_active||$eq||true');
+      if (query.status === 'inactive') filter.push('is_active||$eq||false');
+
+      const or = query.search
+        ? [
+            `code||$cont||${query.search}`,
+            `name_th||$cont||${query.search}`,
+            `name_en||$cont||${query.search}`,
+          ]
+        : undefined;
+
+      const { items, pagination } = await iamGet('/policies', {
+        page,
+        limit: pageSize,
+        sort: 'name_th:asc',
+        filter,
+        or,
+      });
+      currentItems = items;
+      renderPoliciesList();
+      return pagination;
+    } catch (error) {
+      showApiError(error, 'โหลดรายการนโยบายไม่สำเร็จ');
+      return undefined;
+    }
+  },
+});
+
+export function loadPolicies(page = 1) {
+  return pager.load(page);
+}
+
+export function setPoliciesFilter({ search, status }) {
+  if (search !== undefined) query.search = search.trim();
+  if (status !== undefined) query.status = status;
+  pager.load(1);
+}
+
+export function setPoliciesPageSize(size) {
+  pager.setPageSize(size);
+}
+
+export function goToPoliciesPage(direction) {
+  return pager.goToPage(direction);
 }
 
 function renderPoliciesList() {
   const container = document.getElementById('policyListContainer');
   if (!container) return;
 
-  if (state.policies.length === 0) {
-    container.innerHTML = `<p class="um-muted-note">ยังไม่มี Policy ในระบบ</p>`;
+  if (currentItems.length === 0) {
+    container.innerHTML = `<p class="um-muted-note">ไม่พบ Policy ที่ตรงกับเงื่อนไข</p>`;
     return;
   }
 
   const canManage = hasPermission('policy:create');
-  container.innerHTML = state.policies
+  container.innerHTML = currentItems
     .map(
       (policy) => `
     <article class="um-policy-card">
@@ -83,7 +137,7 @@ export async function confirmDeletePolicy(policyId, code) {
   try {
     await iamDelete(`/policies/${policyId}`);
     showToast('ลบ Policy สำเร็จ', 'success');
-    loadPolicies();
+    loadPolicies(pager.getCurrentPage());
   } catch (error) {
     showApiError(error, 'ลบ Policy ไม่สำเร็จ');
   }
@@ -487,7 +541,7 @@ export async function handlePolicyFormSubmit(event) {
 
     showToast('บันทึก Policy สำเร็จ', 'success');
     switchView('policies');
-    loadPolicies();
+    loadPolicies(pager.getCurrentPage());
   } catch (error) {
     showApiError(error, 'บันทึก Policy ไม่สำเร็จ');
   }

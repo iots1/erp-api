@@ -4,6 +4,7 @@ import {
   goToLoginHistoriesPage,
   loadLoginHistories,
   setLoginHistoriesFilter,
+  setLoginHistoriesPageSize,
 } from '../../user-management/js/login-histories.service.js';
 import {
   bootAdminPage,
@@ -31,6 +32,9 @@ function wireFilters() {
   resultSelect?.addEventListener('change', (e) =>
     setLoginHistoriesFilter({ result: e.target.value }),
   );
+
+  const pageSizeSelect = document.getElementById('auditLogPageSize');
+  pageSizeSelect?.addEventListener('change', (e) => setLoginHistoriesPageSize(e.target.value));
 }
 
 wireFilters();

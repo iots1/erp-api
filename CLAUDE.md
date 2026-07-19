@@ -201,6 +201,52 @@ need to be ordered *within* a BC.
   across controllers in a BC go in `constants/swagger-common.ts`. See
   `.claude/skills/implement-entity/SKILL.md` for the full pattern.
 
+### EJS admin views (`apps/<bc>/views`) — list-page convention
+
+`apps/iam/views` is the reference implementation (backend-served EJS + vanilla JS, no
+frontend framework) — `views/pages/permissions/index.ejs` +
+`public/pages/user-management/js/permissions-admin.service.js` is the canonical example any
+new BC admin UI or new list page should copy.
+
+- **No page duplicates the breadcrumb as a title.** `components/admin-shell/topbar.ejs`
+  already renders `[home icon] / pageTitle` from the `pageTitle` passed into `shell-open`. Do
+  not add an `<h2 class="um-view-title">` (or similar) inside the page body repeating that
+  string.
+- **A list page's toolbar (`.um-toolbar`) holds only page-level action buttons** (create,
+  export, refresh) — right-aligned via `components/ui/toolbar-action-button.ejs` (accepts a
+  single button's fields, or a `buttons: []` array for more than one). Never hand-roll the
+  `um-toolbar > um-toolbar-right > button` markup per page.
+- **Search/filter controls live inside the table card**, in a `.um-table-toolbar` div directly
+  above the table — never in the top-level `.um-toolbar`. A page needs at minimum a search
+  `<input>` when its resource has a free-text field worth matching, plus one `<select>` per
+  categorical field the backend can filter on (see permissions: search + service/plane/source
+  selects). Skip a select for a field with no fixed set of values, and skip a filter entirely
+  for a resource with no filterable fields.
+- **The table itself is wrapped in `.um-table-scroll-area`** (sticky header, independent
+  scroll) inside `<article class="um-table-card">`.
+- **Every list backed by a real (non-`ignore_limit`) paginated endpoint gets
+  `components/ui/pager.ejs`** inside the same `.um-table-card`, after the scroll area — pass
+  `pageSizeId`/`pageSizeOptions` too ("แสดงต่อหน้า") unless the endpoint hard-codes its limit.
+  A list that must load everything at once for a different consumer (e.g. `ensureRolesLoaded()`
+  populating a checkbox grid elsewhere) still gets its *own* index-page table paginated
+  separately — don't let the full-list cache leak into the paginated view's rows, and don't
+  skip pagination on the index page just because a cached full list already exists.
+- **Modal Cancel/Submit buttons**: rely on the global `dialog footer` rule in `modal.css`
+  (flex, right-aligned, same line) — never add per-modal footer CSS. Full-page (non-dialog)
+  forms use `components/ui/form-actions.ejs` instead of hand-writing the `.um-form-actions` row.
+- **JS pagination bookkeeping is never hand-rolled per resource.** Every list's
+  `currentPage`/`pageSize`/pager-DOM-sync/`goToXPage` lives in one place:
+  `public/pages/user-management/js/paginated-list.js`'s `createPaginatedList({ fetchPage,
+  infoId, prevId, nextId, defaultPageSize })`. A resource module supplies only `fetchPage(page,
+  pageSize)` (build the filter/`or`, call the API, render the table, `return pagination` — or
+  `return undefined` after reporting its own error, which keeps the last known pagination
+  instead of clobbering it) and exports thin wrappers (`loadX`, `setXFilter`, `setXPageSize`,
+  `goToXPage`) that delegate to the returned `pager`.
+- **The repeated "force-reload a cached full list, then re-render, toast on failure" shape**
+  (roles/policies reference-data lists used elsewhere as checkbox options) uses
+  `load-list.js`'s `loadList(ensureLoaded, render, errorMessage)` instead of a hand-written
+  `try/catch`.
+
 ### Cross-context rules (from the architecture)
 
 - Database-per-context; **reference across BCs by UUID only** — no cross-DB foreign keys.

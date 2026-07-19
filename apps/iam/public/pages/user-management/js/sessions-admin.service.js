@@ -3,11 +3,11 @@
 // apps/auth/src/modules/auth/controllers/sessions.controller.ts).
 import { hasPermission } from '../../../js/login.service.js';
 import { authAdminDelete, authAdminGet } from './auth-admin-api.js';
+import { createPaginatedList } from './paginated-list.js';
 import { showApiError, showToast } from './toast.service.js';
 import { escapeHtml, refreshIcons } from './utils.js';
 
-let currentPage = 1;
-let currentPagination = null;
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function formatTtl(ttlSeconds) {
   const minutes = Math.floor(ttlSeconds / 60);
@@ -15,18 +15,72 @@ function formatTtl(ttlSeconds) {
   return `${minutes} นาที ${seconds} วินาที`;
 }
 
-export async function loadSessions(page = 1) {
-  currentPage = page;
+const pager = createPaginatedList({
+  defaultPageSize: 15,
+  infoId: 'sessionsPagerInfo',
+  prevId: 'sessionsPrevBtn',
+  nextId: 'sessionsNextBtn',
+  fetchPage: async (page, pageSize) => {
+    try {
+      const { items, pagination } = await authAdminGet('/auth/sessions', {
+        page,
+        limit: pageSize,
+      });
+      renderTable(items);
+      return pagination;
+    } catch (error) {
+      showApiError(error, 'โหลดรายชื่อผู้ใช้งานออนไลน์ไม่สำเร็จ');
+      return undefined;
+    }
+  },
+});
+
+export function loadSessions(page = 1) {
+  return pager.load(page);
+}
+
+export function setSessionsPageSize(size) {
+  pager.setPageSize(size);
+}
+
+// ── Search by user_id — Redis only indexes sessions per-user (no free-text
+// match across the whole keyspace), so this hits the dedicated
+// `/auth/sessions/users/:user_id` lookup (user_sessions:<user_id> index)
+// instead of paginating/filtering findActive's full scan. ──────────────
+
+function setPagerSearchState(infoText, disableNav) {
+  const info = document.getElementById('sessionsPagerInfo');
+  const prevBtn = document.getElementById('sessionsPrevBtn');
+  const nextBtn = document.getElementById('sessionsNextBtn');
+  if (info) info.textContent = infoText;
+  if (prevBtn) prevBtn.disabled = disableNav;
+  if (nextBtn) nextBtn.disabled = disableNav;
+}
+
+export async function setSessionsUserIdFilter(value) {
+  const userId = value.trim();
+  if (!userId) {
+    loadSessions(1);
+    return;
+  }
+  if (!UUID_REGEX.test(userId)) {
+    renderTable([]);
+    setPagerSearchState('รูปแบบ user_id ไม่ถูกต้อง (ต้องเป็น UUID)', true);
+    return;
+  }
+
   try {
-    const { items, pagination } = await authAdminGet('/auth/sessions', {
-      page,
-      limit: 15,
-    });
-    currentPagination = pagination;
+    const result = await authAdminGet(`/auth/sessions/users/${userId}`);
+    const items = result.sessions.map((s) => ({
+      jti: s.jti,
+      user_id: result.user_id,
+      username: null,
+      ttl_seconds: s.ttl_seconds,
+    }));
     renderTable(items);
-    renderPager();
+    setPagerSearchState(`พบ ${items.length} เซสชันสำหรับผู้ใช้งานนี้`, true);
   } catch (error) {
-    showApiError(error, 'โหลดรายชื่อผู้ใช้งานออนไลน์ไม่สำเร็จ');
+    showApiError(error, 'ค้นหาเซสชันของผู้ใช้งานไม่สำเร็จ');
   }
 }
 
@@ -66,22 +120,8 @@ function renderTable(items) {
   refreshIcons();
 }
 
-function renderPager() {
-  const info = document.getElementById('sessionsPagerInfo');
-  const prevBtn = document.getElementById('sessionsPrevBtn');
-  const nextBtn = document.getElementById('sessionsNextBtn');
-  if (!info || !currentPagination) return;
-
-  info.textContent = `หน้า ${currentPagination.page} / ${currentPagination.total_pages} (ทั้งหมด ${currentPagination.total_records} เซสชัน)`;
-  if (prevBtn) prevBtn.disabled = currentPage <= 1;
-  if (nextBtn) nextBtn.disabled = currentPage >= currentPagination.total_pages;
-}
-
 export function goToSessionsPage(direction) {
-  const nextPage = currentPage + direction;
-  if (nextPage < 1) return;
-  if (currentPagination && nextPage > currentPagination.total_pages) return;
-  loadSessions(nextPage);
+  return pager.goToPage(direction);
 }
 
 export async function revokeSession(jti, label) {
@@ -89,7 +129,7 @@ export async function revokeSession(jti, label) {
   try {
     await authAdminDelete(`/auth/sessions/${jti}`);
     showToast('เพิกถอนการเข้าใช้งานสำเร็จ', 'success');
-    loadSessions(currentPage);
+    loadSessions(pager.getCurrentPage());
   } catch (error) {
     showApiError(error, 'เพิกถอนการเข้าใช้งานไม่สำเร็จ');
   }

@@ -2,8 +2,8 @@
 <%- include('../../components/admin-shell/shell-open', { activeView: 'audit-logs', pageTitle: 'ประวัติการเข้าใช้งาน (Login History)' }) %>
 
                 <section id="view-audit-logs" class="um-view active">
-                    <div class="um-toolbar">
-                        <div class="um-toolbar-left">
+                    <article class="um-table-card">
+                        <div class="um-table-toolbar">
                             <input type="text" id="auditUsernameFilter" class="um-filter-input" placeholder="ค้นหาชื่อผู้ใช้งาน...">
                             <select id="auditResultFilter">
                                 <option value="">ทั้งหมด</option>
@@ -11,9 +11,6 @@
                                 <option value="failed">ล้มเหลว</option>
                             </select>
                         </div>
-                    </div>
-
-                    <article class="um-table-card">
                         <div class="um-table-scroll-area">
                             <table class="p-table">
                                 <thead>
@@ -34,6 +31,8 @@
                             nextId: 'auditLogNextBtn',
                             onPrev: 'goToLoginHistoriesPage(-1)',
                             onNext: 'goToLoginHistoriesPage(1)',
+                            pageSizeId: 'auditLogPageSize',
+                            pageSizeOptions: [15, 30, 50, 100],
                         }) %>
                     </article>
                 </section>

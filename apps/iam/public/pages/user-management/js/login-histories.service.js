@@ -2,39 +2,51 @@
 // (GET /auth/login-histories, added specifically for this page — see
 // apps/auth/src/modules/auth/controllers/login-histories.controller.ts).
 import { authAdminGet } from './auth-admin-api.js';
+import { createPaginatedList } from './paginated-list.js';
 import { showApiError } from './toast.service.js';
 import { escapeHtml, formatDateTime, refreshIcons } from './utils.js';
 
 const query = { username: '', result: '' };
-let currentPage = 1;
-let currentPagination = null;
+
+const pager = createPaginatedList({
+  defaultPageSize: 15,
+  infoId: 'auditLogPagerInfo',
+  prevId: 'auditLogPrevBtn',
+  nextId: 'auditLogNextBtn',
+  fetchPage: async (page, pageSize) => {
+    try {
+      const filter = [];
+      if (query.username) filter.push(`username||$cont||${query.username}`);
+      if (query.result === 'success') filter.push('is_success||$eq||true');
+      if (query.result === 'failed') filter.push('is_success||$eq||false');
+
+      const { items, pagination } = await authAdminGet('/auth/login-histories', {
+        page,
+        limit: pageSize,
+        sort: 'logged_in_at:desc',
+        filter,
+      });
+      renderTable(items);
+      return pagination;
+    } catch (error) {
+      showApiError(error, 'โหลดบันทึกการเข้าใช้งานไม่สำเร็จ');
+      return undefined;
+    }
+  },
+});
 
 export function setLoginHistoriesFilter({ username, result }) {
   if (username !== undefined) query.username = username.trim();
   if (result !== undefined) query.result = result;
-  loadLoginHistories(1);
+  pager.load(1);
 }
 
-export async function loadLoginHistories(page = 1) {
-  currentPage = page;
-  try {
-    const filter = [];
-    if (query.username) filter.push(`username||$cont||${query.username}`);
-    if (query.result === 'success') filter.push('is_success||$eq||true');
-    if (query.result === 'failed') filter.push('is_success||$eq||false');
+export function setLoginHistoriesPageSize(size) {
+  pager.setPageSize(size);
+}
 
-    const { items, pagination } = await authAdminGet('/auth/login-histories', {
-      page,
-      limit: 15,
-      sort: 'logged_in_at:desc',
-      filter,
-    });
-    currentPagination = pagination;
-    renderTable(items);
-    renderPager();
-  } catch (error) {
-    showApiError(error, 'โหลดบันทึกการเข้าใช้งานไม่สำเร็จ');
-  }
+export function loadLoginHistories(page = 1) {
+  return pager.load(page);
 }
 
 function renderTable(items) {
@@ -65,20 +77,6 @@ function renderTable(items) {
   refreshIcons();
 }
 
-function renderPager() {
-  const info = document.getElementById('auditLogPagerInfo');
-  const prevBtn = document.getElementById('auditLogPrevBtn');
-  const nextBtn = document.getElementById('auditLogNextBtn');
-  if (!info || !currentPagination) return;
-
-  info.textContent = `หน้า ${currentPagination.page} / ${currentPagination.total_pages} (ทั้งหมด ${currentPagination.total_records} รายการ)`;
-  if (prevBtn) prevBtn.disabled = currentPage <= 1;
-  if (nextBtn) nextBtn.disabled = currentPage >= currentPagination.total_pages;
-}
-
 export function goToLoginHistoriesPage(direction) {
-  const nextPage = currentPage + direction;
-  if (nextPage < 1) return;
-  if (currentPagination && nextPage > currentPagination.total_pages) return;
-  loadLoginHistories(nextPage);
+  return pager.goToPage(direction);
 }

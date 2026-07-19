@@ -75,6 +75,14 @@
   height: 30px;
   padding: 0 0.6rem;
 }
+.um-table-toolbar > select {
+  /* width:auto sizes the <select> to its widest option's text plus this
+     padding — but the dropdown-arrow is a background-image, not layout
+     width, so a symmetric 0.6rem right padding leaves no room for it and
+     the arrow sits on top of the option text (worst with the short default
+     first option). Reserve extra space on the right for the arrow only. */
+  padding-right: 1.75rem;
+}
 
 /* ── Cell content ─────────────────────────────────────────────────── */
 

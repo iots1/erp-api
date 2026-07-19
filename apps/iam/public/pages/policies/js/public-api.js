@@ -9,6 +9,7 @@ import {
   addConditionRow,
   addStatementToDraft,
   confirmDeletePolicy,
+  goToPoliciesPage,
   handlePolicyFormSubmit,
   loadPolicies,
   openPolicyForm,
@@ -16,6 +17,8 @@ import {
   removeStatementFromDraft,
   renderMultiSelect,
   selectAllActions,
+  setPoliciesFilter,
+  setPoliciesPageSize,
   setStatementType,
   toggleMultiDropdown,
   toggleOptionMulti,
@@ -27,6 +30,7 @@ import {
   handleInitialLoginSubmit,
   handleLogout,
 } from '../../user-management/js/shell.service.js';
+import { debounce } from '../../user-management/js/utils.js';
 import { switchView } from '../../user-management/js/views.service.js';
 
 Object.assign(window, {
@@ -49,7 +53,24 @@ Object.assign(window, {
   addStatementToDraft,
   removeStatementFromDraft,
   handlePolicyFormSubmit,
+  goToPoliciesPage,
 });
+
+function wireFilters() {
+  const searchInput = document.getElementById('policySearchFilter');
+  searchInput?.addEventListener(
+    'input',
+    debounce((e) => setPoliciesFilter({ search: e.target.value }), 350),
+  );
+
+  const statusSelect = document.getElementById('policyStatusFilter');
+  statusSelect?.addEventListener('change', (e) => setPoliciesFilter({ status: e.target.value }));
+
+  const pageSizeSelect = document.getElementById('policyPageSize');
+  pageSizeSelect?.addEventListener('change', (e) => setPoliciesPageSize(e.target.value));
+}
+
+wireFilters();
 
 // Close dropdowns when clicking outside them
 document.addEventListener('click', (event) => {

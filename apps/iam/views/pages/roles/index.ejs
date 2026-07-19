@@ -11,6 +11,9 @@
                         permission: 'role:create',
                     }) %>
                     <article class="um-table-card">
+                        <div class="um-table-toolbar">
+                            <input type="text" id="roleSearchFilter" class="um-filter-input" placeholder="ค้นหา role code, ชื่อ...">
+                        </div>
                         <div class="um-table-scroll-area">
                             <table class="p-table">
                                 <thead>
@@ -24,6 +27,15 @@
                                 <tbody id="roleTableBody"></tbody>
                             </table>
                         </div>
+                        <%- include('../../components/ui/pager', {
+                            infoId: 'rolesPagerInfo',
+                            prevId: 'rolesPrevBtn',
+                            nextId: 'rolesNextBtn',
+                            onPrev: 'goToRolesPage(-1)',
+                            onNext: 'goToRolesPage(1)',
+                            pageSizeId: 'rolePageSize',
+                            pageSizeOptions: [20, 50, 100],
+                        }) %>
                     </article>
                 </section>
 
@@ -51,10 +63,11 @@
                             <div id="rolePoliciesContainer" class="um-checkbox-grid"></div>
                         </article>
 
-                        <div class="um-form-actions">
-                            <button type="button" class="p-btn" onclick="switchView('roles')">ยกเลิก</button>
-                            <button type="submit" class="p-btn p-btn-sky">บันทึกบทบาท</button>
-                        </div>
+                        <%- include('../../components/ui/form-actions', {
+                            cancelOnClick: "switchView('roles')",
+                            submitClass: 'p-btn p-btn-sky',
+                            submitLabel: 'บันทึกบทบาท',
+                        }) %>
                     </form>
                 </section>
 

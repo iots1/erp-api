@@ -1,0 +1,11 @@
+<!-- Cancel/submit action row at the bottom of a full-page form (paired with
+     components/ui/form-header.ejs — dialogs use their own <footer>, styled
+     globally in modal.css). Locals:
+     - cancelOnClick: raw JS call string, e.g. "switchView('roles')"
+     - submitClass: full p-btn variant classes, e.g. 'p-btn p-btn-sky'
+     - submitLabel: submit button text
+     - cancelLabel (optional): defaults to 'ยกเลิก' -->
+<div class="um-form-actions">
+    <button type="button" class="p-btn" onclick="<%- cancelOnClick %>"><%= typeof cancelLabel !== 'undefined' ? cancelLabel : 'ยกเลิก' %></button>
+    <button type="submit" class="<%= submitClass %>"><%= submitLabel %></button>
+</div>

@@ -1,11 +1,15 @@
 import { hasPermission } from '../../../js/login.service.js';
 import { iamDelete, iamGet, iamPost, iamPut } from './api.js';
+import { createPaginatedList } from './paginated-list.js';
 import { ensurePoliciesLoaded } from './policies.service.js';
 import { resetRoleFormDraft, state } from './state.js';
 import { showApiError, showToast } from './toast.service.js';
 import { escapeHtml, refreshIcons } from './utils.js';
 import { switchView } from './views.service.js';
 
+// Full, un-paginated list — cached for consumers that need every role at
+// once (the "assign roles" checkbox grid in users.service.js), independent
+// of the roles *index page*'s own paginated/filtered table below.
 export async function ensureRolesLoaded(force = false) {
   if (state.rolesLoaded && !force) return state.roles;
   const { items } = await iamGet('/roles', { ignore_limit: true, sort: 'name_th:asc' });
@@ -14,26 +18,70 @@ export async function ensureRolesLoaded(force = false) {
   return items;
 }
 
-export async function loadRoles() {
-  try {
-    await ensureRolesLoaded(true);
-    renderRolesTable();
-  } catch (error) {
-    showApiError(error, 'โหลดรายการบทบาทไม่สำเร็จ');
-  }
+// ── Roles index table — search + pagination, mirrors permissions/users ──
+
+const query = { search: '' };
+let currentItems = [];
+
+const pager = createPaginatedList({
+  defaultPageSize: 20,
+  infoId: 'rolesPagerInfo',
+  prevId: 'rolesPrevBtn',
+  nextId: 'rolesNextBtn',
+  fetchPage: async (page, pageSize) => {
+    try {
+      const or = query.search
+        ? [
+            `code||$cont||${query.search}`,
+            `name_th||$cont||${query.search}`,
+            `name_en||$cont||${query.search}`,
+          ]
+        : undefined;
+
+      const { items, pagination } = await iamGet('/roles', {
+        page,
+        limit: pageSize,
+        sort: 'name_th:asc',
+        or,
+      });
+      currentItems = items;
+      renderRolesTable();
+      return pagination;
+    } catch (error) {
+      showApiError(error, 'โหลดรายการบทบาทไม่สำเร็จ');
+      return undefined;
+    }
+  },
+});
+
+export function loadRoles(page = 1) {
+  return pager.load(page);
+}
+
+export function setRolesFilter({ search }) {
+  if (search !== undefined) query.search = search.trim();
+  pager.load(1);
+}
+
+export function setRolesPageSize(size) {
+  pager.setPageSize(size);
+}
+
+export function goToRolesPage(direction) {
+  return pager.goToPage(direction);
 }
 
 function renderRolesTable() {
   const tbody = document.getElementById('roleTableBody');
   if (!tbody) return;
 
-  if (state.roles.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="4" class="um-empty-cell">ยังไม่มีบทบาทในระบบ</td></tr>`;
+  if (currentItems.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4" class="um-empty-cell">ไม่พบบทบาทที่ตรงกับเงื่อนไข</td></tr>`;
     return;
   }
 
   const canManage = hasPermission('role:update');
-  tbody.innerHTML = state.roles
+  tbody.innerHTML = currentItems
     .map(
       (role) => `
     <tr>
@@ -134,7 +182,7 @@ export async function handleRoleFormSubmit(event) {
 
     showToast('บันทึกบทบาทสำเร็จ', 'success');
     switchView('roles');
-    loadRoles();
+    loadRoles(pager.getCurrentPage());
   } catch (error) {
     showApiError(error, 'บันทึกบทบาทไม่สำเร็จ');
   }
@@ -145,7 +193,7 @@ export async function confirmDeleteRole(roleId, code) {
   try {
     await iamDelete(`/roles/${roleId}`);
     showToast('ลบบทบาทสำเร็จ', 'success');
-    loadRoles();
+    loadRoles(pager.getCurrentPage());
   } catch (error) {
     showApiError(error, 'ลบบทบาทไม่สำเร็จ');
   }

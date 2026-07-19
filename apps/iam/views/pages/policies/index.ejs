@@ -10,7 +10,28 @@
                         onClick: 'openPolicyForm(null)',
                         permission: 'policy:create',
                     }) %>
-                    <div id="policyListContainer" class="um-policy-list"></div>
+                    <article class="um-table-card">
+                        <div class="um-table-toolbar">
+                            <input type="text" id="policySearchFilter" class="um-filter-input" placeholder="ค้นหา code, ชื่อ...">
+                            <select id="policyStatusFilter">
+                                <option value="">ทุกสถานะ</option>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                        <div class="um-table-scroll-area">
+                            <div id="policyListContainer" class="um-policy-list"></div>
+                        </div>
+                        <%- include('../../components/ui/pager', {
+                            infoId: 'policiesPagerInfo',
+                            prevId: 'policiesPrevBtn',
+                            nextId: 'policiesNextBtn',
+                            onPrev: 'goToPoliciesPage(-1)',
+                            onNext: 'goToPoliciesPage(1)',
+                            pageSizeId: 'policyPageSize',
+                            pageSizeOptions: [20, 50, 100],
+                        }) %>
+                    </article>
                 </section>
 
                 <!-- VIEW: Policy form (generator) -->
@@ -136,10 +157,12 @@
                             </div>
                         </article>
 
-                        <div class="um-form-actions">
-                            <button type="button" class="p-btn" onclick="switchView('policies')">Cancel</button>
-                            <button type="submit" class="p-btn p-btn-lavender">Generate Policy</button>
-                        </div>
+                        <%- include('../../components/ui/form-actions', {
+                            cancelOnClick: "switchView('policies')",
+                            cancelLabel: 'Cancel',
+                            submitClass: 'p-btn p-btn-lavender',
+                            submitLabel: 'Generate Policy',
+                        }) %>
                     </form>
                 </section>
 
