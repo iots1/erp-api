@@ -99,26 +99,6 @@
   color: var(--text-muted);
 }
 
-/* ── Policy list ──────────────────────────────────────────────── */
-
-.um-policy-list {
-  display: grid;
-  gap: 0.75rem;
-}
-.um-policy-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.75rem 1rem;
-}
-.um-policy-card-side {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-shrink: 0;
-}
-
 /* ── Policy generator: step 2 layout ─────────────────────────── */
 
 .um-step2 {

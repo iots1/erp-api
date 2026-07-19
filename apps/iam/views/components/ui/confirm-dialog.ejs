@@ -1,0 +1,16 @@
+<!-- Global confirm dialog (Pico <dialog>) — reusable replacement for
+     window.confirm() so destructive actions get the same themed
+     dialog/backdrop/animation as every other modal. Included once in
+     components/layout/page-foot.ejs; opened via showConfirmDialog(...) in
+     public/js/confirm-dialog.service.js, which resolves a Promise<boolean>
+     once the user picks Confirm/Cancel (or dismisses via backdrop/Esc). -->
+<dialog id="confirmDialog">
+    <article>
+        <h3 id="confirmDialogTitle">ยืนยันการดำเนินการ</h3>
+        <p id="confirmDialogMessage"></p>
+        <footer>
+            <button type="button" id="confirmDialogCancelBtn" class="p-btn">ยกเลิก</button>
+            <button type="button" id="confirmDialogConfirmBtn" class="p-btn p-btn-pink">ยืนยัน</button>
+        </footer>
+    </article>
+</dialog>

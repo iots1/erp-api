@@ -172,3 +172,21 @@
 .um-checkbox-row {
   gap: 0.75rem;
 }
+
+/* Compact variant (rolePoliciesContainer) — the plain grid above forces
+   every card to the same column width, so a short policy name still claims
+   a full ~220px+ track and leaves a large gap next to a neighboring short
+   card. Flex-wrap instead: each card sizes to its own content and cards
+   pack tightly left-to-right, only wrapping when a row actually runs out
+   of width. */
+.um-checkbox-grid-compact {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+.um-checkbox-grid-compact .um-checkbox-card {
+  flex: 0 1 auto;
+  width: auto;
+  min-width: 200px;
+  max-width: 320px;
+}

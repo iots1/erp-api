@@ -1,3 +1,4 @@
+import { showConfirmDialog } from '../../../js/confirm-dialog.service.js';
 import { hasPermission } from '../../../js/login.service.js';
 import { closeModal, openModal } from '../../../js/modal.service.js';
 import { iamDelete, iamGet, iamPost, iamPut } from './api.js';
@@ -187,7 +188,12 @@ export async function confirmDeleteUser(userId, fullName) {
     showToast(`Invalid user ID: ${userId}`, 'error');
     return;
   }
-  if (!window.confirm(`ยืนยันการลบผู้ใช้งาน "${fullName}"?`)) return;
+  const confirmed = await showConfirmDialog({
+    title: 'ลบผู้ใช้งาน',
+    message: `ยืนยันการลบผู้ใช้งาน "${fullName}"?`,
+    confirmText: 'ลบ',
+  });
+  if (!confirmed) return;
   try {
     await iamDelete(`/users/${userId}`);
     showToast('ลบผู้ใช้งานสำเร็จ', 'success');

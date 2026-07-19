@@ -1,3 +1,4 @@
+import { showConfirmDialog } from '../../../js/confirm-dialog.service.js';
 import { hasPermission } from '../../../js/login.service.js';
 import { iamDelete, iamGet, iamPost, iamPut } from './api.js';
 import { createPaginatedList } from './paginated-list.js';
@@ -189,7 +190,12 @@ export async function handleRoleFormSubmit(event) {
 }
 
 export async function confirmDeleteRole(roleId, code) {
-  if (!window.confirm(`ยืนยันการลบบทบาท "${code}"?`)) return;
+  const confirmed = await showConfirmDialog({
+    title: 'ลบบทบาท',
+    message: `ยืนยันการลบบทบาท "${code}"?`,
+    confirmText: 'ลบ',
+  });
+  if (!confirmed) return;
   try {
     await iamDelete(`/roles/${roleId}`);
     showToast('ลบบทบาทสำเร็จ', 'success');

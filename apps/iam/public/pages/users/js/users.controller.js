@@ -36,6 +36,12 @@ Object.assign(window, {
 });
 
 function wireFilters() {
+  const searchInput = document.getElementById('filterSearch');
+  searchInput?.addEventListener(
+    'input',
+    debounce((e) => setUsersFilter({ search: e.target.value }), 350),
+  );
+
   const deptInput = document.getElementById('filterDept');
   deptInput?.addEventListener(
     'input',

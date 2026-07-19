@@ -17,10 +17,31 @@
 .p-table td {
   padding: 0.4rem 0.75rem;
 }
+/* Pico's own base rule is `td,th{background-color:var(--pico-background-color)}`
+   — every cell paints its own opaque background, which sits on top of and
+   fully hides anything set on the <tr> itself. So row background/hover has
+   to target `td` (Pico's th only appears in thead here, which already gets
+   --slate-50 above), not `tr`. */
 .p-table tbody tr {
+  cursor: pointer;
+}
+.p-table tbody td {
   background: var(--surface);
 }
-.p-table tbody tr:hover {
+.p-table tbody tr:hover td {
+  background: var(--slate-50);
+}
+/* Light theme rows read as pure white (not the slightly-tinted --surface
+   token some future palette tweak could introduce). This selector's
+   specificity (:root + :not() + class) already outranks the plain
+   `.p-table tbody tr:hover td` rule above, so without a matching
+   `:hover` variant here the white background wins even on hover and the
+   row never visibly changes — this rule must stay below and be at least
+   as specific as that case for hover to show at all. */
+:root:not([data-theme="dark"]) .p-table tbody td {
+  background: #fff;
+}
+:root:not([data-theme="dark"]) .p-table tbody tr:hover td {
   background: var(--slate-50);
 }
 

@@ -3,6 +3,7 @@
 // deleted and can only have its display name edited — see
 // apps/iam/src/modules/permissions/services/permissions.service.ts for the
 // backend half of this same rule.
+import { showConfirmDialog } from '../../../js/confirm-dialog.service.js';
 import { hasPermission } from '../../../js/login.service.js';
 import { closeModal, openModal } from '../../../js/modal.service.js';
 import { iamDelete, iamGet, iamPost, iamPut } from './api.js';
@@ -229,7 +230,12 @@ export async function handlePermissionFormSubmit(event) {
 }
 
 export async function confirmDeletePermission(id, label) {
-  if (!window.confirm(`ยืนยันการลบสิทธิ์ "${label}"?`)) return;
+  const confirmed = await showConfirmDialog({
+    title: 'ลบสิทธิ์',
+    message: `ยืนยันการลบสิทธิ์ "${label}"?`,
+    confirmText: 'ลบ',
+  });
+  if (!confirmed) return;
   try {
     await iamDelete(`/permissions/${id}`);
     showToast('ลบสิทธิ์สำเร็จ', 'success');

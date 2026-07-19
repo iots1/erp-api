@@ -19,7 +19,17 @@ const topbarActions = [
                             </select>
                         </div>
                         <div class="um-table-scroll-area">
-                            <div id="policyListContainer" class="um-policy-list"></div>
+                            <table class="p-table">
+                                <thead>
+                                    <tr>
+                                        <th>Policy</th>
+                                        <th>รหัส Policy</th>
+                                        <th>สถานะ</th>
+                                        <th class="um-th-right">จัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="policyTableBody"></tbody>
+                            </table>
                         </div>
                         <%- include('../../components/ui/pager', {
                             infoId: 'policiesPagerInfo',

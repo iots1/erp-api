@@ -1,3 +1,4 @@
+import { showConfirmDialog } from '../../../js/confirm-dialog.service.js';
 import { hasPermission } from '../../../js/login.service.js';
 import { iamDelete, iamGet, iamPost, iamPut } from './api.js';
 import { createPaginatedList } from './paginated-list.js';
@@ -102,30 +103,30 @@ export function goToPoliciesPage(direction) {
 }
 
 function renderPoliciesList() {
-  const container = document.getElementById('policyListContainer');
-  if (!container) return;
+  const tbody = document.getElementById('policyTableBody');
+  if (!tbody) return;
 
   if (currentItems.length === 0) {
-    container.innerHTML = `<p class="um-muted-note">ไม่พบ Policy ที่ตรงกับเงื่อนไข</p>`;
+    tbody.innerHTML = `<tr><td colspan="4" class="um-empty-cell">ไม่พบ Policy ที่ตรงกับเงื่อนไข</td></tr>`;
     return;
   }
 
   const canManage = hasPermission('policy:create');
-  container.innerHTML = currentItems
+  tbody.innerHTML = currentItems
     .map(
       (policy) => `
-    <article class="um-policy-card">
-      <div class="um-policy-card-main">
-        <h4 class="um-cell-title">${escapeHtml(policy.name?.th)}</h4>
+    <tr>
+      <td>
+        <p class="um-cell-title">${escapeHtml(policy.name?.th)}</p>
         <p class="um-cell-sub">${escapeHtml(policy.name?.en)}</p>
-        <p class="um-cell-mono">${escapeHtml(policy.code)}</p>
-      </div>
-      <div class="um-policy-card-side">
-        <span class="p-tag ${policy.is_active ? 'p-tag-mint' : 'p-tag-pink'}">${policy.is_active ? 'Active' : 'Inactive'}</span>
+      </td>
+      <td class="um-cell-mono">${escapeHtml(policy.code)}</td>
+      <td><span class="p-tag ${policy.is_active ? 'p-tag-mint' : 'p-tag-pink'}">${policy.is_active ? 'Active' : 'Inactive'}</span></td>
+      <td class="um-cell-actions">
         ${canManage ? `<button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="openPolicyForm('${policy.id}')"><i data-lucide="edit-3" class="um-icon-sm"></i> แก้ไข</button>` : ''}
         ${canManage ? `<button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="confirmDeletePolicy('${policy.id}', '${escapeHtml(policy.code).replace(/'/g, "\\'")}')"><i data-lucide="trash-2" class="um-icon-sm"></i></button>` : ''}
-      </div>
-    </article>
+      </td>
+    </tr>
   `,
     )
     .join('');
@@ -133,7 +134,12 @@ function renderPoliciesList() {
 }
 
 export async function confirmDeletePolicy(policyId, code) {
-  if (!window.confirm(`ยืนยันการลบ Policy "${code}"?`)) return;
+  const confirmed = await showConfirmDialog({
+    title: 'ลบ Policy',
+    message: `ยืนยันการลบ Policy "${code}"?`,
+    confirmText: 'ลบ',
+  });
+  if (!confirmed) return;
   try {
     await iamDelete(`/policies/${policyId}`);
     showToast('ลบ Policy สำเร็จ', 'success');
