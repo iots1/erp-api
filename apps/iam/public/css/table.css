@@ -15,7 +15,71 @@
 }
 .p-table th,
 .p-table td {
-  padding: 0.4rem 0.75rem;
+  padding: 0.25rem 0.75rem;
+  line-height: 1.35;
+  vertical-align: middle;
+}
+/* A single-line row is pinned to 40px rather than left to whatever its
+   tallest cell computes to. `height` on a table cell is a *minimum*, so a
+   genuinely two-line cell (the TH/EN name column: .um-cell-title +
+   .um-cell-sub) still grows past it — the row fits its content, it just
+   never sits taller than it needs to. Without this, a one-line row lands
+   ~53px because each of the three contributors below stacks on top of the
+   text's own line box. */
+.p-table tbody td {
+  height: 40px;
+}
+/* 1. Cell <p>s inherit Pico's `p { margin-bottom:
+   var(--pico-typography-spacing-vertical) }` (0.5rem here). .um-cell-title
+   and .um-cell-sub zero it themselves, but .um-cell-mono never did — so
+   every mono cell silently added 8px of trailing margin to its row. Reset
+   it for all cell <p>s so a new cell class can't reintroduce the bug;
+   .um-cell-sub's own 0.15rem *top* margin (its gap under the title) is
+   deliberately left alone. */
+.p-table td p {
+  margin-block-end: 0;
+}
+/* 2. Action-column buttons: Pico sizes a <button> from font-size +
+   --pico-form-element-spacing-vertical + line-height 1.5, which alone
+   exceeds the 40px target once cell padding is added. Pin them to a fixed
+   compact box instead. */
+.p-table .p-btn {
+  height: 1.6rem;
+  min-height: 1.6rem;
+  padding-block: 0;
+  line-height: 1;
+  /* Pico gives every <button> `margin-bottom: var(--pico-spacing)` (12px
+     here) for stacked form layouts. In a table cell that margin sits inside
+     the line box *below* the button, so the button gets pushed to the top of
+     the row and reads as top-aligned — no amount of vertical-align fixes it,
+     because the box really is offset. Only the block margins are cleared:
+     .um-cell-actions still relies on an inline margin to space its buttons. */
+  margin-block: 0;
+}
+/* 3. Status pills use `display: inline-flex`, making them inline-level
+   *boxes* whose height adds to the line box rather than sitting inside it.
+   An explicit line-height keeps a tag the same height as the plain text in
+   its sibling cells. */
+.p-table td .p-tag {
+  line-height: 1.2;
+}
+/* The cell's own `vertical-align: middle` centers its *line box*, not the
+   inline-level boxes sitting inside it — those still align on the baseline,
+   which is the default for inline-flex. For an icon-only button the baseline
+   is the <svg>'s bottom edge, so the button hangs visibly low in the row
+   even though the cell is "centered". Aligning the boxes themselves is what
+   actually centers them against the text in sibling cells. */
+.p-table td .p-btn,
+.p-table td .p-tag,
+.p-table td .um-icon-btn {
+  vertical-align: middle;
+}
+/* Same baseline problem one level down: a Lucide <svg> is an inline
+   replaced box, so inside a button it sits on the text baseline and pushes
+   its own descender space into the line. The buttons are already flex
+   containers, so this only matters for icons used bare in a cell. */
+.p-table td svg {
+  vertical-align: middle;
 }
 /* Pico's own base rule is `td,th{background-color:var(--pico-background-color)}`
    — every cell paints its own opaque background, which sits on top of and
