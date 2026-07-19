@@ -1,0 +1,331 @@
+/* Structural layout — page shell (sidebar/topbar/content), generic
+   containers/grids, and view-switching. Component styles (buttons, forms,
+   tables, modals) live in their own files; page-specific styles stay in
+   public/pages/{page}/css/{page}.css. */
+
+.page-header {
+  margin-bottom: 1.5rem;
+}
+.page-header h1 {
+  margin: 0.25rem 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--slate-800);
+}
+.page-header p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  background: var(--sky-lt);
+  color: var(--sky-dk);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.25rem;
+}
+
+/* ── Tags / status pills — no Pico equivalent ────────────────────── */
+
+.p-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.p-tag-sky {
+  background: var(--sky-lt);
+  color: var(--sky-dk);
+}
+.p-tag-lavender {
+  background: var(--lavender-lt);
+  color: var(--lavender-dk);
+}
+.p-tag-mint {
+  background: var(--mint-lt);
+  color: var(--mint-dk);
+}
+.p-tag-peach {
+  background: var(--peach-lt);
+  color: var(--peach-dk);
+}
+.p-tag-pink {
+  background: var(--pink-lt);
+  color: var(--pink-dk);
+}
+
+.status-pill {
+  padding: 2px 10px;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.status-active {
+  background: var(--mint-lt);
+  color: var(--mint-dk);
+}
+.status-pending {
+  background: var(--peach-lt);
+  color: var(--peach-dk);
+}
+.status-suspended {
+  background: var(--pink-lt);
+  color: var(--pink-dk);
+}
+
+.um-muted-note {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+/* ── App shell ────────────────────────────────────────────────────── */
+
+.um-body {
+  height: 100vh;
+  overflow: hidden;
+}
+
+.um-shell {
+  display: flex;
+  height: 100vh;
+}
+
+.um-sidebar {
+  width: 14rem;
+  flex-shrink: 0;
+  background: var(--slate-900);
+  color: var(--slate-300);
+  display: flex;
+  flex-direction: column;
+}
+.um-sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1.25rem 1.5rem;
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: 0.02em;
+}
+.um-sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 1rem;
+}
+.um-nav-group-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--slate-500);
+  margin: 1.25rem 0.5rem 0.5rem;
+}
+.um-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 0.5rem;
+  color: var(--slate-300);
+  text-decoration: none;
+  font-size: 0.88rem;
+  margin-bottom: 0.15rem;
+  transition: background-color 0.15s ease;
+}
+.um-nav-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.um-nav-item.active {
+  background: var(--sky);
+  color: #fff;
+}
+.um-sidebar-footer {
+  padding: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.um-sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+.um-sidebar-user-avatar {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  background: var(--slate-700);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+}
+.um-sidebar-user-info {
+  flex: 1;
+  min-width: 0;
+}
+.um-sidebar-user-info p {
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.um-sidebar-user-info p:first-child {
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.um-sidebar-user-info p:last-child {
+  color: var(--slate-500);
+  font-size: 0.72rem;
+}
+
+.um-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.um-topbar {
+  height: 3.25rem;
+  flex-shrink: 0;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.25rem;
+}
+.um-topbar h1 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--slate-800);
+}
+.um-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem;
+}
+
+.um-view {
+  display: none;
+}
+.um-view.active {
+  display: block;
+}
+.um-view-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--slate-800);
+  margin: 0 0 0.25rem;
+}
+.um-view-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* ── Toolbar row above a table/list ──────────────────────────────── */
+
+.um-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-bottom: 0.85rem;
+}
+.um-toolbar-left {
+  display: flex;
+  gap: 0.6rem;
+}
+
+/* ── Form section containers (role/policy forms) ─────────────────── */
+
+.um-form-header {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+}
+.um-form-section {
+  padding: 0.9rem;
+  margin-bottom: 0.85rem;
+}
+/* Auto-responsive columns (Vaadin form-layout style): as many ~220px
+   columns fit the available width, instead of a fixed 2-up grid that
+   wastes width on wide screens and forces extra scrolling on narrow ones. */
+.um-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.5rem 1rem;
+  margin-top: 0.75rem;
+}
+.um-field-span-2 {
+  grid-column: span 2;
+}
+.um-section-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--slate-800);
+}
+.um-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+/* ── Empty-state placeholder (audit / settings) ──────────────────── */
+
+.um-placeholder {
+  padding: 2.25rem 1.5rem;
+  text-align: center;
+}
+.um-placeholder-icon {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 9999px;
+  background: var(--slate-100);
+  color: var(--slate-500);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+}
+.um-placeholder h2 {
+  margin: 0 0 0.35rem;
+  color: var(--slate-800);
+}
+.um-placeholder p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+/* ── Responsive ───────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .um-sidebar {
+    display: none;
+  }
+  .um-field-span-2 {
+    grid-column: span 1;
+  }
+}

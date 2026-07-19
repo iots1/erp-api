@@ -4,6 +4,7 @@
 // apps/iam/src/modules/permissions/services/permissions.service.ts for the
 // backend half of this same rule.
 import { hasPermission } from '../../../js/login.service.js';
+import { closeModal, openModal } from '../../../js/modal.service.js';
 import { iamDelete, iamGet, iamPost, iamPut } from './api.js';
 import { showApiError, showToast } from './toast.service.js';
 import { escapeHtml, refreshIcons } from './utils.js';
@@ -184,11 +185,11 @@ export function openPermissionModal(id) {
     identityHint.classList.add('hidden');
   }
 
-  modal.classList.remove('hidden');
+  openModal(modal);
 }
 
 export function closePermissionModal() {
-  document.getElementById('permissionFormModal').classList.add('hidden');
+  closeModal(document.getElementById('permissionFormModal'));
 }
 
 export async function handlePermissionFormSubmit(event) {

@@ -1,0 +1,26 @@
+<!-- Shared page shell (top half) for every admin-shell page. Locals:
+     - pageName: matches public/pages/{pageName}/ — used to link the page's
+       CSS bundle. `title`, `prefix`, `assetVersion` come from the outer
+       render scope (every views/*.controller.ts already returns them via
+       buildAdminViewConfig). Pair with components/layout/page-foot.ejs. -->
+<!DOCTYPE html>
+<html lang="th" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <link rel="stylesheet" href="/<%= prefix %>/assets/css/theme.css?v=<%= assetVersion %>">
+    <link rel="stylesheet" href="/<%= prefix %>/assets/css/layout.css?v=<%= assetVersion %>">
+    <link rel="stylesheet" href="/<%= prefix %>/assets/css/button.css?v=<%= assetVersion %>">
+    <link rel="stylesheet" href="/<%= prefix %>/assets/css/form.css?v=<%= assetVersion %>">
+    <link rel="stylesheet" href="/<%= prefix %>/assets/css/table.css?v=<%= assetVersion %>">
+    <link rel="stylesheet" href="/<%= prefix %>/assets/css/modal.css?v=<%= assetVersion %>">
+    <link rel="stylesheet" href="/<%= prefix %>/assets/pages/<%= pageName %>/css/bundle.css?v=<%= assetVersion %>">
+</head>
+<body class="um-body">
+
+    <%- include('../admin-shell/login-screen') %>

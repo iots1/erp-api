@@ -1,0 +1,11 @@
+<!-- Opens the post-login app shell (sidebar + topbar + content wrapper) shared
+     by every admin-shell page. Locals: activeView, pageTitle, showSearch
+     (optional). Pair with shell-close.ejs; the page's own content goes
+     between the two includes. -->
+<div id="appShell" class="um-shell hidden">
+    <%- include('sidebar', { activeView: activeView }) %>
+
+    <main class="um-main">
+        <%- include('topbar', { pageTitle: pageTitle, showSearch: typeof showSearch !== 'undefined' ? showSearch : false }) %>
+
+        <div class="um-content">

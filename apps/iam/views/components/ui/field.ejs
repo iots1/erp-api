@@ -1,0 +1,32 @@
+<!-- Label + text control, the label-above-input shape repeated across every
+     form in this app. Locals (all but id/label are optional):
+     - type: input type, default 'text' — ignored when `rows` is set
+     - rows: presence switches the control to a <textarea>
+     - required: adds the red asterisk + `required` attribute
+     - placeholder, value, extraClass (e.g. 'um-mono-input'), autocomplete, autofocus
+     - spanClass: extra class on the wrapper, e.g. 'um-field-span-2'
+     Fields with inline event handlers (onkeyup/onchange) or a fixed option
+     list (<select>) are hand-written — this only covers the plain case. -->
+<div class="p-field<% if (typeof spanClass !== 'undefined') { %> <%= spanClass %><% } %>">
+    <label for="<%= id %>"><%= label %><% if (typeof required !== 'undefined' && required) { %> <span class="required">*</span><% } %></label>
+    <% if (typeof rows !== 'undefined') { %>
+    <textarea
+        id="<%= id %>"
+        rows="<%= rows %>"
+        <% if (typeof extraClass !== 'undefined') { %>class="<%= extraClass %>"<% } %>
+        <% if (typeof required !== 'undefined' && required) { %>required<% } %>
+        <% if (typeof placeholder !== 'undefined') { %>placeholder="<%= placeholder %>"<% } %>
+    ><%= typeof value !== 'undefined' ? value : '' %></textarea>
+    <% } else { %>
+    <input
+        type="<%= typeof type !== 'undefined' ? type : 'text' %>"
+        id="<%= id %>"
+        <% if (typeof extraClass !== 'undefined') { %>class="<%= extraClass %>"<% } %>
+        <% if (typeof required !== 'undefined' && required) { %>required<% } %>
+        <% if (typeof placeholder !== 'undefined') { %>placeholder="<%= placeholder %>"<% } %>
+        <% if (typeof value !== 'undefined') { %>value="<%= value %>"<% } %>
+        <% if (typeof autocomplete !== 'undefined') { %>autocomplete="<%= autocomplete %>"<% } %>
+        <% if (typeof autofocus !== 'undefined' && autofocus) { %>autofocus<% } %>
+    >
+    <% } %>
+</div>

@@ -1,26 +1,6 @@
-<!DOCTYPE html>
-<html lang="th">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= title %></title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <link rel="stylesheet" href="/<%= prefix %>/assets/css/global.css?v=<%= assetVersion %>">
-    <link rel="stylesheet" href="/<%= prefix %>/assets/pages/users/css/bundle.css?v=<%= assetVersion %>">
-</head>
-<body class="um-body">
+<%- include('../../components/layout/page-head', { pageName: 'users' }) %>
+<%- include('../../components/admin-shell/shell-open', { activeView: 'users', pageTitle: 'จัดการผู้ใช้งาน', showSearch: true }) %>
 
-    <%- include('../../components/admin-shell/login-screen') %>
-
-    <div id="appShell" class="um-shell hidden">
-        <%- include('../../components/admin-shell/sidebar', { activeView: 'users' }) %>
-
-        <main class="um-main">
-            <%- include('../../components/admin-shell/topbar', { pageTitle: 'จัดการผู้ใช้งาน', showSearch: true }) %>
-
-            <div class="um-content">
                 <section id="view-users" class="um-view active">
                     <div class="um-toolbar">
                         <div class="um-toolbar-left">
@@ -31,10 +11,10 @@
                                 <i data-lucide="download"></i><span>Export JSON</span>
                             </button>
                         </div>
-                        <input type="text" id="filterDept" class="p-input um-filter-input" placeholder="กรองตามแผนก (Department)...">
+                        <input type="text" id="filterDept" class="um-filter-input" placeholder="กรองตามแผนก (Department)...">
                     </div>
 
-                    <div class="p-card um-table-card">
+                    <article class="um-table-card">
                         <table class="p-table">
                             <thead>
                                 <tr>
@@ -48,83 +28,51 @@
                             </thead>
                             <tbody id="userTableBody"></tbody>
                         </table>
-                    </div>
+                    </article>
                 </section>
-            </div>
-        </main>
-    </div>
+
+<%- include('../../components/admin-shell/shell-close') %>
 
     <!-- Modal: Add / edit user -->
-    <div id="userFormModal" class="p-modal-overlay hidden">
-        <div class="p-modal-card">
-            <div class="p-modal-head">
-                <h3 id="userFormTitle">เพิ่มบุคลากร</h3>
-                <button type="button" class="um-icon-btn" onclick="closeUserFormModal()"><i data-lucide="x"></i></button>
-            </div>
+    <dialog id="userFormModal">
+        <article>
+            <%- include('../../components/ui/modal-head', { titleId: 'userFormTitle', titleText: 'เพิ่มบุคลากร', onClose: 'closeUserFormModal()' }) %>
             <form id="userForm" onsubmit="handleUserFormSubmit(event)">
-                <div class="p-modal-body">
-                    <div class="p-field">
-                        <label for="frmUsername">ชื่อผู้ใช้งาน (Username) <span class="required">*</span></label>
-                        <input type="text" id="frmUsername" class="p-input" required>
-                    </div>
-                    <div class="p-field">
-                        <label for="frmEmployeeId">รหัสพนักงาน <span class="required">*</span></label>
-                        <input type="text" id="frmEmployeeId" class="p-input" required>
-                    </div>
-                    <div class="p-field">
-                        <label for="frmFullName">ชื่อ-นามสกุล <span class="required">*</span></label>
-                        <input type="text" id="frmFullName" class="p-input" required>
-                    </div>
-                    <div class="p-field">
-                        <label for="frmEmail">อีเมล <span class="required">*</span></label>
-                        <input type="email" id="frmEmail" class="p-input" required>
-                    </div>
-                    <div class="p-field">
-                        <label for="frmDepartment">แผนก/สังกัด</label>
-                        <input type="text" id="frmDepartment" class="p-input">
-                    </div>
+                <div class="um-form-grid">
+                    <%- include('../../components/ui/field', { id: 'frmUsername', label: 'ชื่อผู้ใช้งาน (Username)', required: true }) %>
+                    <%- include('../../components/ui/field', { id: 'frmEmployeeId', label: 'รหัสพนักงาน', required: true }) %>
+                    <%- include('../../components/ui/field', { id: 'frmFullName', label: 'ชื่อ-นามสกุล', required: true }) %>
+                    <%- include('../../components/ui/field', { id: 'frmEmail', label: 'อีเมล', type: 'email', required: true }) %>
+                    <%- include('../../components/ui/field', { id: 'frmDepartment', label: 'แผนก/สังกัด' }) %>
                     <div class="p-field">
                         <label for="frmStatus">สถานะ</label>
-                        <select id="frmStatus" class="p-select">
+                        <select id="frmStatus">
                             <option value="pending">Pending</option>
                             <option value="active">Active</option>
                             <option value="suspended">Suspended</option>
                         </select>
                     </div>
                 </div>
-                <div class="p-modal-foot">
+                <footer>
                     <button type="button" class="p-btn" onclick="closeUserFormModal()">ยกเลิก</button>
                     <button type="submit" class="p-btn p-btn-sky">บันทึก</button>
-                </div>
+                </footer>
             </form>
-        </div>
-    </div>
+        </article>
+    </dialog>
 
     <!-- Modal: Assign roles -->
-    <div id="userRolesModal" class="p-modal-overlay hidden">
-        <div class="p-modal-card">
-            <div class="p-modal-head">
-                <h3>จัดการบทบาทผู้ใช้งาน</h3>
-                <button type="button" class="um-icon-btn" onclick="closeUserRolesModal()"><i data-lucide="x"></i></button>
-            </div>
+    <dialog id="userRolesModal">
+        <article>
+            <%- include('../../components/ui/modal-head', { titleText: 'จัดการบทบาทผู้ใช้งาน', onClose: 'closeUserRolesModal()' }) %>
             <form id="userRolesForm" onsubmit="handleAssignRolesSubmit(event)">
-                <div class="p-modal-body">
-                    <div id="userRolesContainer" class="um-checkbox-grid"></div>
-                </div>
-                <div class="p-modal-foot">
+                <div id="userRolesContainer" class="um-checkbox-grid"></div>
+                <footer>
                     <button type="button" class="p-btn" onclick="closeUserRolesModal()">ยกเลิก</button>
                     <button type="submit" class="p-btn p-btn-sky">บันทึก</button>
-                </div>
+                </footer>
             </form>
-        </div>
-    </div>
+        </article>
+    </dialog>
 
-    <div id="toastStack" class="p-toast-stack"></div>
-
-    <link rel="stylesheet" href="/<%= prefix %>/assets/css/auth-modal.css?v=<%= assetVersion %>">
-    <%- include('../../components/auth-modal') %>
-
-    <%- include('../user-management/components/config') %>
-    <script src="/<%= prefix %>/assets/pages/users/js/bundle.js?v=<%= assetVersion %>"></script>
-</body>
-</html>
+<%- include('../../components/layout/page-foot', { pageName: 'users' }) %>

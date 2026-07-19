@@ -49,11 +49,11 @@ export async function loadDashboard() {
     grid.innerHTML = stats
       .map(
         (s) => `
-      <div data-permission="${s.permission}" class="p-card um-stat-card">
-        <div class="p-card-head-icon um-stat-icon um-stat-icon-${s.color}"><i data-lucide="${s.icon}"></i></div>
+      <article data-permission="${s.permission}" class="um-stat-card">
+        <div class="um-stat-icon um-stat-icon-${s.color}"><i data-lucide="${s.icon}"></i></div>
         <p class="um-stat-title">${s.title}</p>
         <h3 class="um-stat-value">${s.value}</h3>
-      </div>
+      </article>
     `,
       )
       .join('');

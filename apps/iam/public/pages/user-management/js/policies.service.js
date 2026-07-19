@@ -60,7 +60,7 @@ function renderPoliciesList() {
   container.innerHTML = state.policies
     .map(
       (policy) => `
-    <div class="p-card um-policy-card">
+    <article class="um-policy-card">
       <div class="um-policy-card-main">
         <h4 class="um-cell-title">${escapeHtml(policy.name?.th)}</h4>
         <p class="um-cell-sub">${escapeHtml(policy.name?.en)}</p>
@@ -71,7 +71,7 @@ function renderPoliciesList() {
         ${canManage ? `<button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="openPolicyForm('${policy.id}')"><i data-lucide="edit-3" class="um-icon-sm"></i> แก้ไข</button>` : ''}
         ${canManage ? `<button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="confirmDeletePolicy('${policy.id}', '${escapeHtml(policy.code).replace(/'/g, "\\'")}')"><i data-lucide="trash-2" class="um-icon-sm"></i></button>` : ''}
       </div>
-    </div>
+    </article>
   `,
     )
     .join('');
@@ -346,9 +346,9 @@ function renderConditions() {
         (row, index) => `
       <div class="um-condition-row">
         ${index > 0 ? '<span class="p-tag p-tag-sky">AND</span>' : '<span class="um-condition-spacer"></span>'}
-        <select class="p-select" onchange="updateConditionRow('${row.id}', 'operator', this.value)">${opOptions.replace(`value="${row.operator}"`, `value="${row.operator}" selected`)}</select>
-        <input type="text" class="p-input" list="${keyListId}" value="${escapeHtml(row.condition_key)}" placeholder="condition key" onchange="updateConditionRow('${row.id}', 'condition_key', this.value)">
-        <input type="text" class="p-input" value="${escapeHtml(row.condition_value)}" placeholder="value" onchange="updateConditionRow('${row.id}', 'condition_value', this.value)">
+        <select onchange="updateConditionRow('${row.id}', 'operator', this.value)">${opOptions.replace(`value="${row.operator}"`, `value="${row.operator}" selected`)}</select>
+        <input type="text" list="${keyListId}" value="${escapeHtml(row.condition_key)}" placeholder="condition key" onchange="updateConditionRow('${row.id}', 'condition_key', this.value)">
+        <input type="text" value="${escapeHtml(row.condition_value)}" placeholder="value" onchange="updateConditionRow('${row.id}', 'condition_value', this.value)">
         <button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="removeConditionRow('${row.id}')"><i data-lucide="trash-2" class="um-icon-sm"></i></button>
       </div>
     `,

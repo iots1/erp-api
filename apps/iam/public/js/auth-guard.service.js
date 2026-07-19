@@ -8,6 +8,7 @@ import {
   login,
   refreshAccessToken,
 } from './login.service.js';
+import { closeModal, openModal } from './modal.service.js';
 
 let pendingRefresh = null;
 
@@ -36,12 +37,12 @@ export async function fetchWithAuth(url, options = {}) {
 }
 
 export function showAuthModal() {
-  document.getElementById('authLoginModal')?.classList.remove('hidden');
+  openModal(document.getElementById('authLoginModal'));
   document.getElementById('authModalUsername')?.focus();
 }
 
 export function hideAuthModal() {
-  document.getElementById('authLoginModal')?.classList.add('hidden');
+  closeModal(document.getElementById('authLoginModal'));
 }
 
 /** Bridged to window by public-api.js — bound to #authLoginForm's onsubmit. */

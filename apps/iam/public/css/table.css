@@ -1,0 +1,112 @@
+/* Tables — Pico's bare <table> already handles borders/padding/header
+   styling; this only adds the brand's uppercase header treatment, row hover
+   accent, the table-card wrapper, cell-content typography, and pagination. */
+
+.p-table {
+  width: 100%;
+  font-size: 0.85rem;
+}
+.p-table thead tr {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.p-table th,
+.p-table td {
+  padding: 0.5rem 0.85rem;
+}
+.p-table tbody tr:hover {
+  background: var(--slate-50);
+}
+
+.um-table-card {
+  /* Pico's <article> default padding would inset the table from the card
+     edges; a full-bleed table (with its own cell padding) is the design. */
+  padding: 0;
+  overflow-x: auto;
+}
+.um-table-scroll {
+  overflow-x: auto;
+}
+
+/* ── Cell content ─────────────────────────────────────────────────── */
+
+.um-th-right {
+  text-align: right;
+}
+.um-cell-actions {
+  /* Was `display: flex` directly on the <td>, which takes the cell out of
+     the table's row-height algorithm: its border-bottom then sits wherever
+     its (shorter) flex content ends, visibly misaligned from sibling cells
+     that stay `table-cell` and stretch to the row's full height. Keep this
+     a normal table-cell — right-align + space the action buttons (already
+     inline-flex themselves) with text-align/margin instead of flex. */
+  text-align: right;
+}
+.um-cell-actions > * + * {
+  margin-left: 0.25rem;
+}
+.um-cell-title {
+  margin: 0;
+  font-weight: 600;
+  color: var(--slate-800);
+}
+.um-cell-sub {
+  margin: 0.15rem 0 0;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+.um-cell-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+.um-cell-truncate {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.um-empty-cell {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 2rem !important;
+}
+
+/* ── Pagination ───────────────────────────────────────────────────── */
+
+.um-pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  padding: 0.55rem 0.85rem;
+  border-top: 1px solid var(--border);
+  background: var(--slate-50);
+  border-radius: 0 0 0.75rem 0.75rem;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+.um-pager-size {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+}
+.um-pager-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.um-pager-pages {
+  padding: 0.32rem 0.85rem;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+}

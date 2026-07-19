@@ -1,0 +1,9 @@
+<!-- <header> for a <dialog><article> modal. Locals: titleText, onClose (raw JS
+     call string, e.g. "closeUserFormModal()"), titleId (optional).
+     The close button follows Pico's own convention exactly — an empty
+     `[rel=prev]` button that Pico draws an X into via background-image and
+     floats top-right, so no icon library or custom layout CSS is needed. -->
+<header>
+    <button aria-label="Close" rel="prev" onclick="<%- onClose %>"></button>
+    <h3<% if (typeof titleId !== 'undefined') { %> id="<%= titleId %>"<% } %>><%= titleText %></h3>
+</header>

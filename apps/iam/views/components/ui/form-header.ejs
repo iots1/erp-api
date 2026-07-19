@@ -1,0 +1,10 @@
+<!-- Back-button header for a form view nested inside a list view (roles,
+     policies). Locals: backView (switchView target), titleId, titleText,
+     subtitleText. -->
+<div class="um-form-header">
+    <button type="button" class="um-icon-btn" onclick="switchView('<%= backView %>')"><i data-lucide="arrow-left"></i></button>
+    <div>
+        <h2 id="<%= titleId %>" class="um-view-title"><%= titleText %></h2>
+        <p class="um-view-subtitle"><%= subtitleText %></p>
+    </div>
+</div>

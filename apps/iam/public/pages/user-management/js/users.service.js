@@ -1,4 +1,5 @@
 import { hasPermission } from '../../../js/login.service.js';
+import { closeModal, openModal } from '../../../js/modal.service.js';
 import { iamDelete, iamGet, iamPost, iamPut } from './api.js';
 import { ensureRolesLoaded } from './roles.service.js';
 import { state } from './state.js';
@@ -126,11 +127,11 @@ export async function openUserFormModal(userId) {
     document.getElementById('frmStatus').value = 'pending';
   }
 
-  modal.classList.remove('hidden');
+  openModal(modal);
 }
 
 export function closeUserFormModal() {
-  document.getElementById('userFormModal').classList.add('hidden');
+  closeModal(document.getElementById('userFormModal'));
 }
 
 export async function handleUserFormSubmit(event) {
@@ -206,14 +207,14 @@ export async function openUserRolesModal(userId) {
       )
       .join('');
 
-    modal.classList.remove('hidden');
+    openModal(modal);
   } catch (error) {
     showApiError(error, 'โหลดข้อมูลบทบาทไม่สำเร็จ');
   }
 }
 
 export function closeUserRolesModal() {
-  document.getElementById('userRolesModal').classList.add('hidden');
+  closeModal(document.getElementById('userRolesModal'));
 }
 
 export async function handleAssignRolesSubmit(event) {

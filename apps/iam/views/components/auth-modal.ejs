@@ -1,18 +1,15 @@
-<div id="authLoginModal" class="auth-modal-overlay hidden">
-    <div class="auth-modal-card">
+<!-- Forced re-login on session expiry (no close button — the user must
+     re-authenticate to continue). handleAuthLogin is bridged to window by
+     each page's controller/public-api.js; see auth-guard.service.js. -->
+<dialog id="authLoginModal" data-persistent>
+    <article>
         <h3>เซสชันหมดอายุ</h3>
         <p>กรุณาเข้าสู่ระบบอีกครั้งเพื่อดำเนินการต่อ</p>
         <form id="authLoginForm" onsubmit="handleAuthLogin(event)">
-            <div class="auth-modal-field">
-                <label for="authModalUsername">ชื่อผู้ใช้งาน</label>
-                <input type="text" id="authModalUsername" class="p-input" required autocomplete="username">
-            </div>
-            <div class="auth-modal-field">
-                <label for="authModalPassword">รหัสผ่าน</label>
-                <input type="password" id="authModalPassword" class="p-input" required autocomplete="current-password">
-            </div>
+            <%- include('ui/field', { id: 'authModalUsername', label: 'ชื่อผู้ใช้งาน', required: true, autocomplete: 'username' }) %>
+            <%- include('ui/field', { id: 'authModalPassword', label: 'รหัสผ่าน', type: 'password', required: true, autocomplete: 'current-password' }) %>
             <p id="authModalError" class="auth-modal-error hidden"></p>
             <button type="submit" class="p-btn p-btn-lavender auth-modal-submit">เข้าสู่ระบบ</button>
         </form>
-    </div>
-</div>
+    </article>
+</dialog>

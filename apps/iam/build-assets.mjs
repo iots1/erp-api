@@ -55,7 +55,14 @@ const PAGES = [
 ];
 
 /** Shared static files copied as-is (no bundling — plain CSS, no @import graph). */
-const SHARED_CSS = ['css/global.css', 'css/auth-modal.css'];
+const SHARED_CSS = [
+  'css/theme.css',
+  'css/layout.css',
+  'css/button.css',
+  'css/form.css',
+  'css/table.css',
+  'css/modal.css',
+];
 
 async function ensureDir(filePath) {
   await mkdir(dirname(filePath), { recursive: true });
@@ -156,7 +163,7 @@ async function watch() {
   console.log('[iam:build-assets] watching for changes...');
 
   // Shared css files aren't part of esbuild's watch graph (copied, not bundled) —
-  // poll them separately so global.css edits show up without a manual re-run.
+  // poll them separately so SHARED_CSS edits show up without a manual re-run.
   // Errors here (e.g. a transient ENOSPC) are logged, not thrown — this is a
   // background convenience poll and must not take the whole watcher down.
   setInterval(() => {

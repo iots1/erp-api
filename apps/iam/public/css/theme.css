@@ -1,0 +1,123 @@
+/* Design tokens + global resets for apps/iam server-rendered views (see
+   .claude/skills/init-view). Pico CSS (loaded via CDN in
+   components/layout/page-head.ejs) supplies the base styling for every
+   native element — button, input/select/textarea, table, article, dialog.
+   This file only holds the brand's color/spacing tokens, the retint of
+   Pico's own CSS variables, and resets that apply document-wide. Component
+   styles live in button.css / form.css / table.css / modal.css / layout.css;
+   page-specific styles live in public/pages/{page}/css/{page}.css. */
+
+:root {
+  --slate-50: #f8fafc;
+  --slate-100: #f1f5f9;
+  --slate-200: #e2e8f0;
+  --slate-300: #cbd5e1;
+  --slate-400: #94a3b8;
+  --slate-500: #64748b;
+  --slate-600: #475569;
+  --slate-700: #334155;
+  --slate-800: #1e293b;
+  --slate-900: #0f172a;
+
+  --sky: #3b82f6;
+  --sky-lt: #eff6ff;
+  --sky-dk: #1d4ed8;
+  --lavender: #6366f1;
+  --lavender-lt: #eef2ff;
+  --lavender-dk: #4338ca;
+  --mint: #10b981;
+  --mint-lt: #ecfdf5;
+  --mint-dk: #047857;
+  --peach: #f59e0b;
+  --peach-lt: #fffbeb;
+  --peach-dk: #b45309;
+  --pink: #ef4444;
+  --pink-lt: #fef2f2;
+  --pink-dk: #b91c1c;
+
+  --text: var(--slate-800);
+  --text-muted: var(--slate-500);
+  --border: var(--slate-200);
+  --surface: #ffffff;
+  --bg: var(--slate-50);
+
+  /* Retint Pico's default blue theme to the brand sky color so bare Pico
+     elements (buttons, links, focus rings, dialogs) match without per-element
+     overrides. See https://picocss.com/docs/css-variables */
+  --pico-font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, sans-serif;
+  --pico-primary: var(--sky-dk);
+  --pico-primary-background: var(--sky);
+  --pico-primary-border: var(--sky);
+  --pico-primary-hover: var(--sky-dk);
+  --pico-primary-hover-background: var(--sky-dk);
+  --pico-primary-hover-border: var(--sky-dk);
+  --pico-primary-focus: rgba(59, 130, 246, 0.35);
+  --pico-primary-inverse: #fff;
+  --pico-form-element-focus-color: var(--sky);
+  --pico-border-radius: 0.5rem;
+
+  /* Compact density — an admin managing lists/forms all day needs more rows
+     and fields on screen, not Lumo/Aura-style breathing room. Buttons share
+     --pico-form-element-spacing-* with inputs, so this one pair shrinks both;
+     --pico-block-spacing-* shrinks <article>/<dialog> padding the same way. */
+  --pico-form-element-spacing-vertical: 0.42rem;
+  --pico-form-element-spacing-horizontal: 0.7rem;
+  --pico-spacing: 0.75rem;
+  --pico-typography-spacing-vertical: 0.5rem;
+  --pico-block-spacing-vertical: 0.85rem;
+  --pico-block-spacing-horizontal: 1rem;
+}
+
+/* ── Global resets ────────────────────────────────────────────── */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  color: var(--text);
+  background: var(--bg);
+}
+
+button,
+input,
+select,
+textarea {
+  font-size: 0.85rem;
+}
+
+/* Pico gives <article> a bottom margin by default (for stacked prose); our
+   cards live in grids/flex layouts that already control spacing via gap, so
+   zero it here rather than repeating `margin: 0` on every card variant. */
+article {
+  margin: 0;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--slate-100);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--slate-300);
+  border-radius: 10px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* Lucide icons — sized globally so every page gets consistent icon glyphs
+   without repeating width/height on each usage. */
+.um-icon-sm {
+  width: 16px;
+  height: 16px;
+}
+[data-lucide] {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2;
+}

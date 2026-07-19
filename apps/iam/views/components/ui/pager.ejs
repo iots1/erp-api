@@ -1,0 +1,29 @@
+<!-- Prev/next pager for a table-card footer. Locals:
+     - infoId, prevId, nextId: element ids the page's JS updates/binds
+     - onPrev, onNext: raw JS call strings (e.g. "goToSessionsPage(-1)")
+     - pageSizeId (optional): adds a page-size <select>; when set, the pager
+       gets the "with page-size" layout (nav wrapped, info pill-styled)
+     - pageSizeOptions (optional): defaults to [50, 100, 1000] -->
+<div class="um-pager">
+    <% if (typeof pageSizeId !== 'undefined') { %>
+    <div class="um-pager-size">
+        <label for="<%= pageSizeId %>">แสดงต่อหน้า</label>
+        <select id="<%= pageSizeId %>">
+            <% (typeof pageSizeOptions !== 'undefined' ? pageSizeOptions : [50, 100, 1000]).forEach(function (opt) { %>
+            <option value="<%= opt %>"><%= opt %></option>
+            <% }) %>
+        </select>
+    </div>
+    <div class="um-pager-nav">
+    <% } %>
+        <span id="<%= infoId %>"<% if (typeof pageSizeId !== 'undefined') { %> class="um-pager-pages"<% } %>></span>
+        <button type="button" class="p-btn p-btn-ghost p-btn-sm" id="<%= prevId %>" onclick="<%- onPrev %>">
+            <i data-lucide="chevron-left" class="um-icon-sm"></i> ก่อนหน้า
+        </button>
+        <button type="button" class="p-btn p-btn-ghost p-btn-sm" id="<%= nextId %>" onclick="<%- onNext %>">
+            ถัดไป <i data-lucide="chevron-right" class="um-icon-sm"></i>
+        </button>
+    <% if (typeof pageSizeId !== 'undefined') { %>
+    </div>
+    <% } %>
+</div>

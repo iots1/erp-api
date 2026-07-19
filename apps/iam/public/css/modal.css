@@ -1,0 +1,66 @@
+/* Modal / dialog components. Pico's native <dialog> already handles the
+   centered overlay, backdrop, and open/close animation classes (toggled by
+   public/js/modal.service.js — see https://picocss.com/docs/modal); the
+   close button is Pico's own `[rel=prev]` convention (draws its own X, no
+   icon library needed — see components/ui/modal-head.ejs). This file only
+   holds sizing and the one form's specific styles, plus the toast stack —
+   not a <dialog>, but the only other floating/overlay UI component. */
+
+dialog article {
+  width: 100%;
+  max-width: 32rem;
+}
+
+/* ── Session-expired re-login form (components/auth-modal.ejs) — also
+   reused by the initial login-screen for the same inline error text. ── */
+
+.auth-modal-error {
+  font-size: 0.8rem;
+  color: var(--pink-dk, #b91c1c);
+  margin: -0.4rem 0 1rem;
+}
+.auth-modal-submit {
+  width: 100%;
+}
+
+/* ── Toast ────────────────────────────────────────────────────────── */
+
+.p-toast-stack {
+  position: fixed;
+  bottom: 1.25rem;
+  right: 1.25rem;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.p-toast {
+  min-width: 260px;
+  max-width: 360px;
+  padding: 0.75rem 1rem;
+  border-radius: 0.65rem;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.15);
+  animation: p-toast-in 0.2s ease;
+}
+.p-toast-success {
+  background: var(--mint-dk);
+}
+.p-toast-error {
+  background: var(--pink-dk);
+}
+.p-toast-info {
+  background: var(--slate-800);
+}
+@keyframes p-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
