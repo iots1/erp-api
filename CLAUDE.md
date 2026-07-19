@@ -246,6 +246,26 @@ new BC admin UI or new list page should copy.
   (roles/policies reference-data lists used elsewhere as checkbox options) uses
   `load-list.js`'s `loadList(ensureLoaded, render, errorMessage)` instead of a hand-written
   `try/catch`.
+- **A list page's rows always live in `<table class="p-table"><tbody>`** inside
+  `.um-table-scroll-area` — never a hand-rolled card-grid `<div>` (e.g. a `um-policy-list` of
+  `<article>` cards). Keeps every list's markup, row hover, and empty-state (`colspan` +
+  `.um-empty-cell`) consistent and reusable across BCs.
+- **Destructive actions (delete/revoke/etc.) call `showConfirmDialog({ title, message,
+  confirmText, danger })`** (`components/ui/confirm-dialog.ejs`, included once globally in
+  `page-foot.ejs`, + `public/js/confirm-dialog.service.js`) — never the native
+  `window.confirm()`. It returns a `Promise<boolean>` built on the same `openModal`/`closeModal`
+  as every other dialog, so destructive prompts get the same themed backdrop/animation instead
+  of the browser's native popup.
+- **Pico's own base rule is `td,th{background-color:var(--pico-background-color)}`** — every
+  cell paints its own opaque background that sits on top of and fully hides anything set on the
+  `<tr>` itself. Row background/hover/theme-specific color rules must target `.p-table tbody
+  td`, not `tr` — a rule set on `tr` will visibly do nothing.
+- **A `:root:not([data-theme="dark"])` (or `[data-theme="light"]`) override carries higher CSS
+  specificity than a plain `.foo:hover` rule** (the `:root`/`:not()` pair each count as a class
+  in specificity). A light-theme-only color override therefore needs its own explicit `:hover`
+  (or other state) variant at matching-or-higher specificity alongside it, or that state
+  silently stops working in light theme only — dark theme (no such override) still works, which
+  is what makes this bug easy to miss.
 
 ### Cross-context rules (from the architecture)
 
