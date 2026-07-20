@@ -231,9 +231,29 @@ new BC admin UI or new list page should copy.
   populating a checkbox grid elsewhere) still gets its *own* index-page table paginated
   separately — don't let the full-list cache leak into the paginated view's rows, and don't
   skip pagination on the index page just because a cached full list already exists.
+- **Create/edit is a separate `form.ejs` page by default — not a modal on `index.ejs`.**
+  `views/pages/{resource}/index.ejs` (list only) + `views/pages/{resource}/form.ejs` (the
+  create/edit form, both cases in one file) is the default shape for any new page — mirrors
+  `roles/`, `policies/`, and `access-keys/`. The view controller gets three routes: `@Get()` →
+  `pages/{resource}/index`, `@Get('new')` → `pages/{resource}/form` (with `{resourceId}: null`),
+  `@Get(':id/edit')` → `pages/{resource}/form` (with `{resourceId}: id`, `@Param('id',
+  ParseUuidParamPipe)`). `form.ejs` uses `components/ui/form-header.ejs` (`backHref` back to the
+  list, doubling as Cancel) + a topbar `save` action that calls
+  `document.getElementById('{resource}Form').requestSubmit()` — no footer button row inside the
+  form body. The page's root `<section>` carries `data-{resource}-id="<%= {resource}Id ?? ''
+  %>"` so the JS controller's `init{Resource}Form()`
+  can read it — same pattern as `initRoleForm()`. On submit, navigate back to the list with
+  `window.location.href` — don't stay on the page or fake-close anything.
+  Only use an in-page `<dialog>` modal instead when the form is small enough that a
+  dedicated page would be pure overhead (e.g. `users/` — a handful of fields, no nested
+  attach-policy checkbox grid), or for something that **isn't a navigable resource view** at
+  all — e.g. the Access Key "reveal secret once" dialog, which exists only because that one API
+  response can never be fetched again, not because the create form itself is a modal.
 - **Modal Cancel/Submit buttons**: rely on the global `dialog footer` rule in `modal.css`
-  (flex, right-aligned, same line) — never add per-modal footer CSS. Full-page (non-dialog)
-  forms use `components/ui/form-actions.ejs` instead of hand-writing the `.um-form-actions` row.
+  (flex, right-aligned, same line) — never add per-modal footer CSS. A full-page `form.ejs`
+  doesn't need a Cancel/Submit row at all (see above — `form-header`'s back link + the topbar
+  save action cover both); `components/ui/form-actions.ejs` exists for the rarer case of a form
+  embedded mid-page with no topbar action driving it, not for the standard `form.ejs` shape.
 - **JS pagination bookkeeping is never hand-rolled per resource.** Every list's
   `currentPage`/`pageSize`/pager-DOM-sync/`goToXPage` lives in one place:
   `public/pages/user-management/js/paginated-list.js`'s `createPaginatedList({ fetchPage,

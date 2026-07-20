@@ -24,6 +24,21 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   text-transform: uppercase;
 }
+/* Same monospace treatment as .um-mono-input but without the forced
+   uppercase — for values that are genuinely case-sensitive (e.g. a Secret
+   Key), where uppercasing the display would misrepresent the real value. */
+.um-mono-input-natural {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.um-copy-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.um-copy-row input {
+  flex: 1;
+  margin-bottom: 0;
+}
 .um-filter-input {
   width: 16rem;
 }

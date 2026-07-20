@@ -1,0 +1,49 @@
+<%- include('../../components/layout/page-head', { pageName: 'access-keys' }) %>
+<%
+const topbarActions = [
+    { btnClass: 'p-btn p-btn-sky p-btn-sm', icon: 'plus', label: 'สร้าง Access Key', onClick: `location.href='/${prefix}/views/access-keys/new'`, permission: 'access_key:create' },
+];
+%>
+<%- include('../../components/admin-shell/shell-open', { activeView: 'access-keys', pageTitle: 'Access Keys', topbarActions: topbarActions }) %>
+
+                <!-- VIEW: Access Keys -->
+                <section id="view-access-keys" class="um-view active">
+                    <article class="um-table-card">
+                        <div class="um-table-toolbar">
+                            <input type="text" id="accessKeySearchFilter" class="um-filter-input" placeholder="ค้นหาชื่อ, Access Key ID...">
+                            <select id="accessKeyStatusFilter">
+                                <option value="">ทุกสถานะ</option>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                                <option value="revoked">Revoked</option>
+                            </select>
+                        </div>
+                        <div class="um-table-scroll-area">
+                            <table class="p-table">
+                                <thead>
+                                    <tr>
+                                        <th>Access Key</th>
+                                        <th>เจ้าของ</th>
+                                        <th>สถานะ</th>
+                                        <th>วันหมดอายุ</th>
+                                        <th>ใช้งานล่าสุด</th>
+                                        <th class="um-th-right">จัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="accessKeyTableBody"></tbody>
+                            </table>
+                        </div>
+                        <%- include('../../components/ui/pager', {
+                            infoId: 'accessKeysPagerInfo',
+                            prevId: 'accessKeysPrevBtn',
+                            nextId: 'accessKeysNextBtn',
+                            onPrev: 'goToAccessKeysPage(-1)',
+                            onNext: 'goToAccessKeysPage(1)',
+                            pageSizeId: 'accessKeyPageSize',
+                            pageSizeOptions: [20, 50, 100],
+                        }) %>
+                    </article>
+                </section>
+
+<%- include('../../components/admin-shell/shell-close') %>
+<%- include('../../components/layout/page-foot', { pageName: 'access-keys' }) %>

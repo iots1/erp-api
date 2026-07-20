@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 
+import { AccessKeysViewController } from './controllers/access-keys.controller';
 import { AuditLogsViewController } from './controllers/audit-logs.controller';
 import { DashboardViewController } from './controllers/dashboard.controller';
 import { PermissionsViewController } from './controllers/permissions.controller';
@@ -18,6 +19,7 @@ import { ViewsIndexController } from './controllers/views-index.controller';
     RolesViewController,
     PoliciesViewController,
     PermissionsViewController,
+    AccessKeysViewController,
     AuditLogsViewController,
     SessionsViewController,
     SystemSettingViewController,

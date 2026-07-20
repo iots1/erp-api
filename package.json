@@ -19,6 +19,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
+    "test:iam": "jest --config apps/iam/jest.config.js",
     "build:auth": "nest build auth",
     "build:assets:iam": "node apps/iam/build-assets.mjs",
     "build:assets:iam:watch": "NODE_ENV=local node apps/iam/build-assets.mjs --watch",

@@ -17,9 +17,14 @@ export class CreateUserDTO {
   @ApiProperty({ description: 'ชื่อ-นามสกุล', example: 'Jane Doe' })
   full_name: string;
 
+  @IsOptional()
   @IsEmail()
-  @ApiProperty({ description: 'อีเมล (unique)', example: 'jane.doe@erp.local' })
-  email: string;
+  @ApiPropertyOptional({
+    description: 'อีเมล (unique) — ไม่บังคับกรอก',
+    example: 'jane.doe@erp.local',
+    nullable: true,
+  })
+  email: string | null;
 
   @IsOptional()
   @IsString()

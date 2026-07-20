@@ -11,10 +11,22 @@ export const state = {
 
   policies: [],
 
+  // Full, un-paginated user list — cached for the "owner" picker on the
+  // access-keys form, independent of the users *index page*'s own
+  // paginated/filtered table.
+  accessKeyOwnerUsers: [],
+  accessKeyOwnerUsersLoaded: false,
+
   permissionsCatalog: null, // loaded once, refreshed on demand (see permissions.service.js)
 
   // --- Role form draft ---
   roleForm: {
+    editingId: null,
+    selectedPolicyIds: [],
+  },
+
+  // --- Access key form draft ---
+  accessKeyForm: {
     editingId: null,
     selectedPolicyIds: [],
   },
@@ -43,4 +55,8 @@ export function resetPolicyFormDraft() {
 
 export function resetRoleFormDraft() {
   state.roleForm = { editingId: null, selectedPolicyIds: [] };
+}
+
+export function resetAccessKeyFormDraft() {
+  state.accessKeyForm = { editingId: null, selectedPolicyIds: [] };
 }

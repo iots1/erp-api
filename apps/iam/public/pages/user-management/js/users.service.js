@@ -133,7 +133,7 @@ export async function openUserFormModal(userId) {
       document.getElementById('frmUsername').value = user.username;
       document.getElementById('frmEmployeeId').value = user.employee_id;
       document.getElementById('frmFullName').value = user.full_name;
-      document.getElementById('frmEmail').value = user.email;
+      document.getElementById('frmEmail').value = user.email ?? '';
       document.getElementById('frmDepartment').value = user.department ?? '';
       document.getElementById('frmStatus').value = user.status;
     } catch (error) {
@@ -163,7 +163,7 @@ export async function handleUserFormSubmit(event) {
     username: document.getElementById('frmUsername').value.trim(),
     employee_id: document.getElementById('frmEmployeeId').value.trim(),
     full_name: document.getElementById('frmFullName').value.trim(),
-    email: document.getElementById('frmEmail').value.trim(),
+    email: document.getElementById('frmEmail').value.trim() || null,
     department: document.getElementById('frmDepartment').value.trim() || null,
     status: document.getElementById('frmStatus').value,
   };

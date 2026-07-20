@@ -14,7 +14,7 @@ export interface ISessionData {
   user_id: string;
   username: string;
   fullname: string | null;
-  email: string;
+  email: string | null;
   roles: string[];
   permissions: string[];
   conditional_permissions: string[];

@@ -49,6 +49,7 @@ const PAGES = [
   adminShellPage('roles'),
   adminShellPage('policies'),
   adminShellPage('permissions'),
+  adminShellPage('access-keys'),
   adminShellPage('audit-logs'),
   adminShellPage('sessions'),
   adminShellPage('system-setting'),

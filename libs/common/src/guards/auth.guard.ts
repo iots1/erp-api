@@ -10,6 +10,7 @@ import { Reflector } from '@nestjs/core';
 import type { FastifyRequest } from 'fastify';
 
 import { IS_PUBLIC_KEY } from '@lib/common/decorators/public.decorator';
+import { IS_ACCESS_KEY_ROUTE_KEY } from '@lib/common/decorators/use-access-key.decorator';
 import { IUserSession } from '@lib/common/interfaces/auth.interface';
 import { SessionStoreService } from '@lib/common/services/session-store.service';
 
@@ -19,7 +20,7 @@ interface IAccessTokenPayload {
   sub: string;
   username: string;
   fullname: string | null;
-  email: string;
+  email: string | null;
   jti: string;
 }
 
@@ -53,6 +54,15 @@ export class AuthGuard implements CanActivate {
       context.getClass(),
     ]);
     if (isPublic) return true;
+
+    const isAccessKeyRoute = this.reflector.getAllAndOverride<boolean>(
+      IS_ACCESS_KEY_ROUTE_KEY,
+      [context.getHandler(), context.getClass()],
+    );
+    // Access Key/Secret Key auth (system-to-system) is verified by AccessKeyGuard,
+    // which runs immediately after this guard in the global APP_GUARD chain and
+    // populates `request.user` itself — skip the JWT check for these routes.
+    if (isAccessKeyRoute) return true;
 
     const request = context.switchToHttp().getRequest<IAuthenticatedRequest>();
     const token = this.extractToken(request);

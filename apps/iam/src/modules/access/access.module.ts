@@ -33,6 +33,6 @@ import { SessionSyncService } from './services/session-sync.service';
   ],
   controllers: [AccessEventsController],
   providers: [PermissionResolverService, SessionSyncService],
-  exports: [SessionSyncService],
+  exports: [SessionSyncService, PermissionResolverService],
 })
 export class AccessModule {}

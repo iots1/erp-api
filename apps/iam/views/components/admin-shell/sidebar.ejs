@@ -28,6 +28,9 @@
         <a href="/<%= prefix %>/views/permissions" class="um-nav-item <%= activeView === 'permissions' ? 'active' : '' %>" data-permission="page:view_permissions">
             <i data-lucide="list-checks"></i><span>จัดการสิทธิ์ (Permissions)</span>
         </a>
+        <a href="/<%= prefix %>/views/access-keys" class="um-nav-item <%= activeView === 'access-keys' ? 'active' : '' %>" data-permission="page:view_access_keys">
+            <i data-lucide="key-round"></i><span>Access Keys</span>
+        </a>
 
         <p class="um-nav-group-label">ความปลอดภัย</p>
         <a href="/<%= prefix %>/views/audit-logs" class="um-nav-item <%= activeView === 'audit-logs' ? 'active' : '' %>" data-permission="page:view_audit">

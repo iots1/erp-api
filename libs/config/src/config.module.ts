@@ -23,6 +23,8 @@ import * as Joi from 'joi';
 
         // --- Security ---
         SECRET_KEY: Joi.string().required(),
+        // 32-byte hex string (64 chars) used to AES-256-GCM encrypt Access Key secret keys at rest (iam-bc).
+        ACCESS_KEY_SECRET_ENCRYPTION_KEY: Joi.string().length(64).hex().required(),
         JWT_ACCESS_EXPIRES_IN: Joi.string().default('15m'),
         JWT_REFRESH_EXPIRES_IN: Joi.string().default('7d'),
         CORS_ORIGIN: Joi.string().default('*'),

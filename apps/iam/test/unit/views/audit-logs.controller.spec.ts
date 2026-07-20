@@ -1,0 +1,41 @@
+import { Test, TestingModule } from '@nestjs/testing';
+
+import { ConfigService } from '@lib/config';
+
+import { createMockConfigService } from '@apps/iam/test/mocks/mock-config-service';
+
+import { AuditLogsViewController } from '../../../src/modules/views/controllers/audit-logs.controller';
+
+describe('AuditLogsViewController (Unit)', () => {
+  let controller: AuditLogsViewController;
+
+  const mockConfigService = createMockConfigService();
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [AuditLogsViewController],
+      providers: [{ provide: ConfigService, useValue: mockConfigService }],
+    }).compile();
+
+    controller = module.get<AuditLogsViewController>(AuditLogsViewController);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
+  describe('page', () => {
+    it('should return the title and admin view config locals for the audit-logs template', () => {
+      const result = controller.page();
+
+      expect(result.title).toBe('ERP IAM Admin - ประวัติการเข้าใช้งาน');
+      expect(result.prefix).toBe('iam/v1');
+      expect(result.authApiBase).toBe('http://localhost:3001/auth/v1');
+      expect(typeof result.assetVersion).toBe('string');
+    });
+  });
+});

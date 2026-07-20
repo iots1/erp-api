@@ -84,7 +84,51 @@ export class PermissionResolverService {
     const activePolicyIds = activePolicies.map((p) => p.id);
 
     const statements = await this.resolveStatements(activePolicyIds);
+    const { permissions, conditional_permissions } =
+      this.computeAllowDenyConditional(statements);
 
+    return {
+      roles: roles.map((r) => r.code),
+      permissions,
+      conditional_permissions,
+    };
+  }
+
+  /**
+   * Resolves the net (deny-override applied) permission set granted directly by a
+   * set of policy ids — used by Access Keys, which attach policies without a role
+   * layer in between. Shares the same allow/deny/conditional semantics as
+   * {@link resolveForUser}.
+   */
+  async resolveForPolicyIds(
+    policyIds: string[],
+  ): Promise<{ permissions: string[]; conditional_permissions: string[] }> {
+    if (policyIds.length === 0) {
+      return { permissions: [], conditional_permissions: [] };
+    }
+
+    const activePolicies = await this.policyRepository.find({
+      where: { id: In(policyIds), is_active: true },
+    });
+    if (activePolicies.length === 0) {
+      return { permissions: [], conditional_permissions: [] };
+    }
+
+    const statements = await this.resolveStatements(
+      activePolicies.map((p) => p.id),
+    );
+    return this.computeAllowDenyConditional(statements);
+  }
+
+  /**
+   * Deny-override; anything requiring per-request condition evaluation is excluded
+   * from the unconditional set even if also allowed elsewhere (evaluated at request
+   * time instead).
+   */
+  private computeAllowDenyConditional(statements: IResolvedStatement[]): {
+    permissions: string[];
+    conditional_permissions: string[];
+  } {
     const allow = new Set<string>();
     const deny = new Set<string>();
     const conditional = new Set<string>();
@@ -101,17 +145,11 @@ export class PermissionResolverService {
       }
     }
 
-    // Deny-override; anything requiring per-request condition evaluation is excluded
-    // from the unconditional set even if also allowed elsewhere (evaluated at request time instead).
     const permissions = [...allow].filter(
       (p) => !deny.has(p) && !conditional.has(p),
     );
 
-    return {
-      roles: roles.map((r) => r.code),
-      permissions,
-      conditional_permissions: [...conditional],
-    };
+    return { permissions, conditional_permissions: [...conditional] };
   }
 
   /**

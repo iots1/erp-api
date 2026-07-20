@@ -13,6 +13,7 @@ export * from './decorators/skip-permission-check.decorator';
 export * from './decorators/validated-query.decorator';
 export * from './decorators/json-api-response.decorator';
 export * from './decorators/custom-validate-dto/is-iso-8601.decorator';
+export * from './decorators/use-access-key.decorator';
 
 // DTOs
 export * from './dto/pagination.dto';
@@ -67,6 +68,7 @@ export * from './services/session-store.service';
 
 // Guards
 export * from './guards/auth.guard';
+export * from './guards/access-key.guard';
 export * from './guards/permission.guard';
 
 // Pipes

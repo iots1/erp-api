@@ -46,9 +46,11 @@ export class User extends BaseEntity {
   @Column({
     type: 'varchar',
     length: 200,
-    comment: 'อีเมล (unique เฉพาะแถวที่ยังไม่ถูกลบ) — uq_users_email',
+    nullable: true,
+    comment:
+      'อีเมล (unique เฉพาะแถวที่ยังไม่ถูกลบ) — uq_users_email — ไม่บังคับกรอก',
   })
-  email: string;
+  email: string | null;
 
   @Column({
     type: 'varchar',

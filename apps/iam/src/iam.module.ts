@@ -5,6 +5,7 @@ import { ConfigModule } from '@lib/config';
 import { DatabaseModule } from '@lib/database';
 
 import { AccessModule } from './modules/access/access.module';
+import { AccessKeysModule } from './modules/access-keys/access-keys.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
 import { PoliciesModule } from './modules/policies/policies.module';
 import { RolesModule } from './modules/roles/roles.module';
@@ -21,6 +22,7 @@ import { ViewsModule } from './modules/views/views.module';
     PoliciesModule,
     PermissionsModule,
     AccessModule,
+    AccessKeysModule,
     ViewsModule,
   ],
 })
