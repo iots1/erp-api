@@ -5,8 +5,8 @@ description: "Advanced NestJS testing patterns and best practices for MediTech. 
 
 # Testing SKILL - Advanced Patterns & Best Practices
 
-> **Version**: 2.0.0
-> **Last Updated**: 2026-02-26
+> **Version**: 2.1.0
+> **Last Updated**: 2026-07-20
 > **Category**: Testing & Quality Assurance
 
 ## Overview
@@ -612,7 +612,15 @@ create: jest.fn<
 >();
 ```
 
-### Problem 4: Boolean Expression ESLint Error
+### Problem 4: `Config validation error: "NODE_ENV" must be one of [local, dev, staging, prod]`
+
+**Symptom**: Running `pnpm run test:<bc>` (e.g. `test:iam`) crashes at startup with a `ConfigModule` validation error, before any test even runs.
+
+**Root Cause**: Jest's own default (`NODE_ENV=test`) is not in this repo's Joi-validated range. As soon as a spec imports `@lib/config` (directly, or transitively via the `@lib/common` barrel), `ConfigModule` throws.
+
+**Solution**: Already fixed centrally — every `apps/<bc>/jest.config.js` wires up `setupFiles: ['<rootDir>/../../libs/common/test/jest-setup-env.js']`, which force-sets `NODE_ENV` to `local` inside the Jest worker (only) if it isn't already a valid value. Nothing to do per test file or per BC; if you scaffold a brand-new app's `jest.config.js`, just copy the `setupFiles` line from an existing one (e.g. `apps/iam/jest.config.js`).
+
+### Problem 5: Boolean Expression ESLint Error
 
 **Symptom**:
 

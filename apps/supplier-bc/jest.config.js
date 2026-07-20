@@ -5,6 +5,7 @@ module.exports = {
     testEnvironment: 'node',
     testRegex: 'src/.*\\.spec\\.ts$',
     coverageDirectory: '../../coverage/apps/supplier-bc',
+    setupFiles: ['<rootDir>/../../libs/common/test/jest-setup-env.js'],
     transform: {
         '^.+\\.(t|j)s$': 'ts-jest',
     },
