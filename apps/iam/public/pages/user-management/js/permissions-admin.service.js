@@ -102,7 +102,7 @@ function renderTable() {
   if (!tbody) return;
 
   if (currentItems.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" class="um-empty-cell">ไม่พบสิทธิ์ที่ตรงกับเงื่อนไข</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" class="um-empty-cell">ไม่พบสิทธิ์ที่ตรงกับเงื่อนไข</td></tr>`;
     return;
   }
 
@@ -116,13 +116,15 @@ function renderTable() {
       const sourceLabel = p.is_manual ? 'Manual' : 'Synced';
       return `
     <tr>
-      <td><span class="p-tag ${planeTag}">${escapeHtml(p.plane)}</span></td>
-      <td><p class="um-cell-mono">${escapeHtml(p.service)}</p></td>
-      <td><p class="um-cell-title">${escapeHtml(p.permission)}</p></td>
       <td>
-        <p class="um-cell-title">${escapeHtml(p.permission_name_th)}</p>
-        <p class="um-cell-sub">${escapeHtml(p.permission_name_en)}</p>
+        <p class="um-cell-title">${escapeHtml(p.permission_name?.th)}</p>
+        <p class="um-cell-sub">${escapeHtml(p.permission_name?.en)}</p>
       </td>
+      <td>
+        <p class="um-cell-title">${escapeHtml(p.permission)}</p>
+        <span class="p-tag ${planeTag}">${escapeHtml(p.plane)}</span>
+      </td>
+      <td><p class="um-cell-mono">${escapeHtml(p.service)}</p></td>
       <td><span class="p-tag ${sourceTag}">${sourceLabel}</span></td>
       <td class="um-cell-actions">
         ${canUpdate ? `<button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="openPermissionModal('${p.id}')"><i data-lucide="edit-3" class="um-icon-sm"></i></button>` : ''}

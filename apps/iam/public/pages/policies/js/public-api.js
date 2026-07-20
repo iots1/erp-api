@@ -20,6 +20,8 @@ import {
   setPoliciesFilter,
   setPoliciesPageSize,
   setStatementType,
+  syncGroupSelectAll,
+  toggleGroupActions,
   toggleMultiDropdown,
   toggleOptionMulti,
   toggleSelectAllMulti,
@@ -47,6 +49,8 @@ Object.assign(window, {
   toggleSelectAllMulti,
   toggleOptionMulti,
   selectAllActions,
+  toggleGroupActions,
+  syncGroupSelectAll,
   addConditionRow,
   removeConditionRow,
   updateConditionRow,
@@ -55,6 +59,30 @@ Object.assign(window, {
   handlePolicyFormSubmit,
   goToPoliciesPage,
 });
+
+// frmPolCode only accepts A-Z, 0-9 and `_`, and always keeps the POL_ prefix
+// (the user cannot delete it, matching the fixed-namespace convention for
+// policy codes). Suffix is derived from whatever comes after the prefix
+// rather than blindly re-concatenated, so backspacing into the prefix
+// (e.g. "POL_" -> "POL") collapses back to "POL_" instead of doubling up
+// into "POL_POL_".
+const POL_CODE_PREFIX = 'POL_';
+
+function wirePolicyCodeInput() {
+  const codeInput = document.getElementById('frmPolCode');
+  codeInput?.addEventListener('input', () => {
+    const raw = codeInput.value.toUpperCase().replace(/[^A-Z0-9_]/g, '');
+    let suffix;
+    if (raw.startsWith(POL_CODE_PREFIX)) {
+      suffix = raw.slice(POL_CODE_PREFIX.length);
+    } else if (POL_CODE_PREFIX.startsWith(raw)) {
+      suffix = '';
+    } else {
+      suffix = raw;
+    }
+    codeInput.value = POL_CODE_PREFIX + suffix;
+  });
+}
 
 function wireFilters() {
   const searchInput = document.getElementById('policySearchFilter');
@@ -71,6 +99,7 @@ function wireFilters() {
 }
 
 wireFilters();
+wirePolicyCodeInput();
 
 // Close dropdowns when clicking outside them
 document.addEventListener('click', (event) => {

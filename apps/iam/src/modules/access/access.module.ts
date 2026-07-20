@@ -10,9 +10,7 @@ import { StatementCondition } from '../policies/entities/statement-condition.ent
 import { StatementTarget } from '../policies/entities/statement-target.entity';
 import { Permission } from '../permissions/entities/permission.entity';
 import { Role } from '../roles/entities/role.entity';
-import { RolePolicy } from '../roles/entities/role-policy.entity';
 import { User } from '../users/entities/user.entity';
-import { UserRole } from '../users/entities/user-role.entity';
 import { AccessEventsController } from './controllers/access-events.controller';
 import { PermissionResolverService } from './services/permission-resolver.service';
 import { SessionSyncService } from './services/session-sync.service';
@@ -22,9 +20,7 @@ import { SessionSyncService } from './services/session-sync.service';
     TypeOrmModule.forFeature(
       [
         User,
-        UserRole,
         Role,
-        RolePolicy,
         Policy,
         PolicyStatement,
         StatementTarget,

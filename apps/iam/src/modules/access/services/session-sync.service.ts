@@ -8,8 +8,8 @@ import { LogsService } from '@lib/common/modules/log/logs.service';
 import { SessionStoreService } from '@lib/common/services/session-store.service';
 import { ConfigService } from '@lib/config';
 
-import { RolePolicy } from '../../roles/entities/role-policy.entity';
-import { UserRole } from '../../users/entities/user-role.entity';
+import { Role } from '../../roles/entities/role.entity';
+import { User } from '../../users/entities/user.entity';
 import { PermissionResolverService } from './permission-resolver.service';
 
 /**
@@ -31,10 +31,10 @@ export class SessionSyncService {
     configService: ConfigService,
     private readonly permissionResolver: PermissionResolverService,
     private readonly sessionStore: SessionStoreService,
-    @InjectRepository(UserRole, ErpDatabases.IAM)
-    private readonly userRoleRepository: Repository<UserRole>,
-    @InjectRepository(RolePolicy, ErpDatabases.IAM)
-    private readonly rolePolicyRepository: Repository<RolePolicy>,
+    @InjectRepository(User, ErpDatabases.IAM)
+    private readonly userRepository: Repository<User>,
+    @InjectRepository(Role, ErpDatabases.IAM)
+    private readonly roleRepository: Repository<Role>,
   ) {
     this.logger.setContext(
       `${configService.get<string>('IAM_PREFIX_NAME')} [session-sync]`,
@@ -58,24 +58,23 @@ export class SessionSyncService {
 
   /** A role's attached policies changed — resync every user holding that role. */
   async syncUsersByRole(roleId: string): Promise<void> {
-    const rows = await this.userRoleRepository.find({
-      where: { role_id: roleId },
+    const users = await this.userRepository.find({
+      where: { roles: { id: roleId } },
     });
-    await this.syncUsers([...new Set(rows.map((row) => row.user_id))]);
+    await this.syncUsers(users.map((user) => user.id));
   }
 
-  /** A policy's statements changed — resync every user reachable via role_policy → user_role. */
+  /** A policy's statements changed — resync every user reachable via role → policy. */
   async syncUsersByPolicy(policyId: string): Promise<void> {
-    const rolePolicies = await this.rolePolicyRepository.find({
-      where: { policy_id: policyId },
+    const roles = await this.roleRepository.find({
+      where: { policies: { id: policyId } },
     });
-    const roleIds = [...new Set(rolePolicies.map((rp) => rp.role_id))];
-    if (roleIds.length === 0) return;
+    if (roles.length === 0) return;
 
-    const rows = await this.userRoleRepository.find({
-      where: { role_id: In(roleIds) },
+    const users = await this.userRepository.find({
+      where: { roles: { id: In(roles.map((role) => role.id)) } },
     });
-    await this.syncUsers([...new Set(rows.map((row) => row.user_id))]);
+    await this.syncUsers([...new Set(users.map((user) => user.id))]);
   }
 
   private async syncUsers(userIds: string[]): Promise<void> {

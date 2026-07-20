@@ -254,7 +254,7 @@
 
                     <div class="p-6 bg-slate-50">
                         <h3 class="text-lg font-bold text-slate-800 mb-4">เลือกนโยบายความปลอดภัย (Attach Policies)</h3>
-                        <div id="rolePoliciesContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div id="rolePoliciesContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                             <!-- Policy Checkboxes will be injected here -->
                         </div>
                     </div>
@@ -770,12 +770,12 @@
                 return;
             }
             container.innerHTML = mockApiData.policies.map(pol => `
-                <label class="flex items-start gap-3 p-4 bg-white border rounded-xl hover:border-blue-400 hover:bg-blue-50 cursor-pointer shadow-sm transition-colors">
-                    <input type="checkbox" name="rolePolicies" value="${pol.id}" ${selectedIds.includes(pol.id) ? 'checked' : ''} class="mt-1 w-4 h-4 rounded text-blue-600">
+                <label class="flex items-start gap-2.5 p-3 bg-white border rounded-lg hover:border-blue-400 hover:bg-blue-50 cursor-pointer shadow-sm transition-colors">
+                    <input type="checkbox" name="rolePolicies" value="${pol.id}" ${selectedIds.includes(pol.id) ? 'checked' : ''} class="mt-0.5 w-4 h-4 rounded text-blue-600 flex-shrink-0">
                     <div class="flex-1 min-w-0">
                         <span class="block text-sm font-bold text-slate-800">${pol.name}</span>
                         <span class="block text-xs font-mono text-slate-500 truncate">${pol.id}</span>
-                        <span class="inline-block mt-1 text-[10px] font-bold px-1.5 py-0.5 rounded ${pol.effect === 'Allow' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}">${pol.effect}</span>
+                        <span class="inline-block mt-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded ${pol.effect === 'Allow' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}">${pol.effect}</span>
                     </div>
                 </label>
             `).join('');
@@ -912,23 +912,23 @@
                 const groupIcon = activeType === 'UI' ? 'layout' : 'folder-key';
 
                 html += `
-                <div class="mb-3 bg-white p-3 rounded-xl border border-slate-200">
-                    <h4 class="text-sm font-bold text-slate-800 mb-3 pb-2 border-b text-blue-700 flex items-center gap-2">
+                <div class="mb-2 bg-white p-3 rounded-lg border border-slate-200">
+                    <h4 class="text-sm font-bold text-slate-800 mb-2.5 pb-1.5 border-b text-blue-700 flex items-center gap-2">
                         <i data-lucide="${groupIcon}" class="w-4 h-4"></i> ${resourceLabel}
                     </h4>
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-2">
                 `;
 
                 html += actions.map(act => `
-                    <label class="flex items-start gap-3 p-2 px-3 border rounded-lg hover:border-blue-400 hover:bg-blue-50 cursor-pointer shadow-sm relative group bg-slate-50/50">
-                        <input type="checkbox" name="stmtActions" value='${JSON.stringify(act).replace(/'/g, "&#39;")}' class="mt-1 w-4 h-4 rounded text-blue-600">
-                        <div class="flex-1">
+                    <label class="flex items-start gap-2 p-2 border rounded-lg hover:border-blue-400 hover:bg-blue-50 cursor-pointer shadow-sm relative group bg-slate-50/50">
+                        <input type="checkbox" name="stmtActions" value='${JSON.stringify(act).replace(/'/g, "&#39;")}' class="mt-0.5 w-4 h-4 rounded text-blue-600 flex-shrink-0">
+                        <div class="flex-1 min-w-0">
                             <span class="block text-sm font-bold text-slate-800">${act.permission_name_th}</span>
-                            <span class="block text-[11px] text-slate-500">${act.permission_name_en || act.permission}</span>
+                            <span class="block text-[11px] text-slate-500 truncate">${act.permission_name_en || act.permission}</span>
                         </div>
                     </label>
                 `).join('');
-                html += `</div></div>`; 
+                html += `</div></div>\n`;
             });
             container.innerHTML = html;
             lucide.createIcons();

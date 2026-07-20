@@ -80,7 +80,7 @@ const topbarActions = [
         <article>
             <%- include('../../components/ui/modal-head', { titleText: 'จัดการบทบาทผู้ใช้งาน', onClose: 'closeUserRolesModal()' }) %>
             <form id="userRolesForm" onsubmit="handleAssignRolesSubmit(event)">
-                <div id="userRolesContainer" class="um-checkbox-grid"></div>
+                <div id="userRolesContainer" class="um-checkbox-grid um-checkbox-grid-compact"></div>
                 <footer>
                     <button type="button" class="p-btn" onclick="closeUserRolesModal()">ยกเลิก</button>
                     <button type="submit" class="p-btn p-btn-sky">บันทึก</button>

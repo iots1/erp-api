@@ -1,7 +1,9 @@
-import { Check, Column, Entity, Index } from 'typeorm';
+import { Check, Column, Entity, Index, JoinTable, ManyToMany } from 'typeorm';
 
 import { BaseEntity } from '@lib/common/abstracts/base-entity.abstract';
 import { ErpDatabases } from '@lib/common/enum/erp-databases.enum';
+
+import { Role } from '../../roles/entities/role.entity';
 
 export type UserStatus = 'active' | 'pending' | 'suspended';
 
@@ -50,4 +52,21 @@ export class User extends BaseEntity {
     comment: 'active | pending | suspended',
   })
   status: UserStatus;
+
+  /** Owning side — manages the users_roles join table (user_id, role_id). */
+  @ManyToMany(() => Role, (role) => role.users, { onDelete: 'CASCADE' })
+  @JoinTable({
+    name: 'users_roles',
+    joinColumn: {
+      name: 'user_id',
+      referencedColumnName: 'id',
+      foreignKeyConstraintName: 'fk_users_roles_user_id',
+    },
+    inverseJoinColumn: {
+      name: 'role_id',
+      referencedColumnName: 'id',
+      foreignKeyConstraintName: 'fk_users_roles_role_id',
+    },
+  })
+  roles: Role[];
 }

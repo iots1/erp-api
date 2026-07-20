@@ -387,3 +387,7 @@
     grid-column: span 1;
   }
 }
+
+.w-full {
+  width: 100% !important;
+}

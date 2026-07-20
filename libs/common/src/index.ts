@@ -93,6 +93,7 @@ export * from './utils/http-exception/postgres-error-mapper.util';
 
 // Utils — transforms
 export * from './utils/dto-transforms.util';
+export * from './utils/map-relations.util';
 
 // Utils — nested-set trees
 export * from './utils/nested-set/rebuild-nested-set.util';

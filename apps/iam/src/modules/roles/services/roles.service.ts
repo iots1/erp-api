@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import { Repository } from 'typeorm';
@@ -6,13 +6,15 @@ import { Repository } from 'typeorm';
 import { ErpDatabases } from '@lib/common/enum/erp-databases.enum';
 import { LogsService } from '@lib/common/modules/log/logs.service';
 import { BaseServiceOperations } from '@lib/common/utils/base-operations/base-service-operations.util';
+import { mapRelations } from '@lib/common/utils/map-relations.util';
 import { ConfigService } from '@lib/config';
 
 import { SessionSyncService } from '../../access/services/session-sync.service';
+import { Policy } from '../../policies/entities/policy.entity';
 import { CreateRoleDTO } from '../dto/create-role.dto';
 import { UpdateRoleDTO } from '../dto/update-role.dto';
+import { RolePolicyAuditLog } from '../entities/role-policy-audit-log.entity';
 import { Role } from '../entities/role.entity';
-import { RolePolicy } from '../entities/role-policy.entity';
 
 @Injectable()
 export class RolesService extends BaseServiceOperations<
@@ -25,8 +27,8 @@ export class RolesService extends BaseServiceOperations<
     configService: ConfigService,
     @InjectRepository(Role, ErpDatabases.IAM)
     roleRepository: Repository<Role>,
-    @InjectRepository(RolePolicy, ErpDatabases.IAM)
-    private readonly rolePolicyRepository: Repository<RolePolicy>,
+    @InjectRepository(RolePolicyAuditLog, ErpDatabases.IAM)
+    private readonly auditLogRepository: Repository<RolePolicyAuditLog>,
     private readonly sessionSync: SessionSyncService,
   ) {
     super(roleRepository, {
@@ -38,33 +40,59 @@ export class RolesService extends BaseServiceOperations<
     });
   }
 
-  /** Replaces the full set of policies attached to a role. */
+  /** Replaces the full set of policies attached to a role (roles_policies join table). */
   async attachPolicies(
     roleId: string,
     policyIds: string[],
     currentUserId?: string,
   ): Promise<void> {
     await this.executeDbOperation(async () => {
-      await this.rolePolicyRepository.delete({ role_id: roleId });
-      if (policyIds.length === 0) return;
+      const role = await this.typeOrmRepository.findOne({
+        where: { id: roleId },
+        relations: ['policies'],
+      });
+      if (!role) {
+        throw new NotFoundException(`Role ${roleId} not found`);
+      }
 
-      const entities = policyIds.map((policyId) =>
-        this.rolePolicyRepository.create({
-          role_id: roleId,
-          policy_id: policyId,
-          created_by: currentUserId,
-          updated_by: currentUserId,
-        }),
-      );
-      await this.rolePolicyRepository.save(entities);
+      const previousIds = new Set(role.policies.map((policy) => policy.id));
+      const nextIds = new Set(policyIds);
+      const attached = policyIds.filter((id) => !previousIds.has(id));
+      const detached = [...previousIds].filter((id) => !nextIds.has(id));
+
+      role.policies = mapRelations<Policy>(policyIds);
+      await this.typeOrmRepository.save(role);
+
+      const auditEntries = [
+        ...attached.map((policyId) =>
+          this.auditLogRepository.create({
+            role_id: roleId,
+            policy_id: policyId,
+            action: 'attached' as const,
+            created_by: currentUserId,
+          }),
+        ),
+        ...detached.map((policyId) =>
+          this.auditLogRepository.create({
+            role_id: roleId,
+            policy_id: policyId,
+            action: 'detached' as const,
+            created_by: currentUserId,
+          }),
+        ),
+      ];
+      if (auditEntries.length > 0) {
+        await this.auditLogRepository.save(auditEntries);
+      }
     });
     await this.sessionSync.syncUsersByRole(roleId);
   }
 
   async findPolicyIds(roleId: string): Promise<string[]> {
-    const rows = await this.rolePolicyRepository.find({
-      where: { role_id: roleId },
+    const role = await this.typeOrmRepository.findOne({
+      where: { id: roleId },
+      relations: ['policies'],
     });
-    return rows.map((row) => row.policy_id);
+    return role?.policies.map((policy) => policy.id) ?? [];
   }
 }

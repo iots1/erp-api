@@ -38,7 +38,10 @@ const CONDITION_KEY_SUGGESTIONS = [
 // of the policies *index page*'s own paginated/filtered list below.
 export async function ensurePoliciesLoaded(force = false) {
   if (state.policies.length > 0 && !force) return state.policies;
-  const { items } = await iamGet('/policies', { ignore_limit: true, sort: 'name_th:asc' });
+  const { items } = await iamGet('/policies', {
+    ignore_limit: true,
+    sort: 'name_th:asc',
+  });
   state.policies = items;
   return items;
 }
@@ -183,14 +186,17 @@ export async function openPolicyForm(policyId) {
           service: services,
           resource: [...new Set(statement.targets.map((t) => t.resource))],
           permission_ids: statement.permissions
-            .map((p) => findPermissionByStringInPlane(p, statement.plane, services)?.id)
+            .map(
+              (p) =>
+                findPermissionByStringInPlane(p, statement.plane, services)?.id,
+            )
             .filter(Boolean),
           permissionsDisplay: statement.permissions,
           conditions: statement.conditions,
         };
       });
     } else {
-      document.getElementById('frmPolActive').checked = true;
+      document.getElementById('frmPolCode').value = 'POL_';
     }
 
     setStatementType('ui');
@@ -204,11 +210,17 @@ export function setStatementType(plane) {
   state.policyForm.activeType = plane;
   document.getElementById('stmtPlane').value = plane;
 
-  document.getElementById('btnTypeUI').classList.toggle('active', plane === 'ui');
-  document.getElementById('btnTypeAPI').classList.toggle('active', plane === 'api');
+  document
+    .getElementById('btnTypeUI')
+    .classList.toggle('active', plane === 'ui');
+  document
+    .getElementById('btnTypeAPI')
+    .classList.toggle('active', plane === 'api');
 
   const isApi = plane === 'api';
-  document.getElementById('labelDD1').textContent = isApi ? 'Service (API)' : 'หน้าจอ / Component Group (UI)';
+  document.getElementById('labelDD1').textContent = isApi
+    ? 'Service (API)'
+    : 'หน้าจอ / Component Group (UI)';
   document.getElementById('containerDD2').classList.toggle('hidden', !isApi);
   document.getElementById('actionsLabel').textContent = isApi
     ? 'เลือก Actions (สิทธิ์การกระทำ)'
@@ -244,15 +256,18 @@ function currentDdOptions(ddKey) {
 export function renderMultiSelect(ddKey) {
   const container = document.getElementById(`${ddKey}OptionsList`);
   if (!container) return;
-  const searchValue = document.getElementById(`search${ddKey === 'dd1' ? 'Dd1' : 'Dd2'}`).value.toLowerCase();
+  const searchValue = document
+    .getElementById(`search${ddKey === 'dd1' ? 'Dd1' : 'Dd2'}`)
+    .value.toLowerCase();
   const options = currentDdOptions(ddKey).filter((opt) =>
     opt.label.toLowerCase().includes(searchValue),
   );
   const selected = state.policyForm.multiSelect[ddKey];
-  const allSelected = options.length > 0 && options.every((opt) => selected.includes(opt.id));
+  const allSelected =
+    options.length > 0 && options.every((opt) => selected.includes(opt.id));
 
   let html = `
-    <label class="um-dropdown-option um-dropdown-option-all">
+    <label class="um-dropdown-option um-dropdown-option-all w-full">
       <input type="checkbox" onchange="toggleSelectAllMulti('${ddKey}', this.checked)" ${allSelected ? 'checked' : ''}>
       <span>เลือกทั้งหมด (Select All)</span>
     </label>
@@ -273,18 +288,31 @@ export function renderMultiSelect(ddKey) {
   container.innerHTML = html;
 
   const labelEl = document.getElementById(`${ddKey}Label`);
-  const typeLabel = state.policyForm.activeType === 'api' ? (ddKey === 'dd1' ? 'Service' : 'Resource') : 'หน้าจอ';
-  labelEl.textContent = selected.length === 0 ? `เลือก ${typeLabel}...` : `เลือกแล้ว ${selected.length} รายการ`;
+  const typeLabel =
+    state.policyForm.activeType === 'api'
+      ? ddKey === 'dd1'
+        ? 'Service'
+        : 'Resource'
+      : 'หน้าจอ';
+  labelEl.textContent =
+    selected.length === 0
+      ? `เลือก ${typeLabel}...`
+      : `เลือกแล้ว ${selected.length} รายการ`;
   labelEl.classList.toggle('um-dropdown-label-active', selected.length > 0);
 }
 
 export function toggleSelectAllMulti(ddKey, isChecked) {
-  const searchValue = document.getElementById(`search${ddKey === 'dd1' ? 'Dd1' : 'Dd2'}`).value.toLowerCase();
-  const options = currentDdOptions(ddKey).filter((opt) => opt.label.toLowerCase().includes(searchValue));
+  const searchValue = document
+    .getElementById(`search${ddKey === 'dd1' ? 'Dd1' : 'Dd2'}`)
+    .value.toLowerCase();
+  const options = currentDdOptions(ddKey).filter((opt) =>
+    opt.label.toLowerCase().includes(searchValue),
+  );
   const selected = state.policyForm.multiSelect[ddKey];
 
   if (isChecked) {
-    for (const opt of options) if (!selected.includes(opt.id)) selected.push(opt.id);
+    for (const opt of options)
+      if (!selected.includes(opt.id)) selected.push(opt.id);
   } else {
     state.policyForm.multiSelect[ddKey] = selected.filter(
       (id) => !options.some((opt) => opt.id === id),
@@ -319,7 +347,10 @@ export function renderActionCheckboxes() {
     activeType === 'api'
       ? { services: multiSelect.dd1, resources: multiSelect.dd2 }
       : { resources: multiSelect.dd1 };
-  const ready = activeType === 'api' ? multiSelect.dd1.length > 0 && multiSelect.dd2.length > 0 : multiSelect.dd1.length > 0;
+  const ready =
+    activeType === 'api'
+      ? multiSelect.dd1.length > 0 && multiSelect.dd2.length > 0
+      : multiSelect.dd1.length > 0;
 
   if (!ready) {
     container.innerHTML = `<span class="um-muted-note">กรุณาเลือกข้อมูลด้านบนก่อน</span>`;
@@ -330,16 +361,24 @@ export function renderActionCheckboxes() {
   const groups = groupPermissionsByResource(permissions);
 
   let html = '';
+  let groupIndex = 0;
   for (const [resource, perms] of groups) {
+    const groupId = `actionGroup${groupIndex++}`;
     html += `
-      <div class="um-action-group">
-        <h4 class="um-action-group-title"><i data-lucide="${activeType === 'ui' ? 'layout' : 'folder-key'}" class="um-icon-sm"></i> ${escapeHtml(resource)}</h4>
+      <div class="um-action-group" id="${groupId}">
+        <h4 class="um-action-group-title">
+          <span class="um-action-group-title-text"><i data-lucide="${activeType === 'ui' ? 'layout' : 'folder-key'}" class="um-icon-sm"></i> ${escapeHtml(resource)}</span>
+          <label class="um-action-group-select-all">
+            <input type="checkbox" onchange="toggleGroupActions('${groupId}', this.checked)">
+            เลือกทั้งหมด
+          </label>
+        </h4>
         <div class="um-action-grid">
           ${perms
             .map(
               (p) => `
             <label class="um-checkbox-card">
-              <input type="checkbox" name="stmtActions" value="${p.id}">
+              <input type="checkbox" name="stmtActions" value="${p.id}" onchange="syncGroupSelectAll('${groupId}')">
               <div>
                 <span class="um-checkbox-title">${escapeHtml(p.permission_name?.th)}</span>
                 <span class="um-checkbox-sub">${escapeHtml(p.permission_name?.en ?? p.permission)}</span>
@@ -356,12 +395,32 @@ export function renderActionCheckboxes() {
   refreshIcons();
 }
 
+export function toggleGroupActions(groupId, isChecked) {
+  const group = document.getElementById(groupId);
+  if (!group) return;
+  group.querySelectorAll('input[name="stmtActions"]').forEach((cb) => {
+    cb.checked = isChecked;
+  });
+}
+
+export function syncGroupSelectAll(groupId) {
+  const group = document.getElementById(groupId);
+  if (!group) return;
+  const checkboxes = [...group.querySelectorAll('input[name="stmtActions"]')];
+  const groupSelectAll = group.querySelector('.um-action-group-select-all input');
+  if (!groupSelectAll) return;
+  const checkedCount = checkboxes.filter((cb) => cb.checked).length;
+  groupSelectAll.checked = checkedCount === checkboxes.length;
+  groupSelectAll.indeterminate = checkedCount > 0 && checkedCount < checkboxes.length;
+}
+
 export function selectAllActions() {
   const checkboxes = document.querySelectorAll('input[name="stmtActions"]');
   const allChecked = Array.from(checkboxes).every((cb) => cb.checked);
   checkboxes.forEach((cb) => {
     cb.checked = !allChecked;
   });
+  document.querySelectorAll('.um-action-group').forEach((group) => syncGroupSelectAll(group.id));
 }
 
 // ── Conditions builder ───────────────────────────────────────────
@@ -377,7 +436,9 @@ export function addConditionRow() {
 }
 
 export function removeConditionRow(id) {
-  state.policyForm.conditionRows = state.policyForm.conditionRows.filter((row) => row.id !== id);
+  state.policyForm.conditionRows = state.policyForm.conditionRows.filter(
+    (row) => row.id !== id,
+  );
   renderConditions();
 }
 
@@ -396,7 +457,9 @@ function renderConditions() {
     return;
   }
 
-  const opOptions = CONDITION_OPERATORS.map((op) => `<option value="${op.val}">${op.label}</option>`).join('');
+  const opOptions = CONDITION_OPERATORS.map(
+    (op) => `<option value="${op.val}">${op.label}</option>`,
+  ).join('');
   const keyListId = 'conditionKeySuggestions';
 
   container.innerHTML =
@@ -432,8 +495,14 @@ export function addStatementToDraft() {
     }
     const allServices = getDropdown1Options('api');
     const allResources = getDropdown2Options(multiSelect.dd1);
-    service = multiSelect.dd1.length === allServices.length ? ['*'] : [...multiSelect.dd1];
-    resource = multiSelect.dd2.length === allResources.length ? ['*'] : [...multiSelect.dd2];
+    service =
+      multiSelect.dd1.length === allServices.length
+        ? ['*']
+        : [...multiSelect.dd1];
+    resource =
+      multiSelect.dd2.length === allResources.length
+        ? ['*']
+        : [...multiSelect.dd2];
   } else {
     if (multiSelect.dd1.length === 0) {
       showToast('กรุณาเลือกหน้าจอ (Page)', 'error');
@@ -441,10 +510,13 @@ export function addStatementToDraft() {
     }
     const allPages = getDropdown1Options('ui');
     service = ['frontend-ui'];
-    resource = multiSelect.dd1.length === allPages.length ? ['*'] : [...multiSelect.dd1];
+    resource =
+      multiSelect.dd1.length === allPages.length ? ['*'] : [...multiSelect.dd1];
   }
 
-  const checked = Array.from(document.querySelectorAll('input[name="stmtActions"]:checked'));
+  const checked = Array.from(
+    document.querySelectorAll('input[name="stmtActions"]:checked'),
+  );
   if (checked.length === 0) {
     showToast('กรุณาเลือกอย่างน้อย 1 Action/Component', 'error');
     return;
@@ -452,12 +524,19 @@ export function addStatementToDraft() {
 
   const permissionIds = checked.map((cb) => cb.value);
   const permissionsDisplay = permissionIds
-    .map((id) => state.permissionsCatalog.find((p) => p.id === id)?.permission_name?.th)
+    .map(
+      (id) =>
+        state.permissionsCatalog.find((p) => p.id === id)?.permission_name?.th,
+    )
     .filter(Boolean);
 
   const conditions = state.policyForm.conditionRows
     .filter((row) => row.condition_key && row.condition_value)
-    .map(({ operator, condition_key, condition_value }) => ({ operator, condition_key, condition_value }));
+    .map(({ operator, condition_key, condition_value }) => ({
+      operator,
+      condition_key,
+      condition_value,
+    }));
 
   state.policyForm.statements.push({
     effect,
@@ -480,7 +559,8 @@ export function removeStatementFromDraft(index) {
 
 function renderStatementsTable() {
   const tbody = document.getElementById('statementsTableBody');
-  document.getElementById('stmtCountBadge').textContent = state.policyForm.statements.length;
+  document.getElementById('stmtCountBadge').textContent =
+    state.policyForm.statements.length;
 
   if (state.policyForm.statements.length === 0) {
     tbody.innerHTML = `<tr><td colspan="6" class="um-empty-cell">ยังไม่มี Statement กรุณาเพิ่มจาก Step 2</td></tr>`;
@@ -492,9 +572,17 @@ function renderStatementsTable() {
       const effectTag = stmt.effect === 'allow' ? 'p-tag-mint' : 'p-tag-pink';
       const planeTag = stmt.plane === 'ui' ? 'p-tag-lavender' : 'p-tag-peach';
       const renderChips = (arr) =>
-        arr.map((v) => `<span class="p-tag p-tag-sky um-chip">${escapeHtml(v)}</span>`).join(' ');
+        arr
+          .map(
+            (v) =>
+              `<span class="p-tag p-tag-sky um-chip">${escapeHtml(v)}</span>`,
+          )
+          .join(' ');
       const actionsHtml = stmt.permissionsDisplay
-        .map((name) => `<span class="p-tag p-tag-sky um-chip">✓ ${escapeHtml(name)}</span>`)
+        .map(
+          (name) =>
+            `<span class="p-tag p-tag-sky um-chip">✓ ${escapeHtml(name)}</span>`,
+        )
         .join(' ');
       const conditionsHtml =
         stmt.conditions.length === 0

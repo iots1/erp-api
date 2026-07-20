@@ -6,14 +6,14 @@ import { CommonModule, ErpDatabases } from '@lib/common';
 import { AccessModule } from '../access/access.module';
 import { UsersController } from './controllers/users.controller';
 import { User } from './entities/user.entity';
-import { UserRole } from './entities/user-role.entity';
+import { UserRoleAuditLog } from './entities/user-role-audit-log.entity';
 import { UsersService } from './services/users.service';
 
 @Module({
   imports: [
     CommonModule,
     AccessModule,
-    TypeOrmModule.forFeature([User, UserRole], ErpDatabases.IAM),
+    TypeOrmModule.forFeature([User, UserRoleAuditLog], ErpDatabases.IAM),
   ],
   controllers: [UsersController],
   providers: [UsersService],

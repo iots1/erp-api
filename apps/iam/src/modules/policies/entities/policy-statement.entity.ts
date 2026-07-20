@@ -1,7 +1,9 @@
-import { Check, Column, Entity, Index } from 'typeorm';
+import { Check, Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 
 import { BaseEntity } from '@lib/common/abstracts/base-entity.abstract';
 import { ErpDatabases } from '@lib/common/enum/erp-databases.enum';
+
+import { Policy } from './policy.entity';
 
 export type StatementEffect = 'allow' | 'deny';
 export type StatementPlane = 'ui' | 'api';
@@ -18,6 +20,15 @@ export type StatementPlane = 'ui' | 'api';
 export class PolicyStatement extends BaseEntity {
   @Column({ type: 'uuid', comment: 'อ้างอิง policies.id' })
   policy_id: string;
+
+  @ManyToOne(() => Policy, (policy) => policy.statements, {
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({
+    name: 'policy_id',
+    foreignKeyConstraintName: 'fk_policy_statements_policy_id',
+  })
+  policy: Policy;
 
   @Column({
     type: 'varchar',

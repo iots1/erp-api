@@ -39,13 +39,25 @@ const pager = createPaginatedList({
           ]
         : undefined;
 
-      const { items, pagination } = await iamGet('/roles', {
-        page,
-        limit: pageSize,
-        sort: 'name_th:asc',
-        or,
-      });
-      currentItems = items;
+      const [{ items, pagination }] = await Promise.all([
+        iamGet('/roles', {
+          page,
+          limit: pageSize,
+          sort: 'name_th:asc',
+          or,
+        }),
+        ensurePoliciesLoaded(),
+      ]);
+
+      const policiesByRole = await Promise.all(
+        items.map((role) => iamGet(`/roles/${role.id}/policies`)),
+      );
+      currentItems = items.map((role, index) => ({
+        ...role,
+        policyNames: policiesByRole[index].policy_ids
+          .map((policyId) => state.policies.find((policy) => policy.id === policyId)?.code)
+          .filter(Boolean),
+      }));
       renderRolesTable();
       return pagination;
     } catch (error) {
@@ -91,7 +103,11 @@ function renderRolesTable() {
         <p class="um-cell-sub">${escapeHtml(role.name?.th)} / ${escapeHtml(role.name?.en)}</p>
       </td>
       <td>${escapeHtml(role.description ?? '-')}</td>
-      <td class="um-cell-mono">${role.id}</td>
+      <td>${
+        role.policyNames.length > 0
+          ? role.policyNames.map((code) => `<span class="p-tag p-tag-sky">${escapeHtml(code)}</span>`).join(' ')
+          : '<span class="um-muted-note">-</span>'
+      }</td>
       <td class="um-cell-actions">
         ${canManage ? `<button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="openRoleForm('${role.id}')"><i data-lucide="edit-3" class="um-icon-sm"></i> แก้ไข</button>` : ''}
         ${canManage ? `<button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="confirmDeleteRole('${role.id}', '${escapeHtml(role.code).replace(/'/g, "\\'")}')"><i data-lucide="trash-2" class="um-icon-sm"></i></button>` : ''}

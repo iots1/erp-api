@@ -53,7 +53,12 @@
 .um-dropdown-container {
   position: relative;
 }
-.um-dropdown-container label {
+/* Direct child only — a descendant selector here would also match the
+   .um-dropdown-option <label> rows nested deep inside .um-multi-dropdown
+   and its `display: block` (0,1,1 specificity) would beat
+   .um-dropdown-option's `display: flex` (0,1,0), collapsing every option
+   row back to its text width. */
+.um-dropdown-container > label {
   display: block;
   font-size: 0.85rem;
   font-weight: 600;
@@ -104,15 +109,28 @@
   border-bottom: 1px solid var(--border);
 }
 .um-dropdown-list {
+  /* Without this, a flex item's default min-height:auto keeps it at its
+     content's full height, so a long option list pushes .um-multi-dropdown
+     past its max-height instead of scrolling inside this list. */
+  min-height: 0;
   overflow-y: auto;
 }
 .um-dropdown-option {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  width: 100%;
+  box-sizing: border-box;
   padding: 0.5rem 0.75rem;
   font-size: 0.82rem;
   cursor: pointer;
+}
+.um-dropdown-option span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .um-dropdown-option:hover {
   background: var(--slate-50);

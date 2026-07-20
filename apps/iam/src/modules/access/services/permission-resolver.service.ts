@@ -12,8 +12,7 @@ import { StatementCondition } from '../../policies/entities/statement-condition.
 import { StatementTarget } from '../../policies/entities/statement-target.entity';
 import { Permission } from '../../permissions/entities/permission.entity';
 import { Role } from '../../roles/entities/role.entity';
-import { RolePolicy } from '../../roles/entities/role-policy.entity';
-import { UserRole } from '../../users/entities/user-role.entity';
+import { User } from '../../users/entities/user.entity';
 
 interface IResolvedStatement {
   effect: 'allow' | 'deny';
@@ -32,12 +31,10 @@ export interface IPermissionResolution {
 @Injectable()
 export class PermissionResolverService {
   constructor(
-    @InjectRepository(UserRole, ErpDatabases.IAM)
-    private readonly userRoleRepository: Repository<UserRole>,
+    @InjectRepository(User, ErpDatabases.IAM)
+    private readonly userRepository: Repository<User>,
     @InjectRepository(Role, ErpDatabases.IAM)
     private readonly roleRepository: Repository<Role>,
-    @InjectRepository(RolePolicy, ErpDatabases.IAM)
-    private readonly rolePolicyRepository: Repository<RolePolicy>,
     @InjectRepository(Policy, ErpDatabases.IAM)
     private readonly policyRepository: Repository<Policy>,
     @InjectRepository(PolicyStatement, ErpDatabases.IAM)
@@ -52,12 +49,13 @@ export class PermissionResolverService {
     private readonly permissionRepository: Repository<Permission>,
   ) {}
 
-  /** Walks user_roles → role_policies → policies → statements and resolves the net permission set. */
+  /** Walks user.roles → role.policies → statements and resolves the net permission set. */
   async resolveForUser(userId: string): Promise<IPermissionResolution> {
-    const userRoles = await this.userRoleRepository.find({
-      where: { user_id: userId },
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: ['roles'],
     });
-    const roleIds = [...new Set(userRoles.map((ur) => ur.role_id))];
+    const roleIds = user ? [...new Set(user.roles.map((r) => r.id))] : [];
 
     if (roleIds.length === 0) {
       return { roles: [], permissions: [], conditional_permissions: [] };
@@ -65,12 +63,12 @@ export class PermissionResolverService {
 
     const roles = await this.roleRepository.find({
       where: { id: In(roleIds) },
+      relations: ['policies'],
     });
 
-    const rolePolicies = await this.rolePolicyRepository.find({
-      where: { role_id: In(roleIds) },
-    });
-    const policyIds = [...new Set(rolePolicies.map((rp) => rp.policy_id))];
+    const policyIds = [
+      ...new Set(roles.flatMap((role) => role.policies.map((p) => p.id))),
+    ];
 
     if (policyIds.length === 0) {
       return {
@@ -127,16 +125,20 @@ export class PermissionResolverService {
     permission: string,
     context: Record<string, string>,
   ): Promise<boolean> {
-    const userRoles = await this.userRoleRepository.find({
-      where: { user_id: userId },
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: ['roles'],
     });
-    const roleIds = [...new Set(userRoles.map((ur) => ur.role_id))];
+    const roleIds = user ? [...new Set(user.roles.map((r) => r.id))] : [];
     if (roleIds.length === 0) return false;
 
-    const rolePolicies = await this.rolePolicyRepository.find({
-      where: { role_id: In(roleIds) },
+    const roles = await this.roleRepository.find({
+      where: { id: In(roleIds) },
+      relations: ['policies'],
     });
-    const policyIds = [...new Set(rolePolicies.map((rp) => rp.policy_id))];
+    const policyIds = [
+      ...new Set(roles.flatMap((role) => role.policies.map((p) => p.id))),
+    ];
     if (policyIds.length === 0) return false;
 
     const activePolicies = await this.policyRepository.find({
