@@ -263,8 +263,16 @@
   color: var(--text-muted);
 }
 .um-breadcrumb-current {
-  font-size: 1.05rem;
+  font-size: 0.9rem;
   font-weight: 700;
+  color: var(--slate-800);
+}
+.um-breadcrumb-link {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.um-breadcrumb-link:hover {
   color: var(--slate-800);
 }
 .um-content {
@@ -339,6 +347,11 @@
 .um-field-span-2 {
   grid-column: span 2;
 }
+/* Caps a lone field (e.g. a description textarea on its own row) at half the
+   row's width on desktop instead of auto-fit stretching it full-width. */
+.um-form-grid-half {
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+}
 .um-section-title {
   margin: 0;
   font-size: 1rem;
@@ -385,6 +398,9 @@
   }
   .um-field-span-2 {
     grid-column: span 1;
+  }
+  .um-form-grid-half {
+    grid-template-columns: 1fr;
   }
 }
 

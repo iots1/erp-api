@@ -6,7 +6,6 @@ import { ensurePoliciesLoaded } from './policies.service.js';
 import { resetRoleFormDraft, state } from './state.js';
 import { showApiError, showToast } from './toast.service.js';
 import { escapeHtml, refreshIcons } from './utils.js';
-import { switchView } from './views.service.js';
 
 // Full, un-paginated list — cached for consumers that need every role at
 // once (the "assign roles" checkbox grid in users.service.js), independent
@@ -109,7 +108,7 @@ function renderRolesTable() {
           : '<span class="um-muted-note">-</span>'
       }</td>
       <td class="um-cell-actions">
-        ${canManage ? `<button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="openRoleForm('${role.id}')"><i data-lucide="edit-3" class="um-icon-sm"></i> แก้ไข</button>` : ''}
+        ${canManage ? `<a href="${window.__IAM_VIEWS_BASE__}/roles/${role.id}/edit" class="p-btn p-btn-ghost p-btn-sm"><i data-lucide="edit-3" class="um-icon-sm"></i> แก้ไข</a>` : ''}
         ${canManage ? `<button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="confirmDeleteRole('${role.id}', '${escapeHtml(role.code).replace(/'/g, "\\'")}')"><i data-lucide="trash-2" class="um-icon-sm"></i></button>` : ''}
       </td>
     </tr>
@@ -119,18 +118,18 @@ function renderRolesTable() {
   refreshIcons();
 }
 
-// ── Create / edit role view ─────────────────────────────────────
+// ── Create / edit role form page (apps/iam/views/pages/roles/form.ejs) ──
 
-export async function openRoleForm(roleId) {
-  switchView('role-form');
+export async function initRoleForm() {
+  const form = document.getElementById('roleForm');
+  if (!form) return;
+
   resetRoleFormDraft();
 
-  const form = document.getElementById('roleForm');
-  form.reset();
+  const roleId = document.getElementById('view-role-form').dataset.roleId || null;
   form.dataset.editingId = roleId ?? '';
-  document.getElementById('roleFormTitle').textContent = roleId
-    ? 'แก้ไขบทบาท (Edit Role)'
-    : 'สร้างบทบาทใหม่ (Create Role)';
+  const codeField = document.getElementById('frmRoleCode');
+  codeField.disabled = !!roleId;
 
   try {
     await ensurePoliciesLoaded();
@@ -140,7 +139,7 @@ export async function openRoleForm(roleId) {
         iamGet(`/roles/${roleId}`),
         iamGet(`/roles/${roleId}/policies`),
       ]);
-      document.getElementById('frmRoleCode').value = role.code;
+      codeField.value = role.code;
       document.getElementById('frmRoleNameTh').value = role.name?.th ?? '';
       document.getElementById('frmRoleNameEn').value = role.name?.en ?? '';
       document.getElementById('frmRoleDescription').value = role.description ?? '';
@@ -181,8 +180,15 @@ export async function handleRoleFormSubmit(event) {
   const form = event.target;
   const editingId = form.dataset.editingId || null;
 
+  let code = document.getElementById('frmRoleCode').value.trim().toUpperCase();
+
+  if (!editingId && !code.startsWith('ROLE_')) {
+    showToast('รหัสบทบาทต้องขึ้นต้นด้วย ROLE_', 'error');
+    return;
+  }
+
   const payload = {
-    code: document.getElementById('frmRoleCode').value.trim().toUpperCase(),
+    code,
     name_th: document.getElementById('frmRoleNameTh').value.trim(),
     name_en: document.getElementById('frmRoleNameEn').value.trim(),
     description: document.getElementById('frmRoleDescription').value.trim() || null,
@@ -198,8 +204,7 @@ export async function handleRoleFormSubmit(event) {
     await iamPut(`/roles/${role.id}/policies`, { policy_ids: policyIds });
 
     showToast('บันทึกบทบาทสำเร็จ', 'success');
-    switchView('roles');
-    loadRoles(pager.getCurrentPage());
+    window.location.href = `${window.__IAM_VIEWS_BASE__}/roles`;
   } catch (error) {
     showApiError(error, 'บันทึกบทบาทไม่สำเร็จ');
   }

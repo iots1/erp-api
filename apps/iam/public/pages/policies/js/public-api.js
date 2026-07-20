@@ -11,8 +11,8 @@ import {
   confirmDeletePolicy,
   goToPoliciesPage,
   handlePolicyFormSubmit,
+  initPolicyForm,
   loadPolicies,
-  openPolicyForm,
   removeConditionRow,
   removeStatementFromDraft,
   renderMultiSelect,
@@ -33,15 +33,12 @@ import {
   handleLogout,
 } from '../../user-management/js/shell.service.js';
 import { debounce } from '../../user-management/js/utils.js';
-import { switchView } from '../../user-management/js/views.service.js';
 
 Object.assign(window, {
   handleAuthLogin,
   handleInitialLoginSubmit,
   handleLogout,
   toggleTheme,
-  switchView,
-  openPolicyForm,
   confirmDeletePolicy,
   setStatementType,
   toggleMultiDropdown,
@@ -98,21 +95,31 @@ function wireFilters() {
   pageSizeSelect?.addEventListener('change', (e) => setPoliciesPageSize(e.target.value));
 }
 
-wireFilters();
-wirePolicyCodeInput();
+// This bundle serves both the policies list page (index.ejs) and the
+// create/edit policy-generator form page (form.ejs) — each render only their
+// own markup, so branch on which one is present rather than splitting into
+// two bundles.
+const isFormPage = !!document.getElementById('policyForm');
 
-// Close dropdowns when clicking outside them
-document.addEventListener('click', (event) => {
-  const isDropdownTrigger = event.target.closest('.um-dropdown-trigger');
-  const isDropdown = event.target.closest('.um-multi-dropdown');
-  const isDropdownSearch = event.target.closest('.um-dropdown-search');
-  const isCheckbox = event.target.closest('.um-dropdown-option');
+if (isFormPage) {
+  wirePolicyCodeInput();
 
-  if (!isDropdownTrigger && !isDropdown && !isDropdownSearch && !isCheckbox) {
-    document.querySelectorAll('.um-multi-dropdown').forEach((dropdown) => {
-      dropdown.classList.add('hidden');
-    });
-  }
-});
+  // Close dropdowns when clicking outside them
+  document.addEventListener('click', (event) => {
+    const isDropdownTrigger = event.target.closest('.um-dropdown-trigger');
+    const isDropdown = event.target.closest('.um-multi-dropdown');
+    const isDropdownSearch = event.target.closest('.um-dropdown-search');
+    const isCheckbox = event.target.closest('.um-dropdown-option');
 
-bootAdminPage({ pagePermission: 'page:view_policies', loader: loadPolicies });
+    if (!isDropdownTrigger && !isDropdown && !isDropdownSearch && !isCheckbox) {
+      document.querySelectorAll('.um-multi-dropdown').forEach((dropdown) => {
+        dropdown.classList.add('hidden');
+      });
+    }
+  });
+
+  bootAdminPage({ pagePermission: 'page:view_policies', loader: () => initPolicyForm() });
+} else {
+  wireFilters();
+  bootAdminPage({ pagePermission: 'page:view_policies', loader: loadPolicies });
+}

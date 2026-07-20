@@ -1,9 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import { Repository } from 'typeorm';
 
 import { ErpDatabases } from '@lib/common/enum/erp-databases.enum';
+import type { IUserSession } from '@lib/common/interfaces/auth.interface';
 import { LogsService } from '@lib/common/modules/log/logs.service';
 import { BaseServiceOperations } from '@lib/common/utils/base-operations/base-service-operations.util';
 import { mapRelations } from '@lib/common/utils/map-relations.util';
@@ -38,6 +43,33 @@ export class RolesService extends BaseServiceOperations<
         serviceVersion: configService.get('IAM_PREFIX_VERSION'),
       },
     });
+  }
+
+  /**
+   * A role still attached to at least one user (users_roles) cannot be
+   * deleted — that user would silently lose the access the role grants. The
+   * caller must unassign the role from every user first before delete
+   * succeeds.
+   */
+  async delete(
+    id: string | number,
+    softDelete = true,
+    currentUser?: IUserSession | string,
+  ): Promise<void> {
+    const attachedUserCount = await this.typeOrmRepository.manager
+      .createQueryBuilder()
+      .select('1')
+      .from('users_roles', 'ur')
+      .where('ur.role_id = :roleId', { roleId: id })
+      .getCount();
+
+    if (attachedUserCount > 0) {
+      throw new ConflictException(
+        'ไม่สามารถลบบทบาทนี้ได้ เนื่องจากมีผู้ใช้งานผูกใช้งานอยู่ กรุณายกเลิกการผูกกับผู้ใช้งานก่อน',
+      );
+    }
+
+    await super.delete(id, softDelete, currentUser);
   }
 
   /** Replaces the full set of policies attached to a role (roles_policies join table). */

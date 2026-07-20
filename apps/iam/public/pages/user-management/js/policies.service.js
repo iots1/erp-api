@@ -13,7 +13,6 @@ import {
 import { resetPolicyFormDraft, state } from './state.js';
 import { showApiError, showToast } from './toast.service.js';
 import { escapeHtml, refreshIcons, uid } from './utils.js';
-import { switchView } from './views.service.js';
 
 const CONDITION_OPERATORS = [
   { val: 'StringEquals', label: 'เท่ากับ (StringEquals)' },
@@ -126,7 +125,7 @@ function renderPoliciesList() {
       <td class="um-cell-mono">${escapeHtml(policy.code)}</td>
       <td><span class="p-tag ${policy.is_active ? 'p-tag-mint' : 'p-tag-pink'}">${policy.is_active ? 'Active' : 'Inactive'}</span></td>
       <td class="um-cell-actions">
-        ${canManage ? `<button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="openPolicyForm('${policy.id}')"><i data-lucide="edit-3" class="um-icon-sm"></i> แก้ไข</button>` : ''}
+        ${canManage ? `<a href="${window.__IAM_VIEWS_BASE__}/policies/${policy.id}/edit" class="p-btn p-btn-ghost p-btn-sm"><i data-lucide="edit-3" class="um-icon-sm"></i> แก้ไข</a>` : ''}
         ${canManage ? `<button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="confirmDeletePolicy('${policy.id}', '${escapeHtml(policy.code).replace(/'/g, "\\'")}')"><i data-lucide="trash-2" class="um-icon-sm"></i></button>` : ''}
       </td>
     </tr>
@@ -152,18 +151,16 @@ export async function confirmDeletePolicy(policyId, code) {
   }
 }
 
-// ── Policy generator (create / edit) ────────────────────────────
+// ── Policy generator form page (apps/iam/views/pages/policies/form.ejs) ──
 
-export async function openPolicyForm(policyId) {
-  switchView('policy-form');
-  resetPolicyFormDraft();
-  state.policyForm.editingId = policyId ?? null;
-
+export async function initPolicyForm() {
   const form = document.getElementById('policyForm');
-  form.reset();
-  document.getElementById('policyFormTitle').textContent = policyId
-    ? 'แก้ไข Policy (Policy Generator)'
-    : 'สร้าง Policy ใหม่ (Policy Generator)';
+  if (!form) return;
+
+  const policyId = document.getElementById('view-policy-form').dataset.policyId || null;
+
+  resetPolicyFormDraft();
+  state.policyForm.editingId = policyId;
 
   try {
     await ensurePermissionsCatalog();
@@ -634,8 +631,7 @@ export async function handlePolicyFormSubmit(event) {
     await iamPut(`/policies/${policy.id}/statements`, { statements });
 
     showToast('บันทึก Policy สำเร็จ', 'success');
-    switchView('policies');
-    loadPolicies(pager.getCurrentPage());
+    window.location.href = `${window.__IAM_VIEWS_BASE__}/policies`;
   } catch (error) {
     showApiError(error, 'บันทึก Policy ไม่สำเร็จ');
   }

@@ -14,12 +14,26 @@ export type UserStatus = 'active' | 'pending' | 'suspended';
 })
 @Index('idx_users_status', ['status'])
 @Check('chk_users_status', `"status" IN ('active', 'pending', 'suspended')`)
+/**
+ * Partial unique indexes instead of plain column constraints — username/email
+ * must be unique only among *live* rows, so a soft-deleted user's
+ * username/email can be reused by a new one (a plain UNIQUE constraint would
+ * collide with the soft-deleted row forever, since delete() never touches
+ * these columns). Mirrors Role.code / Policy.code.
+ */
+@Index('uq_users_username', ['username'], {
+  unique: true,
+  where: 'is_deleted = false',
+})
+@Index('uq_users_email', ['email'], {
+  unique: true,
+  where: 'is_deleted = false',
+})
 export class User extends BaseEntity {
   @Column({
     type: 'varchar',
     length: 100,
-    unique: true,
-    comment: 'ชื่อผู้ใช้ (unique) — uq_users_username',
+    comment: 'ชื่อผู้ใช้ (unique เฉพาะแถวที่ยังไม่ถูกลบ) — uq_users_username',
   })
   username: string;
 
@@ -32,8 +46,7 @@ export class User extends BaseEntity {
   @Column({
     type: 'varchar',
     length: 200,
-    unique: true,
-    comment: 'อีเมล (unique) — uq_users_email',
+    comment: 'อีเมล (unique เฉพาะแถวที่ยังไม่ถูกลบ) — uq_users_email',
   })
   email: string;
 

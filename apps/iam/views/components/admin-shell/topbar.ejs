@@ -5,6 +5,10 @@
         </a>
         <% if (activeView !== 'dashboard') { %>
         <i data-lucide="chevron-right" class="um-icon-sm"></i>
+        <% if (typeof parentCrumb !== 'undefined' && parentCrumb) { %>
+        <a href="<%= parentCrumb.href %>" class="um-breadcrumb-link"><%= parentCrumb.label %></a>
+        <i data-lucide="chevron-right" class="um-icon-sm"></i>
+        <% } %>
         <span id="pageTitle" class="um-breadcrumb-current"><%= pageTitle %></span>
         <% } %>
     </nav>

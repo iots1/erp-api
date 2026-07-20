@@ -4,8 +4,8 @@ import {
   confirmDeleteRole,
   goToRolesPage,
   handleRoleFormSubmit,
+  initRoleForm,
   loadRoles,
-  openRoleForm,
   setRolesFilter,
   setRolesPageSize,
 } from '../../user-management/js/roles.service.js';
@@ -15,15 +15,12 @@ import {
   handleLogout,
 } from '../../user-management/js/shell.service.js';
 import { debounce } from '../../user-management/js/utils.js';
-import { switchView } from '../../user-management/js/views.service.js';
 
 Object.assign(window, {
   handleAuthLogin,
   handleInitialLoginSubmit,
   handleLogout,
   toggleTheme,
-  switchView,
-  openRoleForm,
   handleRoleFormSubmit,
   confirmDeleteRole,
   goToRolesPage,
@@ -40,5 +37,14 @@ function wireFilters() {
   pageSizeSelect?.addEventListener('change', (e) => setRolesPageSize(e.target.value));
 }
 
-wireFilters();
-bootAdminPage({ pagePermission: 'page:view_roles', loader: () => loadRoles(1) });
+// This bundle serves both the roles list page (index.ejs) and the create/edit
+// form page (form.ejs) — each render only their own markup, so branch on
+// which one is present rather than splitting into two bundles.
+const isFormPage = !!document.getElementById('roleForm');
+
+if (isFormPage) {
+  bootAdminPage({ pagePermission: 'page:view_roles', loader: () => initRoleForm() });
+} else {
+  wireFilters();
+  bootAdminPage({ pagePermission: 'page:view_roles', loader: () => loadRoles(1) });
+}

@@ -1,8 +1,7 @@
 <%- include('../../components/layout/page-head', { pageName: 'roles' }) %>
 <%
 const topbarActions = [
-    { btnClass: 'p-btn p-btn-sky p-btn-sm', icon: 'plus', label: 'สร้าง Role', onClick: 'openRoleForm(null)', permission: 'role:create', view: 'roles' },
-    { btnClass: 'p-btn p-btn-sky p-btn-sm', icon: 'save', label: 'บันทึก', onClick: "document.getElementById('roleForm').requestSubmit()", view: 'role-form', hidden: true },
+    { btnClass: 'p-btn p-btn-sky p-btn-sm', icon: 'plus', label: 'สร้าง Role', onClick: `location.href='/${prefix}/views/roles/new'`, permission: 'role:create' },
 ];
 %>
 <%- include('../../components/admin-shell/shell-open', { activeView: 'roles', pageTitle: 'สิทธิ์การใช้งาน (Roles)', topbarActions: topbarActions }) %>
@@ -36,32 +35,6 @@ const topbarActions = [
                             pageSizeOptions: [20, 50, 100],
                         }) %>
                     </article>
-                </section>
-
-                <!-- VIEW: Role form -->
-                <section id="view-role-form" class="um-view">
-                    <%- include('../../components/ui/form-header', {
-                        backView: 'roles',
-                        titleId: 'roleFormTitle',
-                        titleText: 'สร้างบทบาทใหม่ (Create Role)',
-                        subtitleText: 'กำหนดรายละเอียดบทบาทและแนบนโยบายความปลอดภัย',
-                    }) %>
-
-                    <form id="roleForm" onsubmit="handleRoleFormSubmit(event)">
-                        <article class="um-form-section">
-                            <div class="um-form-grid">
-                                <%- include('../../components/ui/field', { id: 'frmRoleCode', label: 'รหัสบทบาท (Role Code)', required: true, extraClass: 'um-mono-input', placeholder: 'เช่น ROLE_WAREHOUSE_MANAGER' }) %>
-                                <%- include('../../components/ui/field', { id: 'frmRoleNameTh', label: 'ชื่อบทบาท (ไทย)', required: true }) %>
-                                <%- include('../../components/ui/field', { id: 'frmRoleNameEn', label: 'ชื่อบทบาท (English)', required: true }) %>
-                                <%- include('../../components/ui/field', { id: 'frmRoleDescription', label: 'คำอธิบาย', rows: 2, spanClass: 'um-field-span-2' }) %>
-                            </div>
-                        </article>
-
-                        <article class="um-form-section">
-                            <h3 class="um-section-title">เลือกนโยบายความปลอดภัย (Attach Policies)</h3>
-                            <div id="rolePoliciesContainer" class="um-checkbox-grid um-checkbox-grid-compact"></div>
-                        </article>
-                    </form>
                 </section>
 
 <%- include('../../components/admin-shell/shell-close') %>

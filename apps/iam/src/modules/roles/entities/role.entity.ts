@@ -1,4 +1,4 @@
-import { Column, Entity, JoinTable, ManyToMany } from 'typeorm';
+import { Column, Entity, Index, JoinTable, ManyToMany } from 'typeorm';
 
 import { BaseEntity } from '@lib/common/abstracts/base-entity.abstract';
 import { ErpDatabases } from '@lib/common/enum/erp-databases.enum';
@@ -11,12 +11,19 @@ import { User } from '../../users/entities/user.entity';
   database: ErpDatabases.IAM,
   comment: 'บทบาท — ROLE_* ผูกกับ policies ผ่าน roles_policies',
 })
+/**
+ * Partial unique index instead of a plain column constraint — `code` must be
+ * unique only among *live* rows, so a soft-deleted role's code can be reused
+ * by a new one (a plain UNIQUE constraint would collide with the
+ * soft-deleted row forever, since delete() never touches `code`).
+ */
+@Index('uq_roles_code', ['code'], { unique: true, where: 'is_deleted = false' })
 export class Role extends BaseEntity {
   @Column({
     type: 'varchar',
     length: 100,
-    unique: true,
-    comment: 'รหัสบทบาท เช่น ROLE_WAREHOUSE_MANAGER (unique) — uq_roles_code',
+    comment:
+      'รหัสบทบาท เช่น ROLE_WAREHOUSE_MANAGER (unique เฉพาะแถวที่ยังไม่ถูกลบ) — uq_roles_code',
   })
   code: string;
 

@@ -1,0 +1,137 @@
+<%- include('../../components/layout/page-head', { pageName: 'policies' }) %>
+<%
+const isEdit = !!policyId;
+const parentCrumb = { label: 'นโยบายความปลอดภัย', href: `/${prefix}/views/policies` };
+const topbarActions = [
+    { btnClass: 'p-btn p-btn-sky p-btn-sm', icon: 'save', label: 'บันทึก', onClick: "document.getElementById('policyForm').requestSubmit()" },
+];
+%>
+<%- include('../../components/admin-shell/shell-open', { activeView: 'policies', pageTitle: isEdit ? 'แก้ไข Policy' : 'สร้าง Policy ใหม่', parentCrumb: parentCrumb, topbarActions: topbarActions }) %>
+
+                <!-- VIEW: Policy form (generator) -->
+                <section id="view-policy-form" class="um-view active" data-policy-id="<%= policyId ?? '' %>">
+                    <%- include('../../components/ui/form-header', {
+                        backHref: `/${prefix}/views/policies`,
+                        titleId: 'policyFormTitle',
+                        titleText: isEdit ? 'แก้ไข Policy (Policy Generator)' : 'สร้าง Policy ใหม่ (Policy Generator)',
+                        subtitleText: 'ครอบคลุมทั้งฝั่ง Frontend (Page/Component) และ Backend (API Resource)',
+                    }) %>
+
+                    <form id="policyForm" onsubmit="handlePolicyFormSubmit(event)">
+                        <!-- Step 1 -->
+                        <article class="um-form-section">
+                            <h3 class="um-section-title">Step 1: ข้อมูลพื้นฐาน</h3>
+                            <div class="um-form-grid">
+                                <%- include('../../components/ui/field', { id: 'frmPolCode', label: 'รหัส Policy', required: true, extraClass: 'um-mono-input', placeholder: 'เช่น POL_WAREHOUSE_GOODS_RECEIPT' }) %>
+                                <%- include('../../components/ui/field', { id: 'frmPolNameTh', label: 'ชื่อ (ไทย)', required: true }) %>
+                                <%- include('../../components/ui/field', { id: 'frmPolNameEn', label: 'ชื่อ (English)', required: true }) %>
+                                <div class="p-field um-field-checkbox">
+                                    <label><input type="checkbox" id="frmPolActive" checked> เปิดใช้งาน (Active)</label>
+                                </div>
+                            </div>
+                        </article>
+
+                        <!-- Step 2 -->
+                        <article class="um-form-section um-step2">
+                            <h3 class="um-section-title">Step 2: Add statement(s)</h3>
+                            <p class="um-view-subtitle">กำหนดสิทธิ์ 1 ชุด แล้วกดปุ่ม Add Statement</p>
+
+                            <div class="um-form-grid um-step2-top">
+                                <div class="p-field">
+                                    <label>ผลลัพธ์ (Effect) <span class="required">*</span></label>
+                                    <select id="stmtEffect">
+                                        <option value="allow">✅ อนุญาต (Allow)</option>
+                                        <option value="deny">❌ ปฏิเสธ (Deny)</option>
+                                    </select>
+                                </div>
+                                <div class="p-field um-field-span-2">
+                                    <label>รูปแบบสิทธิ์ (Policy Type) <span class="required">*</span></label>
+                                    <div class="um-type-toggle">
+                                        <button type="button" id="btnTypeUI" class="um-type-toggle-btn active" onclick="setStatementType('ui')"><i data-lucide="layout"></i> User Interface (UI)</button>
+                                        <button type="button" id="btnTypeAPI" class="um-type-toggle-btn" onclick="setStatementType('api')"><i data-lucide="database"></i> Resource (API)</button>
+                                    </div>
+                                    <input type="hidden" id="stmtPlane" value="ui">
+                                </div>
+                            </div>
+
+                            <div class="um-form-grid um-step2-dropdowns">
+                                <div class="um-dropdown-container" id="containerDD1">
+                                    <label id="labelDD1">หน้าจอ (Page) <span class="required">*</span></label>
+                                    <button type="button" class="um-dropdown-trigger" onclick="toggleMultiDropdown('dropdown1')">
+                                        <span id="dd1Label">เลือก Page...</span>
+                                        <i data-lucide="chevron-down"></i>
+                                    </button>
+                                    <div id="dropdown1" class="um-multi-dropdown hidden">
+                                        <div class="um-dropdown-search">
+                                            <input type="text" id="searchDd1" placeholder="ค้นหา..." onkeyup="renderMultiSelect('dd1')">
+                                        </div>
+                                        <div id="dd1OptionsList" class="um-dropdown-list"></div>
+                                    </div>
+                                </div>
+
+                                <div class="um-dropdown-container hidden" id="containerDD2">
+                                    <label>Resource (ทรัพยากร) <span class="required">*</span></label>
+                                    <button type="button" class="um-dropdown-trigger" onclick="toggleMultiDropdown('dropdown2')">
+                                        <span id="dd2Label">เลือก Resource...</span>
+                                        <i data-lucide="chevron-down"></i>
+                                    </button>
+                                    <div id="dropdown2" class="um-multi-dropdown hidden">
+                                        <div class="um-dropdown-search">
+                                            <input type="text" id="searchDd2" placeholder="ค้นหา..." onkeyup="renderMultiSelect('dd2')">
+                                        </div>
+                                        <div id="dd2OptionsList" class="um-dropdown-list"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="um-actions-box">
+                                <div class="um-actions-box-head">
+                                    <label id="actionsLabel">เลือก Components ในหน้าจอ <span class="required">*</span></label>
+                                    <button type="button" class="um-link-btn" onclick="selectAllActions()">เลือกทั้งหมด</button>
+                                </div>
+                                <div id="actionsCheckboxContainer" class="um-actions-box-body">
+                                    <span class="um-muted-note">กรุณาเลือกข้อมูลด้านบนก่อน</span>
+                                </div>
+                            </div>
+
+                            <div class="um-conditions-box">
+                                <div class="um-conditions-head">
+                                    <label>Add conditions (optional)</label>
+                                    <button type="button" class="p-btn p-btn-sm" onclick="addConditionRow()"><i data-lucide="plus-circle"></i> เพิ่มเงื่อนไข</button>
+                                </div>
+                                <div id="conditionBuilderRows" class="um-conditions-rows">
+                                    <div class="um-muted-note um-condition-empty">ไม่ได้ระบุ Condition</div>
+                                </div>
+                            </div>
+
+                            <div class="um-add-statement-row">
+                                <button type="button" class="p-btn p-btn-sky" onclick="addStatementToDraft()"><i data-lucide="plus"></i> Add Statement</button>
+                            </div>
+                        </article>
+
+                        <!-- Step 3 -->
+                        <article class="um-form-section">
+                            <h3 class="um-section-title">Step 3: Statements added (<span id="stmtCountBadge">0</span>)</h3>
+                            <div class="um-table-scroll">
+                                <table class="p-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Effect</th>
+                                            <th>Service(s)</th>
+                                            <th>Resource(s)</th>
+                                            <th>Action(s)</th>
+                                            <th>Condition(s)</th>
+                                            <th class="um-th-right">Remove</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="statementsTableBody">
+                                        <tr><td colspan="6" class="um-empty-cell">ยังไม่มี Statement กรุณาเพิ่มจาก Step 2</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </article>
+                    </form>
+                </section>
+
+<%- include('../../components/admin-shell/shell-close') %>
+<%- include('../../components/layout/page-foot', { pageName: 'policies' }) %>

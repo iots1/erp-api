@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import { Repository } from 'typeorm';
 
 import { ErpDatabases } from '@lib/common/enum/erp-databases.enum';
+import type { IUserSession } from '@lib/common/interfaces/auth.interface';
 import { LogsService } from '@lib/common/modules/log/logs.service';
 import { BaseServiceOperations } from '@lib/common/utils/base-operations/base-service-operations.util';
 import { ConfigService } from '@lib/config';
@@ -59,6 +60,33 @@ export class PoliciesService extends BaseServiceOperations<
         serviceVersion: configService.get('IAM_PREFIX_VERSION'),
       },
     });
+  }
+
+  /**
+   * A policy still attached to at least one role (roles_policies) cannot be
+   * deleted — that role's access would silently lose the statements it
+   * relies on. The caller must detach the policy from every role first
+   * (`PUT /roles/:id/policies` with it removed) before delete succeeds.
+   */
+  async delete(
+    id: string | number,
+    softDelete = true,
+    currentUser?: IUserSession | string,
+  ): Promise<void> {
+    const attachedRoleCount = await this.typeOrmRepository.manager
+      .createQueryBuilder()
+      .select('1')
+      .from('roles_policies', 'rp')
+      .where('rp.policy_id = :policyId', { policyId: id })
+      .getCount();
+
+    if (attachedRoleCount > 0) {
+      throw new ConflictException(
+        'ไม่สามารถลบนโยบายนี้ได้ เนื่องจากมีบทบาท (Role) ผูกใช้งานอยู่ กรุณายกเลิกการผูกกับบทบาทก่อน',
+      );
+    }
+
+    await super.delete(id, softDelete, currentUser);
   }
 
   /** Replaces every statement (+ targets/actions/conditions) belonging to a policy. */

@@ -1,8 +1,15 @@
-<!-- Back-button header for a form view nested inside a list view (roles,
-     policies). Locals: backView (switchView target), titleId, titleText,
-     subtitleText. -->
+<!-- Back-button header for a form view. Locals: titleId, titleText,
+     subtitleText, plus exactly one of:
+     - backView: switchView target, for a form nested inside a list view via
+       client-side sub-view switching (policies).
+     - backHref: a real URL, for a form that is its own server route and
+       navigates back to the list page (roles/new, roles/:id/edit). -->
 <div class="um-form-header">
+    <% if (typeof backHref !== 'undefined') { %>
+    <a href="<%= backHref %>" class="um-icon-btn"><i data-lucide="arrow-left"></i></a>
+    <% } else { %>
     <button type="button" class="um-icon-btn" onclick="switchView('<%= backView %>')"><i data-lucide="arrow-left"></i></button>
+    <% } %>
     <div>
         <h2 id="<%= titleId %>" class="um-view-title"><%= titleText %></h2>
         <p class="um-view-subtitle"><%= subtitleText %></p>

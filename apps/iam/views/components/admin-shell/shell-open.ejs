@@ -2,12 +2,15 @@
      by every admin-shell page. Locals: activeView, pageTitle, topbarActions
      (optional array of { btnClass, icon, label, onClick, permission? } —
      rendered right-aligned in the topbar, same shape as
-     components/ui/toolbar-action-button.ejs). Pair with shell-close.ejs; the
-     page's own content goes between the two includes. -->
+     components/ui/toolbar-action-button.ejs), parentCrumb (optional
+     { label, href } — renders a 3-level breadcrumb: home / parentCrumb /
+     pageTitle, for a sub-page nested under a list page, e.g. roles/new). Pair
+     with shell-close.ejs; the page's own content goes between the two
+     includes. -->
 <div id="appShell" class="um-shell hidden">
     <%- include('sidebar', { activeView: activeView }) %>
 
     <main class="um-main">
-        <%- include('topbar', { activeView: activeView, pageTitle: pageTitle, actions: typeof topbarActions !== 'undefined' ? topbarActions : [] }) %>
+        <%- include('topbar', { activeView: activeView, pageTitle: pageTitle, actions: typeof topbarActions !== 'undefined' ? topbarActions : [], parentCrumb: typeof parentCrumb !== 'undefined' ? parentCrumb : undefined }) %>
 
         <div class="um-content">
