@@ -14,6 +14,7 @@ import { ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import {
   CurrentUser,
   IResponsePaginatedService,
+  Public,
   RequirePermission,
   type IUserSession,
   ParseUuidParamPipe,
@@ -59,6 +60,7 @@ export class UsersController extends BaseControllerOperations<
   }
 
   @Get('test-graceful-shutdown')
+  @Public()
   @ApiOperation({
     summary: 'Test Graceful Shutdown by simulating a long-running process',
   })
