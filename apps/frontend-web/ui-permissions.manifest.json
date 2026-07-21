@@ -1,0 +1,14 @@
+{
+  "pages": [
+    {
+      "permission": "page:view_reports",
+      "name": { "th": "หน้ารายงาน", "en": "Reports page" },
+      "components": [
+        { 
+          "permission": "component:btn_export_reports",
+          "name": { "th": "ปุ่ม Export รายงาน", "en": "Export reports button" } 
+        }
+      ]
+    }
+  ]
+}

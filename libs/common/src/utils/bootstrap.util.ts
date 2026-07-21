@@ -1,6 +1,8 @@
 // MUST be first: starts the OpenTelemetry SDK before http/pg/nestjs are loaded
 // so auto-instrumentation can patch them (see tracing.ts). Do not reorder.
-// import '../tracing';
+// (Side-effect only here — shutdownTracing() itself is called from
+// GracefulShutdownService.onApplicationShutdown(), not from this file.)
+import '../tracing';
 
 import { timingSafeEqual } from 'crypto';
 import {
@@ -32,6 +34,7 @@ import { Server as SocketIOServer, type ServerOptions } from 'socket.io';
 
 import { AppMicroserviceKey } from '@lib/common/enum/app-microservice.enum';
 import { DocAuthKey } from '@lib/common/enum/doc-auth-key.enum';
+import { GracefulShutdownService } from '@lib/common/services/graceful-shutdown.service';
 import { AllExceptionsFilter } from '@lib/common/utils/http-exception/all-exceptions-filter.util';
 import { RpcExceptionsFilter } from '@lib/common/utils/http-exception/rpc-exceptions-filter.util';
 import { ValidationException } from '@lib/common/utils/http-exception/validation.exception';
@@ -383,7 +386,11 @@ function registerHealthCheck(
   moduleName: string,
   version: string,
   environment: string,
+  isShuttingDown: () => boolean,
 ): void {
+  // Liveness: always 200 while the process is alive, even mid-shutdown — used
+  // by orchestrators to decide whether to kill/restart the process, not
+  // whether to route traffic to it.
   app
     .getHttpAdapter()
     .get(`/${pathURI}/health`, (_req: FastifyRequest, reply: FastifyReply) => {
@@ -395,6 +402,54 @@ function registerHealthCheck(
         timestamp: new Date().toISOString(),
       });
     });
+
+  // Readiness: separate from liveness above so a load balancer / gateway
+  // stops routing NEW requests the instant shutdown begins, while the
+  // process itself stays alive to drain in-flight work (see
+  // registerGracefulShutdown).
+  app
+    .getHttpAdapter()
+    .get(
+      `/${pathURI}/health/ready`,
+      (_req: FastifyRequest, reply: FastifyReply) => {
+        if (isShuttingDown()) {
+          void reply.status(503).send({
+            status: 'shutting_down',
+            message: `Service ${moduleName} is draining connections`,
+            timestamp: new Date().toISOString(),
+          });
+          return;
+        }
+        void reply.status(200).send({
+          status: 'ready',
+          message: `Service ${moduleName} is ready`,
+          timestamp: new Date().toISOString(),
+        });
+      },
+    );
+}
+
+// ──────────────────────────────────────────────────────────────
+//  Graceful Shutdown
+// ──────────────────────────────────────────────────────────────
+
+/**
+ * Resolves the app-wide `GracefulShutdownService` (provided globally via
+ * `CommonModule`) and wires it up: `app.enableShutdownHooks()` +
+ * `OnApplicationShutdown` (see graceful-shutdown.service.ts for the full
+ * sequence). Returns `isShuttingDown` for the readiness route.
+ */
+function registerGracefulShutdown(
+  app: NestFastifyApplication,
+  configService: ConfigService,
+  moduleName: string,
+): { isShuttingDown: () => boolean } {
+  const shutdownService = app.get(GracefulShutdownService);
+  const shutdownTimeoutMs = configService.get<number>('SHUTDOWN_TIMEOUT_MS');
+
+  shutdownService.registerSignalHandlers(app, moduleName, shutdownTimeoutMs);
+
+  return { isShuttingDown: shutdownService.isShuttingDown };
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -515,6 +570,15 @@ export async function bootstrapApplication(
   const reflector = app.get(Reflector);
   const moduleName = (options.module as { name: string }).name;
 
+  // --- Graceful Shutdown (register early so a signal during the rest of
+  // bootstrap is still handled instead of falling through to Node's default
+  // immediate-exit behavior) ---
+  const { isShuttingDown } = registerGracefulShutdown(
+    app,
+    configService,
+    moduleName,
+  );
+
   // --- Security ---
   await applySecurity(app, configService, options.security);
 
@@ -552,7 +616,14 @@ export async function bootstrapApplication(
   // --- Health Check ---
   const appVersion = resolveAppVersion(configService);
   const environment = configService.get<string>('NODE_ENV') ?? 'local';
-  registerHealthCheck(app, pathURI, moduleName, appVersion, environment);
+  registerHealthCheck(
+    app,
+    pathURI,
+    moduleName,
+    appVersion,
+    environment,
+    isShuttingDown,
+  );
 
   // --- Microservice ---
   if (options.microservice !== undefined) {

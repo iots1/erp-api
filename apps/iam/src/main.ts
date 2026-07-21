@@ -1,6 +1,6 @@
 import { join } from 'path';
 
-import { bootstrapApplication } from '@lib/common';
+import { bootstrapApplication } from '@lib/common/utils/bootstrap.util';
 
 import { IamModule } from './iam.module';
 

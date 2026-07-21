@@ -9,6 +9,7 @@ import { AuthGuard } from '@lib/common/guards/auth.guard';
 import { PermissionGuard } from '@lib/common/guards/permission.guard';
 import { LogModule } from '@lib/common/modules/log/log.module';
 import { RedisModule } from '@lib/common/modules/redis/redis.module';
+import { GracefulShutdownService } from '@lib/common/services/graceful-shutdown.service';
 import { MicroserviceClientService } from '@lib/common/services/microservice-client.service';
 import { SessionStoreService } from '@lib/common/services/session-store.service';
 import { buildClientProvider } from '@lib/common/utils/microservice-transport.util';
@@ -50,6 +51,7 @@ import { ConfigModule, ConfigService } from '@lib/config';
     ),
   ],
   providers: [
+    GracefulShutdownService,
     MicroserviceClientService,
     SessionStoreService,
     { provide: APP_GUARD, useClass: AuthGuard },
@@ -62,6 +64,7 @@ import { ConfigModule, ConfigService } from '@lib/config';
     ConfigModule,
     LogModule,
     RedisModule,
+    GracefulShutdownService,
     MicroserviceClientService,
     SessionStoreService,
   ],

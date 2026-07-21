@@ -1,4 +1,4 @@
-import { bootstrapApplication } from '@lib/common';
+import { bootstrapApplication } from '@lib/common/utils/bootstrap.util';
 
 import { FinanceBcModule } from './finance-bc.module';
 
