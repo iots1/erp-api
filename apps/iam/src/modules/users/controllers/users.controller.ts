@@ -58,6 +58,21 @@ export class UsersController extends BaseControllerOperations<
     super(usersService);
   }
 
+  @Get('test-graceful-shutdown')
+  @ApiOperation({
+    summary: 'Test Graceful Shutdown by simulating a long-running process',
+  })
+  @HttpCode(HttpStatus.OK)
+  async testGracefulShutdown(): Promise<{ message: string }> {
+    console.log('⏳ [Test] เริ่มทำงาน Request... (จำลองการประมวลผล 15 วินาที)');
+
+    // หน่วงเวลา 15 วินาที เพื่อให้คุณมีเวลายิง SIGTERM หรือ SIGINT (เช่น กด Ctrl+C ที่ Terminal)
+    await new Promise((resolve) => setTimeout(resolve, 15000));
+
+    console.log('✅ [Test] ทำงานเสร็จสิ้น ส่ง Response กลับ!');
+    return { message: 'Long-running process completed successfully!' };
+  }
+
   @Post()
   @RequirePermission('user_account:create', {
     th: 'สร้างบัญชีผู้ใช้',
