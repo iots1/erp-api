@@ -42,6 +42,10 @@ export class DatabaseModule {
               configService.get<boolean>(`${prefix}_SYNCHRONIZE`) ?? false,
             logging: configService.get<boolean>(`${prefix}_LOGGING`) ?? false,
             timezone: 'Z',
+            // Per-PROCESS pool ceiling. Under PM2 cluster mode
+            // (ecosystem.config.js) each worker opens its own pool, so the
+            // real per-BC ceiling is `instances × max` — see that file's
+            // "DB connection budget" comment before raising either number.
             extra: {
               max: 5,
               min: 1,

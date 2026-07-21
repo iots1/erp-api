@@ -653,5 +653,14 @@ export async function bootstrapApplication(
     `📄 [${moduleName}] API Docs (Swagger): http://localhost:${listenPORT}${classicDocsPath}`,
   );
 
+  // --- PM2 readiness signal (paired with `wait_ready: true` in
+  // ecosystem.config.js) — tells PM2 this instance is fully up before it
+  // considers a `pm2 reload` complete, so the old instance isn't torn down
+  // until the new one can actually serve traffic. No-op outside PM2 fork
+  // mode (process.send is undefined there). ---
+  if (typeof process.send === 'function') {
+    process.send('ready');
+  }
+
   return app;
 }
