@@ -4,11 +4,13 @@
 
 ทดสอบจริงบน `root@172.16.0.100` ด้วยการยิง request ค้าง 15 วิ แล้วสั่ง `pm2 reload iam` กลางคัน เจอ **3 บัคซ้อนกัน** ที่ทำให้ graceful shutdown ไม่ทำงาน แก้ไปแล้ว 3 จุด — 2 จุดยืนยันด้วย live test แล้วว่าใช้ได้ (ไม่มี error/403 อีก), จุดที่ 3 (ตัวที่กินเวลาจริง) แก้แล้วแต่ **ยังไม่ได้ rebuild+reload ทดสอบซ้ำรอบสุดท้าย**
 
+**สถานะสุดท้าย: ✅ ผ่านครบทุกจุด** — re-test หลังแก้ครบทั้ง 3 บัคได้ `HTTP_CODE:200`, `TIME_TOTAL:15.012s` พร้อม response เต็ม `{"message":"Long-running process completed successfully!"}` ทั้งที่โดน `pm2 reload` กลางคัน
+
 | # | บัค | ไฟล์ | สถานะ |
 |---|---|---|---|
 | 1 | `TypeOrmCoreModule.onApplicationShutdown()` throw → NestJS `process.exit(1)` | `libs/database/src/database.module.ts` | ✅ Fixed + verified |
 | 2 | test endpoint โดน default-deny 403 (ไม่เกี่ยวกับ shutdown แต่บล็อกการทดสอบ) | `apps/iam/.../users.controller.ts` | ✅ Fixed + verified |
-| 3 | **Fastify `close()` ทำลาย connection ที่กำลังทำงานอยู่ทันที (root cause ตัวจริง)** | `libs/common/src/utils/bootstrap.util.ts` | ✅ Fixed, **ยังไม่ verify รอบสุดท้าย** |
+| 3 | **Fastify `close()` ทำลาย connection ที่กำลังทำงานอยู่ทันที (root cause ตัวจริง)** | `libs/common/src/utils/bootstrap.util.ts` | ✅ Fixed + verified |
 
 ## วิธีทดสอบ
 
@@ -115,7 +117,7 @@ if (forceCloseConnections === 'idle' && options.serverFactory) {
 ### ยืนยันด้วย isolated repro
 ตั้ง `forceCloseConnections: false` ตรงๆ → repro เดิมได้ผลถูกต้อง: client ได้ response `200` ครบหลัง 5s, `app.close()` resolve หลัง request จบจริง (4431ms ตรงกับเวลาที่เหลือของ delay 5s) ✅
 
-### Fix (applied, ยังไม่ verify กับแอปจริง)
+### Fix (applied)
 `libs/common/src/utils/bootstrap.util.ts` — เพิ่ม `forceCloseConnections: false` ตรงจุดสร้าง `FastifyAdapter`:
 ```ts
 const adapter = new FastifyAdapter({
@@ -126,7 +128,24 @@ const adapter = new FastifyAdapter({
 ```
 จุดนี้ใช้ร่วมกันทุก BC (`bootstrapApplication()`) ดังนั้น**แก้ครั้งเดียวครอบทุก BC** เหมือนบัค #1
 
-**ยังไม่ได้ verify กับแอปจริงผ่าน pm2 reload** — รอ rebuild + reload แล้ว re-test รอบสุดท้าย
+### ยืนยันด้วย re-test (รอบสุดท้าย)
+Rebuild + `pm2 reload iam` แล้วรัน test เดิม — **ผ่าน**:
+```
+=== curl result ===
+{"data":{"type":"users","attributes":{"message":"Long-running process completed successfully!"}},
+ "status":{"code":200000,"message":"Request Succeeded"}}
+HTTP_CODE:200
+TIME_TOTAL:15.012361
+```
+Log sequence ยืนยันพฤติกรรมถูกต้อง:
+```
+⏳ [Test] เริ่มทำงาน Request...              (request เริ่ม)
+🛑 Received SIGINT, draining before shutdown  (reload สั่ง SIGINT เข้ามากลางคัน)
+✅ [Test] ทำงานเสร็จสิ้น ส่ง Response กลับ!     (request ทำงานต่อจนจบ *หลัง* SIGINT)
+```
+ไม่มี ERROR / "could not find DataSource" / "Shutdown exceeded" / "forcing exit" — process รอ in-flight request จนเสร็จก่อนปิดตัว ตรงตาม `GracefulShutdownService` ที่ออกแบบไว้ ✅
 
-## Next step
-Rebuild + `pm2 reload iam` แล้วรัน test เดิมซ้ำอีกรอบ คาดว่าจะได้ `HTTP_CODE:200` พร้อม response `{"message":"Long-running process completed successfully!"}` หลัง ~15+ วินาที (แทนที่จะโดนตัดที่ ~5.9s เหมือนทุกรอบก่อนหน้า) ถ้าผ่าน ถือว่า graceful shutdown ทำงานถูกต้องครบวงจรตามที่ออกแบบไว้ใน `GracefulShutdownService`
+## บทสรุป
+Graceful shutdown ตอนนี้ทำงานถูกต้องครบวงจร ทั้ง 3 fix อยู่ในจุด shared (`bootstrap.util.ts`, `database.module.ts`) จึงมีผลกับ **ทุก BC** ไม่ใช่แค่ `iam`
+
+หมายเหตุ: endpoint `test-graceful-shutdown` + `@Public()` เป็น test scaffolding — พิจารณาลบออกก่อน merge ขึ้น production ถ้าไม่ต้องการเก็บไว้เป็นเครื่องมือทดสอบถาวร
