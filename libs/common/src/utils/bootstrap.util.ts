@@ -558,7 +558,22 @@ export async function bootstrapApplication(
 
   // Note: trustProxy read directly from process.env before ConfigService is available.
   const trustProxy = resolveTrustProxy(process.env.TRUST_PROXY);
-  const adapter = new FastifyAdapter({ trustProxy, logger: false });
+  // `forceCloseConnections` defaults to the string 'idle', which is only
+  // wired to Fastify's idle-only closeIdleConnections() path when a custom
+  // `serverFactory` is set (see fastify's own fastify.js, close hook) —
+  // without one, the truthy 'idle' string falls through to the *next*
+  // `else if` branch and calls `closeAllConnections()` instead, forcibly
+  // destroying ACTIVE in-flight requests the instant `app.close()` runs
+  // (verified via isolated repro: default config kills a 5s in-flight
+  // request in ~2ms; `false` here lets it finish normally). Explicitly
+  // `false` so Node's own http.Server.close() drains in-flight connections
+  // and only stops accepting new ones — the behavior GracefulShutdownService
+  // (graceful-shutdown.service.ts) assumes.
+  const adapter = new FastifyAdapter({
+    trustProxy,
+    logger: false,
+    forceCloseConnections: false,
+  });
 
   const app = await NestFactory.create<NestFastifyApplication>(
     options.module,
