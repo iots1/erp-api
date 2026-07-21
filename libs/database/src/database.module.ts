@@ -30,6 +30,14 @@ export class DatabaseModule {
           imports: [ConfigModule],
           inject: [ConfigService],
           useFactory: (configService: ConfigService) => ({
+            // `TypeOrmCoreModule.onApplicationShutdown()` resolves its
+            // DataSource token from these returned options (not from the
+            // `name` passed to `forRootAsync` above) — without `name` here
+            // it looks up the default `DataSource` token, finds nothing
+            // (every BC is a named connection), throws, and NestJS's own
+            // shutdown catch-all force-exits the process before HTTP
+            // draining can finish. See reviews/graceful-shutdown-iam-2026-07-22.md.
+            name: connectionName,
             type: 'postgres',
             host: configService.get<string>(`${prefix}_HOST`),
             port: configService.get<number>(`${prefix}_PORT`),
