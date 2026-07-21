@@ -2,7 +2,7 @@
 
 ## สรุป
 
-ทดสอบจริงบน `root@172.16.0.100` ด้วยการยิง request ค้าง 15 วิ แล้วสั่ง `pm2 reload iam` กลางคัน เจอ **3 บัคซ้อนกัน** ที่ทำให้ graceful shutdown ไม่ทำงาน แก้ไปแล้ว 3 จุด — 2 จุดยืนยันด้วย live test แล้วว่าใช้ได้ (ไม่มี error/403 อีก), จุดที่ 3 (ตัวที่กินเวลาจริง) แก้แล้วแต่ **ยังไม่ได้ rebuild+reload ทดสอบซ้ำรอบสุดท้าย**
+ทดสอบจริงบน `root@172.16.0.100` ด้วยการยิง request ค้าง 15 วิ แล้วสั่ง `pm2 reload iam` กลางคัน เจอ **3 บัคซ้อนกัน** ที่ทำให้ graceful shutdown ไม่ทำงาน แก้ครบทั้ง 3 จุดแล้ว และ **ยืนยันด้วย live test (rebuild + `pm2 reload`) ผ่านครบทุกจุด** — request 15 วิ ได้ response `200` เต็มทั้งที่โดน reload กลางคัน ไม่มี error / 403 / connection ถูกตัดอีก
 
 **สถานะสุดท้าย: ✅ ผ่านครบทุกจุด** — re-test หลังแก้ครบทั้ง 3 บัคได้ `HTTP_CODE:200`, `TIME_TOTAL:15.012s` พร้อม response เต็ม `{"message":"Long-running process completed successfully!"}` ทั้งที่โดน `pm2 reload` กลางคัน
 
