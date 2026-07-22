@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -6,18 +7,23 @@ import {
   HttpStatus,
   Post,
   Req,
+  Res,
 } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import type { FastifyRequest } from 'fastify';
+import type { FastifyReply, FastifyRequest } from 'fastify';
 
 import {
+  clearAuthCookies,
   CurrentUser,
   Public,
   RequirePermission,
+  setAuthCookies,
+  SkipCsrfCheck,
   SkipPermissionCheck,
   type IUserSession,
 } from '@lib/common';
+import { ConfigService } from '@lib/config';
 
 import {
   LOGIN_SUMMARY,
@@ -31,29 +37,37 @@ import { LoginDTO } from '../dto/login.dto';
 import { RefreshDTO } from '../dto/refresh.dto';
 import { SetCredentialDTO } from '../dto/set-credential.dto';
 import { AuthService, ILoginResult } from '../services/auth.service';
+import { parseDurationToSeconds } from '../utils/duration.util';
 
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Public()
+  @SkipCsrfCheck()
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: LOGIN_SUMMARY })
   @ApiOkResponse({ type: LoginResultDTO })
-  login(
+  async login(
     @Body() dto: LoginDTO,
     @Req() request: FastifyRequest,
+    @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<ILoginResult> {
     const ipAddress = request.ip ?? null;
     const userAgent = request.headers['user-agent'] ?? null;
-    return this.authService.login(
+    const result = await this.authService.login(
       dto.username,
       dto.password,
       ipAddress,
       userAgent,
     );
+    this.setCookies(reply, result);
+    return result;
   }
 
   @Public()
@@ -61,8 +75,18 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: REFRESH_SUMMARY })
   @ApiOkResponse({ type: LoginResultDTO })
-  refresh(@Body() dto: RefreshDTO): Promise<ILoginResult> {
-    return this.authService.refresh(dto.refresh_token);
+  async refresh(
+    @Body() dto: RefreshDTO,
+    @Req() request: FastifyRequest,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ): Promise<ILoginResult> {
+    const refreshTokenRaw = dto.refresh_token ?? request.cookies?.refresh_token;
+    if (!refreshTokenRaw) {
+      throw new BadRequestException('Refresh token is required.');
+    }
+    const result = await this.authService.refresh(refreshTokenRaw);
+    this.setCookies(reply, result);
+    return result;
   }
 
   @Post('logout')
@@ -72,12 +96,16 @@ export class AuthController {
   async logout(
     @CurrentUser() currentUser: IUserSession,
     @Body() dto: Partial<RefreshDTO>,
+    @Req() request: FastifyRequest,
+    @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<void> {
+    const refreshTokenRaw = dto.refresh_token ?? request.cookies?.refresh_token;
     await this.authService.logout(
       currentUser.jti,
       currentUser.id,
-      dto.refresh_token,
+      refreshTokenRaw,
     );
+    clearAuthCookies(reply, this.configService, this.refreshCookiePath());
   }
 
   @Get('me')
@@ -100,5 +128,26 @@ export class AuthController {
     @CurrentUser() currentUser: IUserSession,
   ): Promise<void> {
     await this.authService.setCredential(dto, currentUser.id ?? undefined);
+  }
+
+  private setCookies(reply: FastifyReply, result: ILoginResult): void {
+    const refreshExpiresIn =
+      this.configService.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '7d';
+    setAuthCookies(reply, this.configService, {
+      access_token: result.access_token,
+      refresh_token: result.refresh_token,
+      csrf_token: result.csrf_token,
+      accessTtlSeconds: result.expires_in,
+      refreshTtlSeconds: parseDurationToSeconds(refreshExpiresIn),
+      refreshCookiePath: this.refreshCookiePath(),
+    });
+  }
+
+  /** Scopes the refresh_token cookie to this BC's own route prefix (e.g.
+   * `/auth/v1`) — only auth-bc's own refresh/logout handlers need it. */
+  private refreshCookiePath(): string {
+    const prefixName = this.configService.get<string>('AUTH_PREFIX_NAME');
+    const prefixVersion = this.configService.get<string>('AUTH_PREFIX_VERSION');
+    return `/${prefixName}/${prefixVersion}`;
   }
 }

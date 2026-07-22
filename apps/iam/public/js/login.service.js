@@ -1,21 +1,22 @@
-// Session/token state, shared by every page. Talks to auth-bc (cross-origin —
-// see window.__AUTH_CONFIG__.baseUrl, injected by each page's config.ejs).
-// Persisted to localStorage so a refresh doesn't force a re-login.
+// Session state, shared by every page. Talks to auth-bc (cross-origin — see
+// window.__AUTH_CONFIG__.baseUrl, injected by each page's config.ejs).
+// access_token/refresh_token are httpOnly cookies now (never touched by JS) —
+// only the CSRF double-submit token and the user profile are persisted here,
+// so a page refresh doesn't force a re-login.
 
 const STORAGE_KEY = 'iam_view.session.v1';
 
 function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { access_token: null, refresh_token: null, user: null };
+    if (!raw) return { csrf_token: null, user: null };
     const parsed = JSON.parse(raw);
     return {
-      access_token: parsed.access_token ?? null,
-      refresh_token: parsed.refresh_token ?? null,
+      csrf_token: parsed.csrf_token ?? null,
       user: parsed.user ?? null,
     };
   } catch {
-    return { access_token: null, refresh_token: null, user: null };
+    return { csrf_token: null, user: null };
   }
 }
 
@@ -38,24 +39,21 @@ export function subscribe(fn) {
 export function getState() {
   return state;
 }
-export function getAccessToken() {
-  return state.access_token;
-}
-export function getRefreshToken() {
-  return state.refresh_token;
+export function getCsrfToken() {
+  return state.csrf_token;
 }
 export function getCurrentUser() {
   return state.user;
 }
 export function isAuthenticated() {
-  return Boolean(state.access_token && state.user);
+  return Boolean(state.csrf_token && state.user);
 }
 export function hasPermission(permission) {
   return (state.user?.permissions ?? []).includes(permission);
 }
 
-export function setTokens({ access_token, refresh_token }) {
-  state = { ...state, access_token, refresh_token };
+export function setCsrfToken(csrf_token) {
+  state = { ...state, csrf_token };
   persist();
   emit();
 }
@@ -67,7 +65,7 @@ export function setUser(user) {
 }
 
 export function clearSession() {
-  state = { access_token: null, refresh_token: null, user: null };
+  state = { csrf_token: null, user: null };
   localStorage.removeItem(STORAGE_KEY);
   emit();
 }
@@ -95,15 +93,16 @@ function authBase() {
 export async function login(username, password) {
   const response = await fetch(`${authBase()}/auth/login`, {
     method: 'POST',
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password }),
   });
   if (!response.ok) throw await toApiError(response);
   const tokens = await response.json();
-  setTokens({ access_token: tokens.access_token, refresh_token: tokens.refresh_token });
+  setCsrfToken(tokens.csrf_token);
 
   const meResponse = await fetch(`${authBase()}/auth/me`, {
-    headers: { Authorization: `Bearer ${tokens.access_token}` },
+    credentials: 'include',
   });
   if (!meResponse.ok) throw await toApiError(meResponse);
   const user = await meResponse.json();
@@ -112,15 +111,16 @@ export async function login(username, password) {
 }
 
 export async function logout() {
-  const { access_token, refresh_token } = state;
+  const { csrf_token } = state;
   try {
     await fetch(`${authBase()}/auth/logout`, {
       method: 'POST',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
-        ...(access_token ? { Authorization: `Bearer ${access_token}` } : {}),
+        ...(csrf_token ? { 'X-CSRF-Token': csrf_token } : {}),
       },
-      body: JSON.stringify(refresh_token ? { refresh_token } : {}),
+      body: '{}',
     });
   } finally {
     clearSession();
@@ -128,14 +128,17 @@ export async function logout() {
 }
 
 export async function refreshAccessToken() {
-  if (!state.refresh_token) throw new Error('No refresh token');
   const response = await fetch(`${authBase()}/auth/refresh`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refresh_token: state.refresh_token }),
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(state.csrf_token ? { 'X-CSRF-Token': state.csrf_token } : {}),
+    },
+    body: '{}',
   });
   if (!response.ok) throw await toApiError(response);
   const tokens = await response.json();
-  setTokens({ access_token: tokens.access_token, refresh_token: tokens.refresh_token });
+  setCsrfToken(tokens.csrf_token);
   return tokens;
 }

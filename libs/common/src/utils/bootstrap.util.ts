@@ -21,6 +21,7 @@ import {
 } from '@nestjs/platform-fastify';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
+import fastifyCookie from '@fastify/cookie';
 import fastifyHelmet from '@fastify/helmet';
 import fastifyRateLimit from '@fastify/rate-limit';
 import { apiReference } from '@scalar/nestjs-api-reference';
@@ -127,13 +128,25 @@ function resolveTrustProxy(raw?: string): boolean | number | string[] {
     .filter((part) => part.length > 0);
 }
 
+/** `CORS_ORIGIN` accepts a single origin or a comma-separated list (multiple
+ * dev ports / staging domains) — `@fastify/cors` only does exact-string
+ * matching per entry, unlike a single string with commas baked in. */
+function resolveCorsOrigin(raw: string): string | string[] {
+  if (!raw.includes(',')) return raw;
+  return raw
+    .split(',')
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0);
+}
+
 async function applySecurity(
   app: NestFastifyApplication,
   configService: ConfigService,
   security?: SecurityOptions,
 ): Promise<void> {
   const corsOrigin =
-    security?.cors?.origin ?? configService.get<string>('CORS_ORIGIN') ?? '*';
+    security?.cors?.origin ??
+    resolveCorsOrigin(configService.get<string>('CORS_ORIGIN') ?? '*');
   const exposedHeaders = security?.cors?.exposedHeaders ?? ['X-Trace-Id'];
   // @fastify/cors defaults `methods` to 'GET,HEAD,POST' only (no PUT/PATCH/DELETE) —
   // every BC needs the full REST verb set since browsers preflight cross-origin
@@ -148,7 +161,19 @@ async function applySecurity(
     'POST',
     'DELETE',
   ];
-  app.enableCors({ origin: corsOrigin, exposedHeaders, methods: corsMethods });
+  // credentials: true is required so the browser sends/stores the httpOnly
+  // access_token/refresh_token cookies cross-origin (see auth-cookie.util.ts).
+  // Browsers reject `credentials: true` combined with `origin: '*'` — CORS_ORIGIN
+  // must be an explicit origin (or list) in any deployment that uses the cookie
+  // auth flow.
+  app.enableCors({
+    origin: corsOrigin,
+    exposedHeaders,
+    methods: corsMethods,
+    credentials: true,
+  });
+
+  await app.register(fastifyCookie);
 
   if (security?.helmet !== false) {
     await app.register(fastifyHelmet, { contentSecurityPolicy: false });

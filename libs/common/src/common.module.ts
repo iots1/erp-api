@@ -6,6 +6,7 @@ import { ClientProvider, ClientsModule } from '@nestjs/microservices';
 import { AppMicroservice } from '@lib/common/enum/app-microservice.enum';
 import { AccessKeyGuard } from '@lib/common/guards/access-key.guard';
 import { AuthGuard } from '@lib/common/guards/auth.guard';
+import { CsrfGuard } from '@lib/common/guards/csrf.guard';
 import { PermissionGuard } from '@lib/common/guards/permission.guard';
 import { LogModule } from '@lib/common/modules/log/log.module';
 import { RedisModule } from '@lib/common/modules/redis/redis.module';
@@ -56,6 +57,7 @@ import { ConfigModule, ConfigService } from '@lib/config';
     SessionStoreService,
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_GUARD, useClass: AccessKeyGuard },
+    { provide: APP_GUARD, useClass: CsrfGuard },
     { provide: APP_GUARD, useClass: PermissionGuard },
   ],
   exports: [

@@ -100,10 +100,15 @@ export class AuthGuard implements CanActivate {
     return true;
   }
 
+  /** `Authorization: Bearer` (API/service clients) takes priority; falls back to
+   * the `access_token` cookie (browser clients — see auth-cookie.util.ts). */
   private extractToken(request: FastifyRequest): string | null {
     const header = request.headers['authorization'];
-    if (typeof header !== 'string') return null;
-    const [scheme, token] = header.split(' ');
-    return scheme === 'Bearer' && token ? token : null;
+    if (typeof header === 'string') {
+      const [scheme, token] = header.split(' ');
+      if (scheme === 'Bearer' && token) return token;
+    }
+
+    return request.cookies?.access_token ?? null;
   }
 }

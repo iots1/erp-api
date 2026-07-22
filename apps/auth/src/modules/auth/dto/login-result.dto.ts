@@ -7,6 +7,12 @@ export class LoginResultDTO {
   @ApiProperty()
   refresh_token: string;
 
+  @ApiProperty({
+    description:
+      'Double-submit CSRF token. Also set as a non-httpOnly cookie; browser clients must echo it back as the `x-csrf-token` header on mutating requests.',
+  })
+  csrf_token: string;
+
   @ApiProperty({ example: 'Bearer' })
   token_type: 'Bearer';
 

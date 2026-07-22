@@ -10,6 +10,7 @@ export * from './decorators/current-user.decorator';
 export * from './decorators/resource-type.decorator';
 export * from './decorators/require-permission.decorator';
 export * from './decorators/skip-permission-check.decorator';
+export * from './decorators/skip-csrf-check.decorator';
 export * from './decorators/validated-query.decorator';
 export * from './decorators/json-api-response.decorator';
 export * from './decorators/custom-validate-dto/is-iso-8601.decorator';
@@ -70,6 +71,7 @@ export * from './services/session-store.service';
 // Guards
 export * from './guards/auth.guard';
 export * from './guards/access-key.guard';
+export * from './guards/csrf.guard';
 export * from './guards/permission.guard';
 
 // Pipes
@@ -104,3 +106,4 @@ export * from './utils/nested-set/rebuild-nested-set.util';
 // Bootstrap
 export * from './utils/bootstrap.util';
 export * from './utils/microservice-transport.util';
+export * from './utils/auth-cookie.util';

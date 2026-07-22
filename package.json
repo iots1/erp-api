@@ -88,6 +88,7 @@
     "migration:show:all": "npm run migration:show:auth && npm run migration:show:iam && npm run migration:show:inventory && npm run migration:show:supplier && npm run migration:show:sales && npm run migration:show:finance && npm run migration:show:report"
   },
   "dependencies": {
+    "@fastify/cookie": "^11.1.2",
     "@fastify/helmet": "^13.0.2",
     "@fastify/rate-limit": "^11.0.0",
     "@fastify/static": "^9.1.3",

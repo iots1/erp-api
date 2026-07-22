@@ -12,7 +12,7 @@
             try {
                 var raw = localStorage.getItem('iam_view.session.v1');
                 var session = raw ? JSON.parse(raw) : null;
-                var authenticated = Boolean(session && session.access_token && session.user);
+                var authenticated = Boolean(session && session.csrf_token && session.user);
                 document.getElementById('loginScreen').classList.toggle('hidden', authenticated);
                 document.getElementById('appShell').classList.toggle('hidden', !authenticated);
             } catch (e) {}

@@ -33,6 +33,10 @@ import * as Joi from 'joi';
           .required(),
         JWT_ACCESS_EXPIRES_IN: Joi.string().default('15m'),
         JWT_REFRESH_EXPIRES_IN: Joi.string().default('7d'),
+        // Cookie attributes for the browser (httpOnly access/refresh token +
+        // CSRF double-submit) auth flow — see auth-cookie.util.ts.
+        COOKIE_DOMAIN: Joi.string().optional(),
+        COOKIE_SECURE: Joi.boolean().default(true),
         CORS_ORIGIN: Joi.string().default('*'),
         RATE_LIMIT_WINDOW_MS: Joi.number().default(15 * 60 * 1000),
         RATE_LIMIT_MAX: Joi.number().default(10000),

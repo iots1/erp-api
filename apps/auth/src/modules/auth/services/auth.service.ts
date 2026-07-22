@@ -38,6 +38,7 @@ import { parseDurationToSeconds } from '../utils/duration.util';
 export interface ILoginResult {
   access_token: string;
   refresh_token: string;
+  csrf_token: string;
   token_type: 'Bearer';
   expires_in: number;
 }
@@ -346,6 +347,10 @@ export class AuthService {
     return {
       access_token: accessToken,
       refresh_token: refreshTokenRaw,
+      // Double-submit CSRF token (see CsrfGuard) — also set as a non-httpOnly
+      // cookie by the controller; returned in the body too so non-cookie
+      // clients can see the shape, though only the cookie value is checked.
+      csrf_token: randomBytes(32).toString('hex'),
       token_type: 'Bearer',
       expires_in: accessTtlSeconds,
     };

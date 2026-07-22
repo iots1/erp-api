@@ -1,9 +1,16 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 
-import { IsString } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
 
 export class RefreshDTO {
+  // Optional: browser clients rely on the httpOnly `refresh_token` cookie
+  // instead (see auth-cookie.util.ts) — only non-cookie API clients need to
+  // supply this explicitly.
+  @IsOptional()
   @IsString()
-  @ApiProperty({ description: 'Refresh token issued at login' })
-  refresh_token: string;
+  @ApiPropertyOptional({
+    description:
+      'Refresh token issued at login. Omit if relying on the httpOnly refresh_token cookie.',
+  })
+  refresh_token?: string;
 }

@@ -1,23 +1,36 @@
-// fetchWithAuth: the only way pages should call an authenticated API. Injects
-// the bearer token, retries once through a token refresh on 401, and — if the
-// refresh itself fails (refresh token expired/revoked) — surfaces the shared
-// #authLoginModal instead of silently failing. See SKILL.md "Auth Pattern".
+// fetchWithAuth: the only way pages should call an authenticated API.
+// access_token is an httpOnly cookie (sent automatically) — this only injects
+// the CSRF double-submit header on mutating requests, retries once through a
+// token refresh on 401, and — if the refresh itself fails (refresh token
+// expired/revoked) — surfaces the shared #authLoginModal instead of silently
+// failing. See SKILL.md "Auth Pattern".
 import {
   clearSession,
-  getAccessToken,
+  getCsrfToken,
   login,
   refreshAccessToken,
 } from './login.service.js';
 import { closeModal, openModal } from './modal.service.js';
 
 let pendingRefresh = null;
+const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+
+function withCsrfHeader(headers, method) {
+  const merged = new Headers(headers || {});
+  const csrfToken = getCsrfToken();
+  if (csrfToken && !SAFE_METHODS.has((method || 'GET').toUpperCase())) {
+    merged.set('X-CSRF-Token', csrfToken);
+  }
+  return merged;
+}
 
 export async function fetchWithAuth(url, options = {}) {
-  const headers = new Headers(options.headers || {});
-  const token = getAccessToken();
-  if (token) headers.set('Authorization', `Bearer ${token}`);
-
-  let response = await fetch(url, { ...options, headers });
+  const headers = withCsrfHeader(options.headers, options.method);
+  let response = await fetch(url, {
+    ...options,
+    headers,
+    credentials: 'include',
+  });
   if (response.status !== 401) return response;
 
   try {
@@ -31,9 +44,12 @@ export async function fetchWithAuth(url, options = {}) {
     throw new Error('Session expired — please log in again.');
   }
 
-  const retryHeaders = new Headers(options.headers || {});
-  retryHeaders.set('Authorization', `Bearer ${getAccessToken()}`);
-  return fetch(url, { ...options, headers: retryHeaders });
+  const retryHeaders = withCsrfHeader(options.headers, options.method);
+  return fetch(url, {
+    ...options,
+    headers: retryHeaders,
+    credentials: 'include',
+  });
 }
 
 export function showAuthModal() {
