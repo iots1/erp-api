@@ -99,6 +99,11 @@ where `status.code` is a 6-digit code (`HTTP status × 1000 + serial`, e.g. `200
 - RabbitMQ (inter-service transport; set `TRANSPORT=tcp` in `.env` to fall back to direct TCP
   if unavailable)
 
+Don't have these running locally? [`infrastructure/infra-erp`](infrastructure/infra-erp)
+is a Docker Compose stack with all three — see [`infrastructure/README.md`](infrastructure/README.md).
+[`infrastructure/observability`](infrastructure/observability) similarly stands up
+Grafana + Tempo (traces) + Loki (logs) + Prometheus (metrics) for local OTel/log debugging.
+
 ### Setup
 
 ```bash

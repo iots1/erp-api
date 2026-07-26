@@ -1,0 +1,52 @@
+// เปิดรับข้อมูล OTLP (OpenTelemetry) ทั้งแบบ gRPC และ HTTP
+otelcol.receiver.otlp "default" {
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+
+  // ส่งข้อมูล Traces ไปที่ exporter ของ tempo
+  output {
+    traces  = [otelcol.exporter.otlp.tempo.input]
+  }
+}
+
+// ตั้งค่า Exporter ให้ส่งข้อมูลไปยัง Tempo ภายใน Docker Network
+otelcol.exporter.otlp "tempo" {
+  client {
+    endpoint = "tempo:4317"
+    tls {
+      insecure             = true
+      insecure_skip_verify = true
+    }
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
+//  Logs: tail pino-http JSON access logs (bind-mounted from the host at
+//  /root/erp-api/logs → /var/log/erp-api in this container, see
+//  docker-compose.yml) and ship them to Loki. `job`/`service_name` labels
+//  let Grafana's Explore "Service" dropdown group logs the same way it
+//  already groups traces.
+// ──────────────────────────────────────────────────────────────
+
+local.file_match "erp_api_http" {
+  path_targets = [{
+    __path__     = "/var/log/erp-api/*/http/*.log",
+    job          = "erp-api-http",
+    service_name = "erp-api",
+  }]
+}
+
+loki.source.file "erp_api_http" {
+  targets    = local.file_match.erp_api_http.targets
+  forward_to = [loki.write.default.receiver]
+}
+
+loki.write "default" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

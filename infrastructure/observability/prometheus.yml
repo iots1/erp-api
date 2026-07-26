@@ -1,0 +1,11 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  # Alloy exposes its own component/pipeline metrics (otelcol_receiver_*,
+  # otelcol_exporter_*, otelcol_processor_*, ...) on its HTTP server's
+  # /metrics endpoint — this is what dashboard 18309 (OpenTelemetry
+  # Collector Data Flow) graphs.
+  - job_name: 'alloy'
+    static_configs:
+      - targets: ['alloy:12345']

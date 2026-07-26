@@ -11,6 +11,12 @@ node_modules/
 .nx/workspace-data
 
 # ──────────────────────────────────────────────────────────────
+#  Infra compose — real credentials/bind-mounted data, never committed
+# ──────────────────────────────────────────────────────────────
+infrastructure/infra-erp/.env
+infrastructure/infra-erp/data/
+
+# ──────────────────────────────────────────────────────────────
 #  Logs
 # ──────────────────────────────────────────────────────────────
 logs

@@ -1,0 +1,77 @@
+services:
+  # 1. Grafana Alloy: ทำหน้าที่รับ OpenTelemetry (OTLP) และส่งต่อให้ Tempo
+  #    + tail pino-http JSON access logs (host bind-mount) แล้วส่งต่อให้ Loki
+  alloy:
+    image: grafana/alloy:latest
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - /etc/alloy/config.alloy
+    volumes:
+      - ./config.alloy:/etc/alloy/config.alloy
+      # Path to the erp-api repo's logs/ dir (see apps/*/http log config in
+      # libs/common/src/utils/logger/pino-http.config.ts). Defaults to the
+      # repo root relative to this compose file — override in a sibling
+      # .env if this stack runs on a different host than erp-api.
+      - ${ERP_API_LOGS_DIR:-../../logs}:/var/log/erp-api:ro
+    ports:
+      - "4317:4317" # OTLP gRPC สำหรับรับ Trace จากแอปของคุณ
+      - "4318:4318" # OTLP HTTP สำหรับรับ Trace จากแอปของคุณ
+    depends_on:
+      - tempo
+      - loki
+
+  # 2. Grafana Tempo: ทำหน้าที่เป็น Trace Backend Storage
+  tempo:
+    image: grafana/tempo:latest
+    command: [ "-config.file=/etc/tempo.yaml" ]
+    volumes:
+      - ./tempo.yaml:/etc/tempo.yaml
+    ports:
+      - "3200:3200" # ขา HTTP สำหรับให้ Grafana ดึงข้อมูล
+      # พอร์ต 4317 ถูกใช้งานภายใน Network ของ Docker ให้ Alloy ส่งข้อมูลเข้ามา
+
+  # 3. Grafana Loki: ทำหน้าที่เป็น Log Backend Storage
+  loki:
+    image: grafana/loki:latest
+    command: [ "-config.file=/etc/loki/loki-config.yaml" ]
+    volumes:
+      - ./loki-config.yaml:/etc/loki/loki-config.yaml
+      - loki-data:/loki
+    ports:
+      - "3100:3100" # ขา HTTP สำหรับให้ Grafana ดึงข้อมูล / รับ push จาก Alloy
+
+  # 4. Grafana: ทำหน้าที่แสดงผล (Dashboard & TraceQL / LogQL)
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      # NOTE: anonymous Admin access — fine for an isolated dev/staging box,
+      # do NOT reuse this env block as-is on anything internet-reachable.
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+      - GF_FEATURE_TOGGLES_ENABLE=traceqlEditor
+    volumes:
+      - ./grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+    ports:
+      - "3000:3000" # เข้าใช้งาน Grafana ผ่านพอร์ตนี้
+    depends_on:
+      - tempo
+      - loki
+
+  # 5. Prometheus: scrape Alloy/OTel Collector's own internal pipeline metrics
+  #    (otelcol_receiver_*, otelcol_exporter_*, ...) for dashboards like
+  #    "OpenTelemetry Collector Data Flow" (grafana.com/dashboards/18309)
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090" # เข้าใช้งาน Prometheus UI ผ่านพอร์ตนี้ (สำหรับ debug)
+    depends_on:
+      - alloy
+
+volumes:
+  loki-data:
+  prometheus-data:
