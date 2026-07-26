@@ -97,6 +97,21 @@ function shouldIgnore(url: string): boolean {
 }
 
 // ──────────────────────────────────────────────────────────────
+//  Per-service log dir
+//  Converts the root module class name (IamModule, FinanceBcModule, ...) to
+//  the same kebab-case slug as its apps/<slug> folder (iam, finance-bc, ...)
+//  so every BC gets its own log file by default instead of colliding on a
+//  shared 'logs/http/http.log' when multiple services share a cwd.
+// ──────────────────────────────────────────────────────────────
+
+function serviceSlug(moduleName: string): string {
+  return moduleName
+    .replace(/Module$/, '')
+    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+    .toLowerCase();
+}
+
+// ──────────────────────────────────────────────────────────────
 //  Response body capture middleware
 // ──────────────────────────────────────────────────────────────
 
@@ -262,7 +277,7 @@ export function buildPinoHttpMiddleware(
   const includeReqBody = opts.includeReqBody !== false;
   const includeResBody = opts.includeResBody !== false;
   const maxBytes = opts.bodyMaxBytes ?? 32768;
-  const logDir = opts.logDir ?? 'logs/http';
+  const logDir = opts.logDir ?? path.join('logs', serviceSlug(moduleName), 'http');
   const rotateFrequency = opts.rotateFrequency ?? 'daily';
   const retentionDays = opts.retentionDays ?? 14;
   const dateFormat = opts.dateFormat ?? 'yyyy-MM-dd';
