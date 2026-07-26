@@ -40,7 +40,7 @@ if [ -n "$(git status --porcelain)" ]; then
   echo "!! Discarding local changes on the server:"
   git status --short
   git reset --hard HEAD
-  git clean -fd --exclude=.env --exclude=logs
+  git clean -fd --exclude=.env --exclude=logs --exclude=.nx
 fi
 git fetch origin
 
@@ -52,13 +52,16 @@ fi
 TARGET_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
 echo "==> resetting to origin/${TARGET_BRANCH}"
 git reset --hard "origin/${TARGET_BRANCH}"
-git clean -fd --exclude=.env --exclude=logs
+git clean -fd --exclude=.env --exclude=logs --exclude=.nx
 
 echo "==> pnpm install"
 pnpm install --frozen-lockfile
 
 echo "==> build all BCs"
-npm run build:all
+# nx run-many (not the build:all bash loop) so unchanged apps replay from Nx's
+# local cache (.nx/cache — kept across deploys, see the --exclude=.nx above)
+# instead of re-running webpack for every BC on every deploy.
+pnpm nx run-many -t build --all
 
 # build:all only runs `nest build iam` — it does NOT run iam's esbuild asset
 # step, so the admin-UI JS/CSS (apps/iam/dist/public) goes stale unless this
