@@ -14,6 +14,7 @@ import {
 import { REQUEST } from '@nestjs/core';
 import { ClientProxy } from '@nestjs/microservices';
 
+import { context as otelContext, propagation } from '@opentelemetry/api';
 import Redis from 'ioredis';
 import { lastValueFrom, timeout, TimeoutError } from 'rxjs';
 
@@ -675,6 +676,16 @@ export class MicroserviceClientService {
     const xClientIp = headers['x-client-ip'] ?? 'N/A';
     const xClientUserAgent = headers['x-client-user-agent'] ?? 'N/A';
 
+    // Real OpenTelemetry span context (W3C traceparent/tracestate), separate
+    // from the hand-rolled `trace` fields above (those are log-correlation
+    // only). Whatever span is active right now — the auto-instrumented HTTP
+    // span on an inbound request, or the span `OtelRpcContextInterceptor`
+    // opened for a chained RPC hop — gets serialized into this carrier so
+    // `OtelRpcContextInterceptor` on the callee can extract it and continue
+    // the same span tree instead of starting a disconnected root span.
+    const otelCarrier: Record<string, string> = {};
+    propagation.inject(otelContext.active(), otelCarrier);
+
     return {
       user: {
         id:
@@ -694,6 +705,7 @@ export class MicroserviceClientService {
         parent_span_id: parentSpanId,
         span_id: randomUUID(),
       },
+      otel: otelCarrier,
     };
   }
 

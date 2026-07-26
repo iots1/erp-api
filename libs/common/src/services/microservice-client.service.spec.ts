@@ -1,5 +1,13 @@
 import type { ClientProxy } from '@nestjs/microservices';
 
+import { context as otelContext, propagation, trace } from '@opentelemetry/api';
+import { AsyncLocalStorageContextManager } from '@opentelemetry/context-async-hooks';
+import { W3CTraceContextPropagator } from '@opentelemetry/core';
+import {
+  InMemorySpanExporter,
+  SimpleSpanProcessor,
+} from '@opentelemetry/sdk-trace-base';
+import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import type { Redis } from 'ioredis';
 import { of } from 'rxjs';
 
@@ -136,5 +144,73 @@ describe('MicroserviceClientService — trace propagation', () => {
     expect(ctx['trace_id']).toBe('T-root');
     expect(ctx['span_id']).toMatch(UUID_RE);
     expect(ctx['correlation_id']).toBe('C-1');
+  });
+});
+
+/**
+ * Real OpenTelemetry provider/exporter/propagator/context-manager (not
+ * mocks) so this proves `_context.otel` actually carries the live span's
+ * traceparent — the carrier `OtelRpcContextInterceptor` extracts on the
+ * receiving BC to keep the real span tree (and therefore DB query spans)
+ * connected across the TCP hop.
+ */
+describe('MicroserviceClientService — OTel bridge over TCP', () => {
+  const cmd = { cmd: 'get_patient' };
+  const exporter = new InMemorySpanExporter();
+  let provider: NodeTracerProvider;
+  let contextManager: AsyncLocalStorageContextManager;
+
+  beforeAll(() => {
+    provider = new NodeTracerProvider({
+      spanProcessors: [new SimpleSpanProcessor(exporter)],
+    });
+    contextManager = new AsyncLocalStorageContextManager();
+    contextManager.enable();
+
+    trace.setGlobalTracerProvider(provider);
+    otelContext.setGlobalContextManager(contextManager);
+    propagation.setGlobalPropagator(new W3CTraceContextPropagator());
+  });
+
+  afterAll(async () => {
+    otelContext.disable();
+    trace.disable();
+    propagation.disable();
+    contextManager.disable();
+    await provider.shutdown();
+  });
+
+  beforeEach(() => {
+    exporter.reset();
+  });
+
+  it('injects the currently active span into _context.otel as a W3C traceparent', async () => {
+    const service = buildService({});
+    const client = buildClient();
+    const tracer = trace.getTracer('test-caller');
+
+    const { traceId, spanId } = await tracer.startActiveSpan(
+      'caller-span',
+      async (span) => {
+        await service.sendWithContext(buildLogger(), client, cmd, { id: '1' });
+        const ctx = span.spanContext();
+        span.end();
+        return ctx;
+      },
+    );
+
+    const otelCarrier = sentContext(client).otel;
+    expect(otelCarrier?.['traceparent']).toBeDefined();
+    expect(otelCarrier?.['traceparent']).toContain(traceId);
+    expect(otelCarrier?.['traceparent']).toContain(spanId);
+  });
+
+  it('with no active span, still attaches an (empty) otel carrier — never throws', async () => {
+    const service = buildService({});
+    const client = buildClient();
+
+    await service.sendWithContext(buildLogger(), client, cmd, {});
+
+    expect(sentContext(client).otel).toEqual({});
   });
 });

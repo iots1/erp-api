@@ -35,6 +35,7 @@ import { Server as SocketIOServer, type ServerOptions } from 'socket.io';
 
 import { AppMicroserviceKey } from '@lib/common/enum/app-microservice.enum';
 import { DocAuthKey } from '@lib/common/enum/doc-auth-key.enum';
+import { OtelRpcContextInterceptor } from '@lib/common/interceptors/otel-rpc-context.interceptor';
 import { GracefulShutdownService } from '@lib/common/services/graceful-shutdown.service';
 import { AllExceptionsFilter } from '@lib/common/utils/http-exception/all-exceptions-filter.util';
 import { RpcExceptionsFilter } from '@lib/common/utils/http-exception/rpc-exceptions-filter.util';
@@ -549,7 +550,12 @@ async function setupMicroservice(
 ): Promise<void> {
   const options = buildServerOptions(microservice, configService);
 
-  app.connectMicroservice<MicroserviceOptions>(options);
+  const microserviceInstance =
+    app.connectMicroservice<MicroserviceOptions>(options);
+  // Registered directly on the microservice instance, NOT via APP_INTERCEPTOR
+  // — see OtelRpcContextInterceptor's docblock for why the latter is a no-op
+  // for RPC handlers in this codebase.
+  microserviceInstance.useGlobalInterceptors(new OtelRpcContextInterceptor());
   await app.startAllMicroservices();
 
   const transport = resolveTransport(configService);

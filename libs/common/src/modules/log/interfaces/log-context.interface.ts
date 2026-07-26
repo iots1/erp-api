@@ -26,6 +26,18 @@ export interface IUserContext {
 export interface ICallContext {
   trace: ITraceContext;
   user?: IUserContext; // User อาจไม่มีในบางกรณี (เช่น system-to-system call)
+  /**
+   * W3C `traceparent`/`tracestate` carrier produced by
+   * `propagation.inject(otelContext.active(), carrier)` — a separate system
+   * from `trace` above (hand-rolled log correlation). Consumed by
+   * `OtelRpcContextInterceptor` on the receiving side to make the real
+   * OpenTelemetry span tree (visible in Tempo/Jaeger/etc.) continue across
+   * the TCP hop, so DB query spans on the callee show up as children of the
+   * caller's span. Optional so payloads from callers on an older build (or
+   * with tracing disabled) still deserialize fine — the callee just starts a
+   * new root span instead.
+   */
+  otel?: Record<string, string>;
 }
 
 export interface IRequestContext {
