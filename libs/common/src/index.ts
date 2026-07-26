@@ -107,3 +107,7 @@ export * from './utils/nested-set/rebuild-nested-set.util';
 export * from './utils/bootstrap.util';
 export * from './utils/microservice-transport.util';
 export * from './utils/auth-cookie.util';
+
+// Logger — HTTP access logging (pino-http)
+export { buildPinoHttpMiddleware } from './utils/logger/pino-http.config';
+export type { HttpLoggingOptions } from './utils/logger/http-logging.options';

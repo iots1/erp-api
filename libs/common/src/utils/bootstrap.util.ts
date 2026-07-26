@@ -43,6 +43,8 @@ import { ValidationException } from '@lib/common/utils/http-exception/validation
 import { flattenValidationErrors } from '@lib/common/utils/http-exception/validation.helper';
 import { LocalizationInterceptor } from '@lib/common/utils/http-success/localization-interceptor.util';
 import { TransformInterceptor } from '@lib/common/utils/http-success/transform-interceptor.util';
+import type { HttpLoggingOptions } from '@lib/common/utils/logger/http-logging.options';
+import { buildPinoHttpMiddleware } from '@lib/common/utils/logger/pino-http.config';
 import {
   buildServerOptions,
   resolveTransport,
@@ -99,6 +101,14 @@ export interface BootstrapOptions {
   basicAuth?: boolean;
   security?: SecurityOptions;
   forbidNonWhitelisted?: boolean;
+  /**
+   * HTTP access logging (pino-http), separate from the Winston `LogsService`
+   * business logger. `true`/omitted → enabled with defaults; `false` →
+   * disabled entirely; `HttpLoggingOptions` → per-service overrides (e.g.
+   * turn off body capture for an upload-heavy service).
+   * @default true
+   */
+  httpLogging?: boolean | HttpLoggingOptions;
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -202,6 +212,26 @@ async function applySecurity(
       }),
     });
   }
+}
+
+// ──────────────────────────────────────────────────────────────
+//  HTTP Access Logging (pino-http)
+//  Fastify has no native Express-style middleware chain; NestFactory's
+//  FastifyAdapter.use() auto-registers @fastify/middie on first use (see
+//  fastify-adapter.js), so pino-http's connect-style (req, res, next)
+//  middleware works unchanged here.
+// ──────────────────────────────────────────────────────────────
+
+function registerHttpLogging(
+  app: NestFastifyApplication,
+  moduleName: string,
+  httpLogging: boolean | HttpLoggingOptions | undefined,
+): void {
+  if (httpLogging === false) return;
+
+  const opts: HttpLoggingOptions =
+    httpLogging === undefined || httpLogging === true ? {} : httpLogging;
+  app.use(buildPinoHttpMiddleware(moduleName, opts));
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -627,6 +657,9 @@ export async function bootstrapApplication(
 
   // --- Security ---
   await applySecurity(app, configService, options.security);
+
+  // --- HTTP Access Logging (pino-http) ---
+  registerHttpLogging(app, moduleName, options.httpLogging);
 
   // --- Global Prefix ---
   const listenPORT = resolveHttpPort(configService, options.httpPortEnv);
