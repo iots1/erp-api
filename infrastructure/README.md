@@ -61,9 +61,17 @@ docker compose up -d
   `_total` suffix on counters, `otelcol_process_*` self-metrics) and its queries need adjusting
   to Alloy's actual names (`otelcol_receiver_accepted_spans_total`, `process_cpu_seconds_total`,
   `process_resident_memory_bytes`, ...) before it'll show data.
-- **Grafana** (`3000`) — all three datasources pre-provisioned via `grafana-datasources.yaml`.
-  Anonymous access is enabled with the Admin role for convenience; this is fine on an isolated
-  dev/staging box but must not be reused as-is anywhere internet-reachable.
+- **Grafana** (`3000`) — all three datasources pre-provisioned via `grafana-datasources.yaml`,
+  including `Tempo`'s `serviceMap`/`tracesToMetrics` wiring to Prometheus, which is what lights
+  up Grafana's built-in **Service Graph** tab (Explore → Tempo → Service Graph) and the
+  APM-style latency/error/rate table on a trace — no separate numbered community dashboard
+  needed once metrics-generator (below) is on. Anonymous access is enabled with the Admin role
+  for convenience; this is fine on an isolated dev/staging box but must not be reused as-is
+  anywhere internet-reachable.
+  - **Gotcha**: Grafana's file-based datasource provisioning only re-applies an entry when its
+    `version:` number in the YAML *increases* — editing `jsonData` without bumping `version`
+    gets silently ignored on the next Grafana restart (no error, the datasource just keeps
+    whatever it already had). Always bump `version` alongside any other change here.
 
 ### Gotcha: pm2's `env_file` vs `.env` changes on the app side
 

@@ -7,7 +7,7 @@ datasources:
     url: http://tempo:3200
     basicAuth: false
     isDefault: true
-    version: 1
+    version: 2
     editable: false
     uid: tempo
     jsonData:
@@ -16,6 +16,19 @@ datasources:
         spanStartTimeShift: '-1h'
         spanEndTimeShift: '1h'
         filterByTraceID: true
+      # Wires Tempo's metrics-generator output (traces_spanmetrics_*,
+      # traces_service_graph_*, remote-written to Prometheus — see
+      # tempo.yaml's metrics_generator block) back to this Tempo datasource,
+      # which is what lights up Grafana's built-in "Service Graph" tab and
+      # the APM table/latency-by-operation view in Explore + trace view —
+      # no separate numbered community dashboard needed for this.
+      serviceMap:
+        datasourceUid: prometheus
+      tracesToMetrics:
+        datasourceUid: prometheus
+        tags:
+          - key: service.name
+            value: service
 
   - name: Loki
     type: loki
