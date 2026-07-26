@@ -63,6 +63,7 @@ const SENSITIVE_KEYS = new Set([
   'secret',
   'authorization',
   'cookie',
+  'csrf_token',
   'x-csrf-token',
   'x-access-token',
 ]);
@@ -241,10 +242,20 @@ function buildPinoLogger(
       level: logLevel,
       timestamp: pino.stdTimeFunctions.isoTime,
       formatters: {
-        // Emit `level` as its string label (info/warn/error) instead of the
-        // default numeric value (30/40/50) so it matches the Winston
-        // LogsService schema and stays consistent if shipped to Loki later.
-        level: (label) => ({ level: label }),
+        // `level` MUST stay the numeric pino value (30/40/50) — do NOT change
+        // this to emit the string label alone.
+        //
+        // With a multi-target transport, pino's worker (pino/lib/worker.js)
+        // feeds every line through `pino.multistream`, which routes it by
+        // comparing the level parsed off the JSON line against each target's
+        // own `level` (`level >= dest.level`). A string label makes that
+        // `"info" >= 20` → false, so EVERY line is silently dropped for ALL
+        // targets: the log file is still created (sonic-boom opens it) but
+        // stays 0 bytes, and no error is emitted anywhere.
+        //
+        // The human-readable label is emitted alongside as `level_label` for
+        // Loki/Grafana, which keeps the numeric routing intact.
+        level: (label, number) => ({ level: number, level_label: label }),
       },
       redact: {
         paths: [
@@ -277,7 +288,8 @@ export function buildPinoHttpMiddleware(
   const includeReqBody = opts.includeReqBody !== false;
   const includeResBody = opts.includeResBody !== false;
   const maxBytes = opts.bodyMaxBytes ?? 32768;
-  const logDir = opts.logDir ?? path.join('logs', serviceSlug(moduleName), 'http');
+  const logDir =
+    opts.logDir ?? path.join('logs', serviceSlug(moduleName), 'http');
   const rotateFrequency = opts.rotateFrequency ?? 'daily';
   const retentionDays = opts.retentionDays ?? 14;
   const dateFormat = opts.dateFormat ?? 'yyyy-MM-dd';
@@ -335,7 +347,6 @@ export function buildPinoHttpMiddleware(
     serializers: {
       req(req: RequestWithUser & { raw?: RequestWithUser }) {
         const r = (req as unknown as { raw: RequestWithUser }).raw ?? req;
-        const session = r.user?.user_session;
         const forwardedFor = r.headers['x-forwarded-for'];
         const clientIp =
           (Array.isArray(forwardedFor)
@@ -343,33 +354,68 @@ export function buildPinoHttpMiddleware(
             : forwardedFor?.split(',')[0]?.trim()) ??
           r.socket?.remoteAddress ??
           'N/A';
-        const base = {
+        // Neither the request body nor the authenticated user are included
+        // here — see the res() serializer below for why (pino freezes req's
+        // chindings at Fastify's 'onRequest', before body parsing AND before
+        // AuthGuard runs) and where they actually get attached (as
+        // `res.req_body` / `res.user`).
+        return {
           method: r.method,
           url: r.url,
           headers: redactDeep(r.headers),
           correlation_id: r.headers['x-correlation-id'] ?? 'N/A',
           client_ip: clientIp,
           user_agent: r.headers['user-agent'] ?? 'N/A',
-          ...(session !== undefined
-            ? {
-                user: {
-                  id: session.id,
-                  username: session.username,
-                  roles: session.roles,
-                },
-              }
-            : {}),
         };
-        if (!includeReqBody) return base;
-        return { ...base, body: redactDeep(r.body) };
       },
 
-      res(res: PatchedServerResponse & { raw?: PatchedServerResponse }) {
+      res(
+        res: PatchedServerResponse & {
+          raw?: PatchedServerResponse;
+          req?: RequestWithUser;
+        },
+      ) {
         const raw =
           (res as unknown as { raw: PatchedServerResponse }).raw ?? res;
-        const base = { statusCode: raw.statusCode };
+        const base: Record<string, unknown> = { statusCode: raw.statusCode };
+
+        // pino-http binds `req` into the log line via `logger.child({ req })`
+        // at Fastify's 'onRequest' hook — before the body is parsed and
+        // before AuthGuard runs — and pino serializes child bindings once,
+        // immediately, at that call. So neither the body nor the
+        // authenticated user can ever be populated through the req
+        // serializer above; both are permanently frozen at their pre-parse /
+        // pre-auth (undefined) state there. The res serializer, by contrast,
+        // runs fresh at response-finish (see pino-http/logger.js
+        // onResFinished), by which point bootstrap.util.ts's `preValidation`
+        // hook has copied the parsed body onto `request.raw.body` and its
+        // `onSend` hook has copied `request.user` onto `request.raw.user` —
+        // and Node's ServerResponse always carries `.req` back to its
+        // IncomingMessage, so both are still reachable from here.
+        const rawReq = (raw as unknown as { req?: RequestWithUser }).req;
+
+        if (includeReqBody && rawReq?.body !== undefined) {
+          base['req_body'] = redactDeep(rawReq.body);
+        }
+
+        const session = rawReq?.user?.user_session;
+        if (session !== undefined) {
+          base['user'] = {
+            id: session.id,
+            username: session.username,
+            roles: session.roles,
+          };
+        }
+
         if (!includeResBody) return base;
-        return { ...base, body: raw.locals?.['responseBody'] ?? undefined };
+        // Redact the response body too — an auth response carries
+        // access_token/refresh_token/csrf_token, which would otherwise be
+        // written to disk (and shipped to Loki) in plaintext.
+        const body = raw.locals?.['responseBody'];
+        return {
+          ...base,
+          body: body === undefined ? undefined : redactDeep(body),
+        };
       },
     },
   };

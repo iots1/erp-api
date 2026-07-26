@@ -231,6 +231,46 @@ function registerHttpLogging(
 
   const opts: HttpLoggingOptions =
     httpLogging === undefined || httpLogging === true ? {} : httpLogging;
+
+  // Nest's vendored @fastify/middie clone (adapters/middie/fastify-middie.js)
+  // only copies the parsed body onto `request.raw.body` from its own
+  // 'onRequest' hook — but Fastify hasn't parsed the body yet at 'onRequest'
+  // (parsing happens later, around preValidation), so `request.body` is
+  // always undefined there and the copy is a no-op. pino-http's request
+  // serializer reads `req.raw.body` (see pino-http.config.ts), so without
+  // this, POST/PUT/PATCH payloads never appear in the access log despite
+  // `includeReqBody: true`. pino-http itself only serializes the request
+  // when the response finishes (long after preValidation), so copying the
+  // body here is early enough to be picked up.
+  app
+    .getHttpAdapter()
+    .getInstance()
+    .addHook('preValidation', (request, _reply, done) => {
+      if (request.body !== undefined) {
+        (request.raw as { body?: unknown }).body = request.body;
+      }
+      done();
+    });
+
+  // Same class of problem for the authenticated user: AuthGuard
+  // (guards/auth.guard.ts) sets `request.user` on Nest's Fastify-wrapped
+  // request — never on `request.raw`, which is what pino-http's req
+  // serializer reads (see pino-http.config.ts). Guards run as part of
+  // Fastify's handler execution (not a separate hook Nest exposes), so
+  // 'onSend' — which fires after the handler completes — is the earliest
+  // point where `request.user` is reliably populated and still before
+  // pino-http serializes the request at response-finish.
+  app
+    .getHttpAdapter()
+    .getInstance()
+    .addHook('onSend', (request, _reply, payload, done) => {
+      const user = (request as unknown as { user?: unknown }).user;
+      if (user !== undefined) {
+        (request.raw as { user?: unknown }).user = user;
+      }
+      done(null, payload);
+    });
+
   app.use(buildPinoHttpMiddleware(moduleName, opts));
 }
 
