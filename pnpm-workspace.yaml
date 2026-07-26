@@ -3,5 +3,9 @@ packages:
   - 'libs/*'
 
 onlyBuiltDependencies:
-  - nx
+  - '@scarf/scarf'
   - bcrypt
+  - esbuild
+  - nx
+  - protobufjs
+  - unrs-resolver
