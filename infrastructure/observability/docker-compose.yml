@@ -64,6 +64,15 @@ services:
   #    "OpenTelemetry Collector Data Flow" (grafana.com/dashboards/18309)
   prometheus:
     image: prom/prometheus:latest
+    # --web.enable-remote-write-receiver: accepts Tempo metrics-generator's
+    # remote_write push (span-metrics + service-graph metrics) — off by
+    # default on a stock Prometheus image.
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.console.libraries=/usr/share/prometheus/console_libraries
+      - --web.console.templates=/usr/share/prometheus/consoles
+      - --web.enable-remote-write-receiver
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus-data:/prometheus

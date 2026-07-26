@@ -43,7 +43,13 @@ docker compose up -d
   (`logs/<service>/http/*.log`, bind-mounted read-only from the repo root by default; override
   with `ERP_API_LOGS_DIR` in a sibling `.env` if this stack runs on a different host than
   erp-api itself).
-- **Tempo** stores traces, queryable on `3200`.
+- **Tempo** stores traces, queryable on `3200`, and runs its **metrics-generator**
+  (`tempo.yaml`'s `metrics_generator` + `overrides.defaults.metrics_generator.processors`):
+  every ingested trace also derives `traces_spanmetrics_*` (RED metrics: call rate, error rate,
+  latency) and `traces_service_graph_*` (caller→callee edges), remote-written to Prometheus —
+  the data source for APM/service-graph dashboards. Requires Prometheus started with
+  `--web.enable-remote-write-receiver` (set in `docker-compose.yml`'s `prometheus.command`,
+  off by default on a stock image) or the writes fail silently from Tempo's side.
 - **Loki** stores logs, queryable on `3100`. Alloy ships to it via `config.alloy`'s
   `loki.source.file` block — the log glob there (`/var/log/erp-api/*/http/*.log`) must have one
   `*` per path segment the app's logger actually creates; if a BC's log layout changes, update
