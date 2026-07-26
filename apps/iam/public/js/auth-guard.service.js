@@ -5,6 +5,7 @@
 // expired/revoked) — surfaces the shared #authLoginModal instead of silently
 // failing. See SKILL.md "Auth Pattern".
 import {
+  CLIENT_APP_NAME,
   clearSession,
   getCsrfToken,
   login,
@@ -17,6 +18,7 @@ const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 function withCsrfHeader(headers, method) {
   const merged = new Headers(headers || {});
+  merged.set('X-Client-App', CLIENT_APP_NAME);
   const csrfToken = getCsrfToken();
   if (csrfToken && !SAFE_METHODS.has((method || 'GET').toUpperCase())) {
     merged.set('X-CSRF-Token', csrfToken);

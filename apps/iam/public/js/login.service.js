@@ -5,6 +5,10 @@
 // so a page refresh doesn't force a re-login.
 
 const STORAGE_KEY = 'iam_view.session.v1';
+// Tags every request this admin UI makes so pino-http access logs (and Loki
+// queries over them) can separate "the iam admin panel calling its own API"
+// from an external frontend hitting the same endpoints directly.
+export const CLIENT_APP_NAME = 'iam-admin-ui';
 
 function loadState() {
   try {
@@ -94,7 +98,10 @@ export async function login(username, password) {
   const response = await fetch(`${authBase()}/auth/login`, {
     method: 'POST',
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Client-App': CLIENT_APP_NAME,
+    },
     body: JSON.stringify({ username, password }),
   });
   if (!response.ok) throw await toApiError(response);
@@ -103,6 +110,7 @@ export async function login(username, password) {
 
   const meResponse = await fetch(`${authBase()}/auth/me`, {
     credentials: 'include',
+    headers: { 'X-Client-App': CLIENT_APP_NAME },
   });
   if (!meResponse.ok) throw await toApiError(meResponse);
   const user = await meResponse.json();
@@ -118,6 +126,7 @@ export async function logout() {
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
+        'X-Client-App': CLIENT_APP_NAME,
         ...(csrf_token ? { 'X-CSRF-Token': csrf_token } : {}),
       },
       body: '{}',
@@ -133,6 +142,7 @@ export async function refreshAccessToken() {
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
+      'X-Client-App': CLIENT_APP_NAME,
       ...(state.csrf_token ? { 'X-CSRF-Token': state.csrf_token } : {}),
     },
     body: '{}',
