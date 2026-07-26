@@ -13,6 +13,8 @@ const pager = createPaginatedList({
   infoId: 'auditLogPagerInfo',
   prevId: 'auditLogPrevBtn',
   nextId: 'auditLogNextBtn',
+  tbodyId: 'auditLogTableBody',
+  columnCount: 5,
   fetchPage: async (page, pageSize) => {
     try {
       const filter = [];

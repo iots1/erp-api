@@ -216,6 +216,84 @@
   padding: 2rem !important;
 }
 
+/* ── Loading skeleton ─────────────────────────────────────────────── */
+
+/* Every list module (permissions, roles, users, ...) hits the same gap:
+   between clicking a filter/page button and the fetch resolving, the table
+   body was left showing the *previous* page's rows with no feedback, then
+   snapped straight to the new ones. createPaginatedList's load() now swaps
+   the tbody for this skeleton first, so there's always an immediate visual
+   response to the click instead of a dead pause. */
+@keyframes p-skeleton-shimmer {
+  0% {
+    background-position: 150% 0;
+  }
+  100% {
+    background-position: -50% 0;
+  }
+}
+.p-skeleton-bar {
+  display: inline-block;
+  width: 100%;
+  height: 0.85em;
+  border-radius: 4px;
+  /* Three-stop gradient sized to 200% width so only one bright band is ever
+     on-screen at a time; animating background-position (not transform)
+     slides that band left-to-right without affecting layout/row height. */
+  background: linear-gradient(
+    90deg,
+    var(--slate-100) 25%,
+    var(--slate-200) 50%,
+    var(--slate-100) 75%
+  );
+  background-size: 300% 100%;
+  animation: p-skeleton-shimmer 1.4s ease-in-out infinite;
+}
+.p-skeleton-bar--sm {
+  width: 45%;
+}
+.p-skeleton-bar--lg {
+  width: 85%;
+}
+/* Skeleton rows are non-interactive filler, not real data — the pointer
+   cursor from `.p-table tbody tr` above would otherwise suggest they're
+   clickable. */
+.p-table tbody tr.p-skeleton-row {
+  cursor: default;
+}
+.p-table tbody tr.p-skeleton-row:hover td {
+  background: var(--surface);
+}
+:root:not([data-theme="dark"]) .p-table tbody tr.p-skeleton-row:hover td {
+  background: #fff;
+}
+
+/* Real rows fade/lift in once they replace the skeleton (or a prior page's
+   rows) instead of popping in instantly — this is what actually reads as
+   "smooth" rather than the skeleton animation itself, which is only there to
+   cover the wait. Respects reduced-motion below. */
+.p-table tbody tr {
+  animation: p-row-settle 0.18s ease-out;
+}
+@keyframes p-row-settle {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .p-skeleton-bar {
+    animation: none;
+  }
+  .p-table tbody tr {
+    animation: none;
+  }
+}
+
 /* ── Pagination ───────────────────────────────────────────────────── */
 
 .um-pager {

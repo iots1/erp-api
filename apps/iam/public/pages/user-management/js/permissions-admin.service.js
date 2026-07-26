@@ -23,6 +23,8 @@ const pager = createPaginatedList({
   infoId: 'permissionsPagerInfo',
   prevId: 'permissionsPrevBtn',
   nextId: 'permissionsNextBtn',
+  tbodyId: 'permissionsTableBody',
+  columnCount: 5,
   fetchPage: async (page, pageSize) => {
     try {
       const filter = [];

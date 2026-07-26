@@ -15,6 +15,8 @@ const pager = createPaginatedList({
   infoId: 'usersPagerInfo',
   prevId: 'usersPrevBtn',
   nextId: 'usersNextBtn',
+  tbodyId: 'userTableBody',
+  columnCount: 6,
   fetchPage: async (page, pageSize) => {
     try {
       const filter = [];

@@ -55,6 +55,8 @@ const pager = createPaginatedList({
   infoId: 'policiesPagerInfo',
   prevId: 'policiesPrevBtn',
   nextId: 'policiesNextBtn',
+  tbodyId: 'policyTableBody',
+  columnCount: 4,
   fetchPage: async (page, pageSize) => {
     try {
       const filter = [];

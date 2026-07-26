@@ -28,6 +28,8 @@ const pager = createPaginatedList({
   infoId: 'rolesPagerInfo',
   prevId: 'rolesPrevBtn',
   nextId: 'rolesNextBtn',
+  tbodyId: 'roleTableBody',
+  columnCount: 4,
   fetchPage: async (page, pageSize) => {
     try {
       const or = query.search

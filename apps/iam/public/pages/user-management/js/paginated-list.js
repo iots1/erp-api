@@ -6,7 +6,28 @@
 // to fetch one page (DIP: this file depends on the fetchPage abstraction,
 // never on a concrete resource) and new lists can adopt it without changing
 // this file (OCP).
-export function createPaginatedList({ fetchPage, infoId, prevId, nextId, defaultPageSize = 20 }) {
+// Renders `rows` <tr>s of `columnCount` shimmering placeholder cells into
+// tbodyId — the visual stand-in load() shows while fetchPage's request is
+// in flight, so a page/filter click gets an immediate response instead of a
+// dead pause before the real rows replace it.
+function renderTableSkeleton(tbodyId, columnCount, rows) {
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
+  const cell = '<td><span class="p-skeleton-bar"></span></td>';
+  const row = `<tr class="p-skeleton-row">${cell.repeat(columnCount)}</tr>`;
+  tbody.innerHTML = row.repeat(rows);
+}
+
+export function createPaginatedList({
+  fetchPage,
+  infoId,
+  prevId,
+  nextId,
+  defaultPageSize = 20,
+  tbodyId,
+  columnCount,
+  skeletonRows = 5,
+}) {
   let currentPage = 1;
   let pageSize = defaultPageSize;
   let pagination = null;
@@ -24,6 +45,7 @@ export function createPaginatedList({ fetchPage, infoId, prevId, nextId, default
 
   async function load(page = 1) {
     currentPage = page;
+    if (tbodyId && columnCount) renderTableSkeleton(tbodyId, columnCount, skeletonRows);
     // fetchPage handles/reports its own errors and returns undefined on
     // failure — keep showing the last known pagination rather than clobber
     // it, matching how each resource module behaved before this refactor.

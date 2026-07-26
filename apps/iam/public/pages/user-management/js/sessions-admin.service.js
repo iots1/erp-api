@@ -20,6 +20,8 @@ const pager = createPaginatedList({
   infoId: 'sessionsPagerInfo',
   prevId: 'sessionsPrevBtn',
   nextId: 'sessionsNextBtn',
+  tbodyId: 'sessionsTableBody',
+  columnCount: 4,
   fetchPage: async (page, pageSize) => {
     try {
       const { items, pagination } = await authAdminGet('/auth/sessions', {

@@ -35,6 +35,8 @@ const pager = createPaginatedList({
   infoId: 'accessKeysPagerInfo',
   prevId: 'accessKeysPrevBtn',
   nextId: 'accessKeysNextBtn',
+  tbodyId: 'accessKeyTableBody',
+  columnCount: 6,
   fetchPage: async (page, pageSize) => {
     try {
       const or = query.search
