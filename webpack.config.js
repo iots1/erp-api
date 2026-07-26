@@ -8,6 +8,14 @@ module.exports = function (options) {
             nodeExternals({
                 allowlist: [/^@lib/],
             }),
+            // thread-stream is a transitive dep of pino (used internally by
+            // pino.transport() in libs/common/src/utils/logger/pino-http.config.ts).
+            // It has no top-level node_modules symlink under pnpm, so
+            // webpack-node-externals' directory scan misses it and webpack bundles
+            // it — which rewrites its __dirname to the bundle output dir, breaking
+            // thread-stream's `join(__dirname, 'lib', 'worker.js')` worker path
+            // (resolves to dist/apps/<app>/lib/worker.js, which doesn't exist).
+            { 'thread-stream': 'commonjs thread-stream' },
         ],
         resolve: {
             ...options.resolve,
