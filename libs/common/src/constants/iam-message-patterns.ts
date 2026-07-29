@@ -23,6 +23,8 @@ export interface IIamUser {
   full_name: string | null;
   department: string | null;
   status: 'active' | 'pending' | 'suspended';
+  /** Account expiry date (YYYY-MM-DD) — null = never expires. */
+  expired_at: string | null;
 }
 
 /** Payload for {@link IamMessagePatterns.FindById}. */

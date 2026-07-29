@@ -53,3 +53,47 @@ services:
         reservations:
           cpus: '0.50'
           memory: 512M
+
+  # S3-compatible object store backing the `storage` BC (apps/storage) — see
+  # STORAGE_S3_* in the root .env. Also where report-bc uploads generated PDFs.
+  erp-minio:
+    image: minio/minio:latest
+    restart: always
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD in infrastructure/infra-erp/.env}
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000" # S3 API — matches STORAGE_S3_ENDPOINT
+      - "${MINIO_CONSOLE_PORT:-9001}:9001" # Web console
+    volumes:
+      - ./data/minio_data:/data
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  # HTML → PDF renderer (headless Chromium) used by report-bc to turn its
+  # server-rendered EJS templates into PDFs before handing them to the
+  # `storage` BC for persistence. See GOTENBERG_URL in the root .env.
+  erp-gotenberg:
+    image: gotenberg/gotenberg:8
+    restart: always
+    command:
+      - "gotenberg"
+      - "--chromium-disable-javascript=false"
+      - "--api-timeout=30s"
+    ports:
+      - "${GOTENBERG_PORT:-3009}:3000"
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M

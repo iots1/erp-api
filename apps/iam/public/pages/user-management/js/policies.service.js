@@ -176,6 +176,8 @@ export async function initPolicyForm() {
       document.getElementById('frmPolNameTh').value = policy.name?.th ?? '';
       document.getElementById('frmPolNameEn').value = policy.name?.en ?? '';
       document.getElementById('frmPolActive').checked = policy.is_active;
+      document.getElementById('frmPolValidFrom').value = policy.valid_from?.slice(0, 10) ?? '';
+      document.getElementById('frmPolValidUntil').value = policy.valid_until?.slice(0, 10) ?? '';
 
       state.policyForm.statements = statements.map((statement) => {
         const services = [...new Set(statement.targets.map((t) => t.service))];
@@ -615,7 +617,18 @@ export async function handlePolicyFormSubmit(event) {
     name_th: document.getElementById('frmPolNameTh').value.trim(),
     name_en: document.getElementById('frmPolNameEn').value.trim(),
     is_active: document.getElementById('frmPolActive').checked,
+    valid_from: document.getElementById('frmPolValidFrom').value || null,
+    valid_until: document.getElementById('frmPolValidUntil').value || null,
   };
+
+  if (
+    payload.valid_from &&
+    payload.valid_until &&
+    payload.valid_from > payload.valid_until
+  ) {
+    showToast('วันที่เริ่มใช้งานต้องไม่เกินวันที่สิ้นสุด', 'error');
+    return;
+  }
 
   const statements = state.policyForm.statements.map((s) => ({
     effect: s.effect,

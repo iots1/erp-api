@@ -17,7 +17,10 @@ import { PolicyStatement } from './policy-statement.entity';
  * reused by a new one (a plain UNIQUE constraint would collide with the
  * soft-deleted row forever, since delete() never touches `code`).
  */
-@Index('uq_policies_code', ['code'], { unique: true, where: 'is_deleted = false' })
+@Index('uq_policies_code', ['code'], {
+  unique: true,
+  where: 'is_deleted = false',
+})
 export class Policy extends BaseEntity {
   @Column({
     type: 'varchar',
@@ -35,6 +38,20 @@ export class Policy extends BaseEntity {
 
   @Column({ type: 'boolean', default: true, comment: 'เปิด/ปิดใช้งาน' })
   is_active: boolean;
+
+  @Column({
+    type: 'date',
+    nullable: true,
+    comment: 'ใช้งานได้ตั้งแต่วันที่ — null = ไม่จำกัด',
+  })
+  valid_from: Date | null;
+
+  @Column({
+    type: 'date',
+    nullable: true,
+    comment: 'ใช้งานได้ถึงวันที่ — null = ไม่จำกัด',
+  })
+  valid_until: Date | null;
 
   @OneToMany(() => PolicyStatement, (statement) => statement.policy)
   statements: PolicyStatement[];

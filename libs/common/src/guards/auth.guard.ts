@@ -13,6 +13,7 @@ import { IS_PUBLIC_KEY } from '@lib/common/decorators/public.decorator';
 import { IS_ACCESS_KEY_ROUTE_KEY } from '@lib/common/decorators/use-access-key.decorator';
 import { IUserSession } from '@lib/common/interfaces/auth.interface';
 import { SessionStoreService } from '@lib/common/services/session-store.service';
+import { todayDateOnly } from '@lib/common/utils/date-only.util';
 
 /** JWT claims only — identity + token id. Roles/permissions live in the Redis
  * session blob (see {@link SessionStoreService}), not the token itself. */
@@ -33,8 +34,11 @@ export interface IAuthenticatedRequest extends FastifyRequest {
 
 /**
  * Verifies the JWT access token (signature + expiry) and checks the Redis session
- * key so revoked/logged-out tokens are rejected even before expiry. Populates
- * `request.user.user_session` per the contract `@CurrentUser()` expects.
+ * key so revoked/logged-out tokens are rejected even before expiry. Also rejects a
+ * still-valid session whose account `expired_at` has since passed — carried in the
+ * session blob at login (see {@link SessionStoreService.create}) so this needs no
+ * extra DB round-trip. Populates `request.user.user_session` per the contract
+ * `@CurrentUser()` expects.
  *
  * Skips non-HTTP contexts (TCP `@MessagePattern` handlers) and routes marked `@Public()`.
  */
@@ -81,6 +85,12 @@ export class AuthGuard implements CanActivate {
     if (!session) {
       throw new UnauthorizedException(
         'Session has been revoked. Please log in again.',
+      );
+    }
+
+    if (session.expired_at && todayDateOnly() > session.expired_at) {
+      throw new UnauthorizedException(
+        'This user account has expired. Please contact your administrator.',
       );
     }
 

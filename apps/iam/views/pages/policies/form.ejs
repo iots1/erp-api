@@ -28,6 +28,8 @@ const topbarActions = [
                                 <div class="p-field um-field-checkbox">
                                     <label><input type="checkbox" id="frmPolActive" checked> เปิดใช้งาน (Active)</label>
                                 </div>
+                                <%- include('../../components/ui/field', { id: 'frmPolValidFrom', label: 'ใช้งานได้ตั้งแต่วันที่', type: 'date' }) %>
+                                <%- include('../../components/ui/field', { id: 'frmPolValidUntil', label: 'ใช้งานได้ถึงวันที่', type: 'date' }) %>
                             </div>
                         </article>
 

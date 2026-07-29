@@ -138,6 +138,7 @@ export async function openUserFormModal(userId) {
       document.getElementById('frmEmail').value = user.email ?? '';
       document.getElementById('frmDepartment').value = user.department ?? '';
       document.getElementById('frmStatus').value = user.status;
+      document.getElementById('frmExpiredAt').value = user.expired_at?.slice(0, 10) ?? '';
     } catch (error) {
       showApiError(error, 'โหลดข้อมูลผู้ใช้งานไม่สำเร็จ');
       return;
@@ -168,6 +169,7 @@ export async function handleUserFormSubmit(event) {
     email: document.getElementById('frmEmail').value.trim() || null,
     department: document.getElementById('frmDepartment').value.trim() || null,
     status: document.getElementById('frmStatus').value,
+    expired_at: document.getElementById('frmExpiredAt').value || null,
   };
 
   try {

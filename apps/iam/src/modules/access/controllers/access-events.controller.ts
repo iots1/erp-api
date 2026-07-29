@@ -9,6 +9,7 @@ import {
   IamMessagePatterns,
   IIamUser,
 } from '@lib/common/constants/iam-message-patterns';
+import { toDateOnly } from '@lib/common/utils/date-only.util';
 import type {
   IEvaluateConditionsPayload,
   IFindByIdPayload,
@@ -51,6 +52,7 @@ export class AccessEventsController {
       full_name: user.full_name,
       department: user.department,
       status: user.status,
+      expired_at: user.expired_at ? toDateOnly(user.expired_at) : null,
     };
   }
 

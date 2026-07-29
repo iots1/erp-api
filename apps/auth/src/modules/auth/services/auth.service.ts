@@ -25,6 +25,7 @@ import {
 import { LogsService } from '@lib/common/modules/log/logs.service';
 import { MicroserviceClientService } from '@lib/common/services/microservice-client.service';
 import { SessionStoreService } from '@lib/common/services/session-store.service';
+import { todayDateOnly } from '@lib/common/utils/date-only.util';
 import { ConfigService } from '@lib/config';
 
 import { SetCredentialDTO } from '../dto/set-credential.dto';
@@ -145,6 +146,17 @@ export class AuthService {
       throw new ForbiddenException('This user account is not active.');
     }
 
+    if (this.isExpired(iamUser.expired_at)) {
+      await this.recordLoginAttempt(
+        credential.user_id,
+        username,
+        ipAddress,
+        userAgent,
+        false,
+      );
+      throw new ForbiddenException('This user account has expired.');
+    }
+
     const resolved = await this.microserviceClient.sendWithContext<
       IResolvedPermissions,
       IResolvePermissionsPayload
@@ -219,6 +231,10 @@ export class AuthService {
     );
     if (!iamUser || iamUser.status !== 'active') {
       throw new ForbiddenException('This user account is not active.');
+    }
+
+    if (this.isExpired(iamUser.expired_at)) {
+      throw new ForbiddenException('This user account has expired.');
     }
 
     const resolved = await this.microserviceClient.sendWithContext<
@@ -340,6 +356,7 @@ export class AuthService {
         roles: resolved.roles,
         permissions: resolved.permissions,
         conditional_permissions: resolved.conditional_permissions,
+        expired_at: iamUser.expired_at,
       },
       accessTtlSeconds,
     );
@@ -354,6 +371,13 @@ export class AuthService {
       token_type: 'Bearer',
       expires_in: accessTtlSeconds,
     };
+  }
+
+  /** `expiredAt` (YYYY-MM-DD) is inclusive — the account stays usable through
+   * that whole day; null means the account never expires. */
+  private isExpired(expiredAt: string | null): boolean {
+    if (!expiredAt) return false;
+    return todayDateOnly() > expiredAt;
   }
 
   private async assertNotBlocked(userId: string): Promise<void> {

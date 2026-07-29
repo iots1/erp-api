@@ -1,6 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-import { IsEmail, IsIn, IsOptional, IsString } from 'class-validator';
+import {
+  IsDateString,
+  IsEmail,
+  IsIn,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 import type { UserStatus } from '../entities/user.entity';
 
@@ -42,4 +48,13 @@ export class CreateUserDTO {
     example: 'pending',
   })
   status: UserStatus;
+
+  @IsOptional()
+  @IsDateString()
+  @ApiPropertyOptional({
+    description: 'วันหมดอายุบัญชี (YYYY-MM-DD) — ไม่กรอก/null = ไม่จำกัดเวลา',
+    example: '2026-12-31',
+    nullable: true,
+  })
+  expired_at: string | null;
 }

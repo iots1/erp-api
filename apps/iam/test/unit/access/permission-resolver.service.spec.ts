@@ -225,6 +225,120 @@ describe('PermissionResolverService', () => {
     });
   });
 
+  describe('policy date-range validity (valid_from / valid_until)', () => {
+    /** Days is UTC/calendar-only — enough margin (2 days) that a Bangkok-vs-UTC
+     * boundary near midnight can never flip which side of "today" it lands on. */
+    function daysFromNow(days: number): Date {
+      return new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+    }
+
+    async function resolvePermissionsForPolicy(
+      policyOverrides: Partial<Policy>,
+    ): Promise<string[]> {
+      const policy = createMockPolicy({ id: 'policy-1', ...policyOverrides });
+      const role = createMockRole({ policies: [policy] });
+      userRepo.findOne.mockResolvedValue(createMockUser({ roles: [role] }));
+      roleRepo.find.mockResolvedValue([role]);
+      policyRepo.find.mockResolvedValue([policy]);
+
+      const statement = createMockPolicyStatement({
+        id: 'stmt-1',
+        effect: 'allow',
+      });
+      statementRepo.find.mockResolvedValue([statement]);
+      targetRepo.find.mockResolvedValue([]);
+      actionRepo.find.mockResolvedValue([
+        createMockStatementAction({
+          statement_id: 'stmt-1',
+          permission_id: 'perm-1',
+        }),
+      ]);
+      conditionRepo.find.mockResolvedValue([]);
+      permissionRepo.find.mockResolvedValue([
+        createMockPermission({ id: 'perm-1', permission: 'inventory:read' }),
+      ]);
+
+      const result = await service.resolveForUser('user-1');
+      return result.permissions;
+    }
+
+    it('grants nothing from a policy whose valid_from is in the future (not yet active)', async () => {
+      const permissions = await resolvePermissionsForPolicy({
+        valid_from: daysFromNow(2),
+      });
+
+      expect(permissions).toEqual([]);
+    });
+
+    it('grants nothing from a policy whose valid_until is in the past (lapsed)', async () => {
+      const permissions = await resolvePermissionsForPolicy({
+        valid_until: daysFromNow(-2),
+      });
+
+      expect(permissions).toEqual([]);
+    });
+
+    it('grants permissions from a policy currently inside its [valid_from, valid_until] window', async () => {
+      const permissions = await resolvePermissionsForPolicy({
+        valid_from: daysFromNow(-2),
+        valid_until: daysFromNow(2),
+      });
+
+      expect(permissions).toEqual(['inventory:read']);
+    });
+
+    it('grants permissions from a policy with no date range set (both null = unbounded)', async () => {
+      const permissions = await resolvePermissionsForPolicy({
+        valid_from: null,
+        valid_until: null,
+      });
+
+      expect(permissions).toEqual(['inventory:read']);
+    });
+
+    it('treats valid_from/valid_until as inclusive of the boundary day itself', async () => {
+      const permissions = await resolvePermissionsForPolicy({
+        valid_from: daysFromNow(0),
+        valid_until: daysFromNow(0),
+      });
+
+      expect(permissions).toEqual(['inventory:read']);
+    });
+
+    it('applies the same date-range filter to resolveForPolicyIds (Access Keys path)', async () => {
+      const policy = createMockPolicy({
+        id: 'policy-1',
+        valid_until: daysFromNow(-2),
+      });
+      policyRepo.find.mockResolvedValue([policy]);
+
+      const result = await service.resolveForPolicyIds(['policy-1']);
+
+      expect(result.permissions).toEqual([]);
+      expect(statementRepo.find).not.toHaveBeenCalled();
+    });
+
+    it('applies the same date-range filter to evaluate() (per-request ABAC path)', async () => {
+      const policy = createMockPolicy({
+        id: 'policy-1',
+        valid_from: daysFromNow(2),
+      });
+      const role = createMockRole({ policies: [policy] });
+      userRepo.findOne.mockResolvedValue(createMockUser({ roles: [role] }));
+      roleRepo.find.mockResolvedValue([role]);
+      policyRepo.find.mockResolvedValue([policy]);
+
+      const result = await service.evaluate(
+        'user-1',
+        'inventory-bc',
+        'inventory:read',
+        {},
+      );
+
+      expect(result).toBe(false);
+    });
+  });
+
   describe('resolveForPolicyIds', () => {
     it('returns empty sets for an empty policyIds array without querying the DB', async () => {
       const result = await service.resolveForPolicyIds([]);

@@ -66,6 +66,7 @@ const topbarActions = [
                             <option value="suspended">Suspended</option>
                         </select>
                     </div>
+                    <%- include('../../components/ui/field', { id: 'frmExpiredAt', label: 'วันหมดอายุบัญชี (เว้นว่าง = ไม่จำกัดเวลา)', type: 'date' }) %>
                 </div>
                 <footer>
                     <button type="button" class="p-btn" onclick="closeUserFormModal()">ยกเลิก</button>

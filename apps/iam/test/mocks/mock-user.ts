@@ -11,6 +11,7 @@ export function createMockUser(overrides?: Partial<User>): User {
     email: 'jane.doe@erp.local',
     department: 'Warehouse',
     status: 'active',
+    expired_at: null,
     roles: [],
     created_at: new Date(),
     created_by: null,

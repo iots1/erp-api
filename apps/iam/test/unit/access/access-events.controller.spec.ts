@@ -60,7 +60,7 @@ describe('AccessEventsController', () => {
   });
 
   describe('findById', () => {
-    it('returns the mapped IIamUser shape for an existing, non-deleted user', async () => {
+    it('returns the mapped IIamUser shape for an existing, non-deleted user with no expiry set', async () => {
       const user = createMockUser({
         id: 'user-1',
         username: 'jdoe',
@@ -68,6 +68,7 @@ describe('AccessEventsController', () => {
         full_name: 'John Doe',
         department: 'IT',
         status: 'active',
+        expired_at: null,
       });
       userRepo.findOne.mockResolvedValue(user);
 
@@ -84,8 +85,22 @@ describe('AccessEventsController', () => {
         full_name: 'John Doe',
         department: 'IT',
         status: 'active',
+        expired_at: null,
       };
       expect(result).toEqual(expected);
+    });
+
+    it('formats a set expired_at as a plain YYYY-MM-DD string', async () => {
+      const user = createMockUser({
+        id: 'user-1',
+        expired_at: new Date('2026-12-31T00:00:00.000Z'),
+      });
+      userRepo.findOne.mockResolvedValue(user);
+
+      const payload: IFindByIdPayload = { user_id: 'user-1' };
+      const result = await controller.findById(wrap(payload));
+
+      expect(result.expired_at).toBe('2026-12-31');
     });
 
     it('throws NotFoundException when the user does not exist', async () => {

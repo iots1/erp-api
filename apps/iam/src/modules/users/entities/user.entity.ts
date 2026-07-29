@@ -68,6 +68,13 @@ export class User extends BaseEntity {
   })
   status: UserStatus;
 
+  @Column({
+    type: 'date',
+    nullable: true,
+    comment: 'วันหมดอายุบัญชี — null = ไม่จำกัดเวลา',
+  })
+  expired_at: Date | null;
+
   /** Owning side — manages the users_roles join table (user_id, role_id). */
   @ManyToMany(() => Role, (role) => role.users, { onDelete: 'CASCADE' })
   @JoinTable({

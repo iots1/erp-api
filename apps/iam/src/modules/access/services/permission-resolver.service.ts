@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 
 import { ErpDatabases } from '@lib/common/enum/erp-databases.enum';
+import { toDateOnly, todayDateOnly } from '@lib/common/utils/date-only.util';
 
 import { Policy } from '../../policies/entities/policy.entity';
 import { PolicyStatement } from '../../policies/entities/policy-statement.entity';
@@ -78,9 +79,11 @@ export class PermissionResolverService {
       };
     }
 
-    const activePolicies = await this.policyRepository.find({
-      where: { id: In(policyIds), is_active: true },
-    });
+    const activePolicies = (
+      await this.policyRepository.find({
+        where: { id: In(policyIds), is_active: true },
+      })
+    ).filter((p) => this.isPolicyValidNow(p));
     const activePolicyIds = activePolicies.map((p) => p.id);
 
     const statements = await this.resolveStatements(activePolicyIds);
@@ -107,9 +110,11 @@ export class PermissionResolverService {
       return { permissions: [], conditional_permissions: [] };
     }
 
-    const activePolicies = await this.policyRepository.find({
-      where: { id: In(policyIds), is_active: true },
-    });
+    const activePolicies = (
+      await this.policyRepository.find({
+        where: { id: In(policyIds), is_active: true },
+      })
+    ).filter((p) => this.isPolicyValidNow(p));
     if (activePolicies.length === 0) {
       return { permissions: [], conditional_permissions: [] };
     }
@@ -179,9 +184,11 @@ export class PermissionResolverService {
     ];
     if (policyIds.length === 0) return false;
 
-    const activePolicies = await this.policyRepository.find({
-      where: { id: In(policyIds), is_active: true },
-    });
+    const activePolicies = (
+      await this.policyRepository.find({
+        where: { id: In(policyIds), is_active: true },
+      })
+    ).filter((p) => this.isPolicyValidNow(p));
 
     const statements = await this.resolveStatements(
       activePolicies.map((p) => p.id),
@@ -210,6 +217,20 @@ export class PermissionResolverService {
     return allowStatements.some((s) =>
       this.conditionsHold(s.conditions, userId, context),
     );
+  }
+
+  /** A policy grants nothing outside its [valid_from, valid_until] date range
+   * (either bound null = unbounded on that side). Compared as date-only
+   * strings so the range is inclusive of the whole valid_until day. */
+  private isPolicyValidNow(policy: Policy): boolean {
+    const today = todayDateOnly();
+    if (policy.valid_from && today < toDateOnly(policy.valid_from)) {
+      return false;
+    }
+    if (policy.valid_until && today > toDateOnly(policy.valid_until)) {
+      return false;
+    }
+    return true;
   }
 
   private async resolveStatements(

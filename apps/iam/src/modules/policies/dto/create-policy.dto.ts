@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-import { IsBoolean, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsDateString, IsOptional, IsString } from 'class-validator';
 
 export class CreatePolicyDTO {
   @IsString()
@@ -28,4 +28,23 @@ export class CreatePolicyDTO {
   @IsBoolean()
   @ApiPropertyOptional({ description: 'เปิด/ปิดใช้งาน', example: true })
   is_active: boolean;
+
+  @IsOptional()
+  @IsDateString()
+  @ApiPropertyOptional({
+    description:
+      'ใช้งานได้ตั้งแต่วันที่ (YYYY-MM-DD) — ไม่กรอก/null = ไม่จำกัด',
+    example: '2026-01-01',
+    nullable: true,
+  })
+  valid_from: string | null;
+
+  @IsOptional()
+  @IsDateString()
+  @ApiPropertyOptional({
+    description: 'ใช้งานได้ถึงวันที่ (YYYY-MM-DD) — ไม่กรอก/null = ไม่จำกัด',
+    example: '2026-12-31',
+    nullable: true,
+  })
+  valid_until: string | null;
 }

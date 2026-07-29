@@ -18,6 +18,10 @@ export interface ISessionData {
   roles: string[];
   permissions: string[];
   conditional_permissions: string[];
+  /** Account expiry date (YYYY-MM-DD) — null = never expires. Carried in the
+   * session so AuthGuard can reject an already-issued token the moment the
+   * account expires, without a DB round-trip on every request. */
+  expired_at: string | null;
 }
 
 export interface IActiveSession {
