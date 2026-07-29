@@ -8,5 +8,7 @@ export const GET_PRINT_TEMPLATE_SUMMARY = 'Get print template by ID';
 export const UPDATE_PRINT_TEMPLATE_SUMMARY = 'Update print template';
 export const DELETE_PRINT_TEMPLATE_SUMMARY =
   'Delete print template (soft delete)';
+export const RENDER_PRINT_TEMPLATE_SUMMARY =
+  'Render print template to PDF with parameter substitution';
 
 export const PRINT_TEMPLATE_ID_PARAM_DESCRIPTION = 'Print template ID';

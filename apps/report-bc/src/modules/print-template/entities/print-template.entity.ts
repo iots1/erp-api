@@ -4,6 +4,20 @@ import { BaseEntity } from '@lib/common/abstracts/base-entity.abstract';
 import { ErpDatabases } from '@lib/common/enum/erp-databases.enum';
 
 /**
+ * One `{{key}}` placeholder definition — `PrintTemplatesService.render()`
+ * substitutes every occurrence of `{{key}}` in `html_content` with the
+ * caller-supplied value for `key`, falling back to `default_value`. Kept as
+ * a plain interface (not the DTO class) so the entity never imports from
+ * `dto/` — `PrintTemplateParameterDTO` mirrors this shape with validators.
+ */
+export interface IPrintTemplateParameter {
+  key: string;
+  label_th: string;
+  label_en: string;
+  default_value: string | null;
+}
+
+/**
  * Admin-managed HTML templates. The HTML body itself lives in MinIO/S3 (see
  * `PrintTemplatesService.uploadHtml`), not Postgres — only the object's
  * `html_bucket`/`html_path` are persisted here, keeping this table free of
@@ -74,6 +88,30 @@ export class PrintTemplate extends BaseEntity {
     comment: 'สถานะใช้งาน / Is active',
   })
   is_active: boolean;
+
+  @Column({
+    type: 'varchar',
+    length: 20,
+    default: 'A4',
+    comment: 'ขนาดกระดาษสำหรับ render PDF (A4/A5/Letter/Legal) / Paper size for PDF rendering',
+  })
+  paper_size: string;
+
+  @Column({
+    type: 'varchar',
+    length: 20,
+    default: 'portrait',
+    comment: 'แนวกระดาษ (portrait/landscape) / Paper orientation',
+  })
+  orientation: string;
+
+  @Column({
+    type: 'jsonb',
+    default: () => "'[]'",
+    comment:
+      'รายการตัวแปร {{key}} สำหรับแทนที่ใน html_content ตอน render / {{key}} parameter definitions substituted at render time',
+  })
+  parameters: IPrintTemplateParameter[];
 
   /**
    * Not a DB column — populated on demand by `PrintTemplatesService.findById()`

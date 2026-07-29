@@ -25,13 +25,20 @@ export class GotenbergService {
   /**
    * Converts a self-contained HTML document to a PDF buffer via Gotenberg's
    * `/forms/chromium/convert/html` route. Gotenberg requires the main file be
-   * named exactly `index.html`.
+   * named exactly `index.html`. `paperSize` defaults to A4 portrait — the
+   * dimensions every existing caller (invoice mock print) relies on.
    */
-  async convertHtmlToPdf(html: string): Promise<Buffer> {
+  async convertHtmlToPdf(
+    html: string,
+    paperSize: { widthIn: number; heightIn: number } = {
+      widthIn: 8.27,
+      heightIn: 11.7,
+    },
+  ): Promise<Buffer> {
     const form = new FormData();
     form.append('files', new Blob([html], { type: 'text/html' }), 'index.html');
-    form.append('paperWidth', '8.27'); // A4
-    form.append('paperHeight', '11.7');
+    form.append('paperWidth', String(paperSize.widthIn));
+    form.append('paperHeight', String(paperSize.heightIn));
     form.append('marginTop', '0.4');
     form.append('marginBottom', '0.4');
     form.append('marginLeft', '0.4');

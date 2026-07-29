@@ -14,7 +14,7 @@ const topbarActions = [
                         backHref: `/${prefix}/views/print-templates`,
                         titleId: 'printTemplateFormTitle',
                         titleText: isEdit ? 'แก้ไขเทมเพลต' : 'สร้างเทมเพลตใหม่',
-                        subtitleText: 'กำหนดรหัสเทมเพลตและเนื้อหา HTML ที่จะส่งให้ Gotenberg แปลงเป็น PDF',
+                        subtitleText: 'กำหนดรหัสเทมเพลต ขนาดกระดาษ ตัวแปร และเนื้อหา HTML ที่จะส่งให้ Gotenberg แปลงเป็น PDF',
                     }) %>
 
                     <form id="printTemplateForm" onsubmit="handlePrintTemplateFormSubmit(event)">
@@ -27,6 +27,24 @@ const topbarActions = [
                                     <label><input type="checkbox" id="frmTemplateActive" checked> เปิดใช้งาน (Active)</label>
                                 </div>
                             </div>
+                            <div class="um-form-grid">
+                                <div class="p-field">
+                                    <label for="frmTemplatePaperSize">ขนาดกระดาษ</label>
+                                    <select id="frmTemplatePaperSize">
+                                        <option value="A4">A4</option>
+                                        <option value="A5">A5</option>
+                                        <option value="Letter">Letter</option>
+                                        <option value="Legal">Legal</option>
+                                    </select>
+                                </div>
+                                <div class="p-field">
+                                    <label for="frmTemplateOrientation">แนวกระดาษ</label>
+                                    <select id="frmTemplateOrientation">
+                                        <option value="portrait">แนวตั้ง (Portrait)</option>
+                                        <option value="landscape">แนวนอน (Landscape)</option>
+                                    </select>
+                                </div>
+                            </div>
                             <div class="um-form-grid um-form-grid-half">
                                 <%- include('../../components/ui/field', { id: 'frmTemplateDescriptionTh', label: 'คำอธิบาย (ไทย)', rows: 2 }) %>
                                 <%- include('../../components/ui/field', { id: 'frmTemplateDescriptionEn', label: 'คำอธิบาย (English)', rows: 2 }) %>
@@ -34,17 +52,55 @@ const topbarActions = [
                         </article>
 
                         <article class="um-form-section">
-                            <h3 class="um-section-title">เนื้อหา HTML</h3>
+                            <div class="um-section-header-row">
+                                <div>
+                                    <h3 class="um-section-title">ตัวแปร (Parameters)</h3>
+                                    <p class="um-muted-note">
+                                        กำหนดตัวแปรที่ใช้ในเนื้อหา HTML ด้วย <code>&lbrace;&lbrace;key&rbrace;&rbrace;</code> —
+                                        ตอนสร้างรายงานจริงจะส่งค่ามาแทนที่ ถ้าไม่ส่งจะใช้ค่าเริ่มต้นแทน
+                                    </p>
+                                </div>
+                                <button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="addPrintTemplateParameterRow()">
+                                    <i data-lucide="plus" class="um-icon-sm"></i> เพิ่มตัวแปร
+                                </button>
+                            </div>
+                            <div id="templateParametersContainer" class="um-parameters-list"></div>
+                        </article>
+
+                        <article class="um-form-section" id="templateHtmlSection">
+                            <div class="um-section-header-row">
+                                <h3 class="um-section-title">เนื้อหา HTML</h3>
+                                <div class="um-editor-toolbar">
+                                    <div class="um-view-toggle" role="group" aria-label="โหมดการแสดงผล">
+                                        <button type="button" class="p-btn p-btn-ghost p-btn-sm um-view-toggle-btn active" data-view-mode="split" onclick="setPrintTemplateViewMode('split')">
+                                            <i data-lucide="columns-2" class="um-icon-sm"></i> Split
+                                        </button>
+                                        <button type="button" class="p-btn p-btn-ghost p-btn-sm um-view-toggle-btn" data-view-mode="code" onclick="setPrintTemplateViewMode('code')">
+                                            <i data-lucide="code" class="um-icon-sm"></i> Code
+                                        </button>
+                                        <button type="button" class="p-btn p-btn-ghost p-btn-sm um-view-toggle-btn" data-view-mode="preview" onclick="setPrintTemplateViewMode('preview')">
+                                            <i data-lucide="eye" class="um-icon-sm"></i> Preview
+                                        </button>
+                                    </div>
+                                    <button type="button" class="p-btn p-btn-ghost p-btn-sm hidden" id="printTemplateGeneratePdfBtn" onclick="generatePrintTemplateTestPdf()">
+                                        <i data-lucide="file-output" class="um-icon-sm"></i> Generate Test PDF
+                                    </button>
+                                    <button type="button" class="p-btn p-btn-ghost p-btn-sm" id="printTemplateFullscreenBtn" onclick="togglePrintTemplateFullscreen()">
+                                        <i data-lucide="maximize" class="um-icon-sm"></i> Fullscreen
+                                    </button>
+                                </div>
+                            </div>
                             <p class="um-muted-note">
-                                แก้ไข HTML ในกล่องด้านซ้าย ผลลัพธ์จะแสดงตัวอย่างแบบ live ทางด้านขวาทันที
+                                แก้ไข HTML ในกล่องด้านซ้าย ผลลัพธ์จะแสดงตัวอย่างแบบ live ทางด้านขวาทันที (ทดสอบค่าตัวแปรได้ในแถบด้านล่าง)
                                 — เนื้อหานี้จะถูกอัปโหลดไปเก็บที่ object storage เมื่อบันทึก (ไม่ได้เก็บลงฐานข้อมูลโดยตรง)
                             </p>
-                            <div class="um-editor-split">
-                                <div class="um-editor-pane">
-                                    <label class="um-editor-pane-label" for="frmTemplateHtml">HTML Editor</label>
-                                    <textarea id="frmTemplateHtml" class="um-html-editor" spellcheck="false" required placeholder="<html>...</html>"></textarea>
+                            <div id="templateTestParamsContainer" class="um-test-params-row hidden"></div>
+                            <div id="templateEditorSplit" class="um-editor-split">
+                                <div class="um-editor-pane" id="templateEditorPane">
+                                    <label class="um-editor-pane-label" for="templateHtmlEditorMount">HTML Editor</label>
+                                    <div id="templateHtmlEditorMount" class="um-html-editor-mount"></div>
                                 </div>
-                                <div class="um-editor-pane">
+                                <div class="um-editor-pane" id="templatePreviewPane">
                                     <span class="um-editor-pane-label">Live Preview</span>
                                     <!-- allow-scripts (no allow-same-origin): templates that pull in a
                                          JS-driven CSS framework (e.g. Tailwind's CDN script) need scripts

@@ -1,6 +1,21 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-import { IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsArray,
+  IsBoolean,
+  IsIn,
+  IsOptional,
+  IsString,
+  MaxLength,
+  ValidateNested,
+} from 'class-validator';
+
+import {
+  PRINT_TEMPLATE_ORIENTATIONS,
+  PRINT_TEMPLATE_PAPER_SIZES,
+} from '../constants/print-template.constants';
+import { PrintTemplateParameterDTO } from './print-template-parameter.dto';
 
 export class CreatePrintTemplateDTO {
   @IsString()
@@ -53,4 +68,32 @@ export class CreatePrintTemplateDTO {
   @IsBoolean()
   @ApiPropertyOptional({ description: 'สถานะใช้งาน', example: true })
   is_active: boolean;
+
+  @IsOptional()
+  @IsIn(PRINT_TEMPLATE_PAPER_SIZES)
+  @ApiPropertyOptional({
+    description: 'ขนาดกระดาษสำหรับ render PDF',
+    enum: PRINT_TEMPLATE_PAPER_SIZES,
+    example: 'A4',
+  })
+  paper_size: string;
+
+  @IsOptional()
+  @IsIn(PRINT_TEMPLATE_ORIENTATIONS)
+  @ApiPropertyOptional({
+    description: 'แนวกระดาษ',
+    enum: PRINT_TEMPLATE_ORIENTATIONS,
+    example: 'portrait',
+  })
+  orientation: string;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PrintTemplateParameterDTO)
+  @ApiPropertyOptional({
+    description: 'รายการตัวแปร {{key}} สำหรับแทนที่ใน html_content ตอน render',
+    type: [PrintTemplateParameterDTO],
+  })
+  parameters: PrintTemplateParameterDTO[];
 }

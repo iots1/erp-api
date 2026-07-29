@@ -364,6 +364,107 @@
   gap: 0.75rem;
 }
 
+/* ── Section header row (title/description + right-aligned action) ── */
+
+.um-section-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* ── Parameters list (print-templates form) ──────────────────────── */
+
+.um-parameters-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+.um-parameter-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(140px, 1fr) minmax(140px, 1fr) minmax(140px, 1fr) auto;
+  gap: 0.5rem;
+  align-items: center;
+}
+.um-parameter-row input {
+  margin: 0;
+}
+.um-parameters-empty {
+  padding: 0.75rem 0;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+@media (max-width: 900px) {
+  .um-parameter-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ── HTML editor toolbar (view mode + fullscreen) ────────────────── */
+
+.um-editor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.um-view-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--pico-border-radius, 0.5rem);
+  overflow: hidden;
+}
+.um-view-toggle-btn {
+  border-radius: 0 !important;
+  margin: 0 !important;
+}
+.um-view-toggle-btn + .um-view-toggle-btn {
+  border-left: 1px solid var(--border);
+}
+.um-view-toggle-btn.active {
+  background: var(--sky-dk);
+  color: #fff;
+}
+/* Higher specificity than button.css's .p-btn-ghost:hover (same-weight rule
+   that would otherwise win on source order and repaint the background pale
+   grey while this white text stays — unreadable). Keep the active button
+   blue-on-white through hover instead of falling back to ghost's hover. */
+.um-view-toggle-btn.active:hover {
+  background: var(--sky-dk);
+  color: #fff;
+}
+
+/* ── Test-parameter inputs above the live preview ────────────────── */
+
+.um-test-params-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  padding: 0.6rem 0.75rem;
+  margin-top: 0.6rem;
+  background: var(--slate-50, rgba(125, 125, 125, 0.06));
+  border: 1px solid var(--border);
+  border-radius: var(--pico-border-radius, 0.5rem);
+}
+.um-test-param-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 160px;
+}
+.um-test-param-field label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+.um-test-param-field input {
+  margin: 0;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.85rem;
+}
+
 /* ── HTML editor + live preview split (print-templates form) ────── */
 
 .um-editor-split {
@@ -372,28 +473,38 @@
   gap: 1rem;
   margin-top: 0.75rem;
 }
+.um-editor-split.um-view-mode-code #templatePreviewPane,
+.um-editor-split.um-view-mode-preview #templateEditorPane {
+  display: none;
+}
+.um-editor-split.um-view-mode-code,
+.um-editor-split.um-view-mode-preview {
+  grid-template-columns: 1fr;
+}
 .um-editor-pane {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
   min-width: 0;
+  min-height: 0;
 }
 .um-editor-pane-label {
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--slate-700);
 }
-.um-html-editor {
+.um-html-editor-mount {
   width: 100%;
   height: 520px;
-  resize: vertical;
-  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  border: 1px solid var(--slate-300);
+  border-radius: var(--pico-border-radius, 0.5rem);
+  overflow: hidden;
+}
+/* CodeMirror fills its mount point exactly — mount height above is the only
+   thing that needs adjusting for fullscreen (see .um-editor-fullscreen). */
+.um-html-editor-mount .cm-editor {
+  height: 100%;
   font-size: 0.85rem;
-  line-height: 1.5;
-  tab-size: 2;
-  white-space: pre;
-  overflow-wrap: normal;
-  overflow-x: auto;
 }
 .um-preview-frame {
   width: 100%;
@@ -401,6 +512,27 @@
   border: 1px solid var(--border);
   border-radius: var(--pico-border-radius, 0.5rem);
   background: #fff;
+}
+
+/* ── Fullscreen mode — Dreamweaver-style distraction-free editing ──── */
+
+.um-editor-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: var(--surface);
+  padding: 1rem;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+.um-editor-fullscreen .um-editor-split {
+  flex: 1;
+  min-height: 0;
+}
+.um-editor-fullscreen .um-html-editor-mount,
+.um-editor-fullscreen .um-preview-frame {
+  height: 100%;
 }
 
 /* ── Empty-state placeholder (audit / settings) ──────────────────── */

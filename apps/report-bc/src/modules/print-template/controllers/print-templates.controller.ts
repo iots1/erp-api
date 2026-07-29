@@ -34,10 +34,13 @@ import {
   GET_PRINT_TEMPLATE_SUMMARY,
   GET_PRINT_TEMPLATES_SUMMARY,
   PRINT_TEMPLATE_ID_PARAM_DESCRIPTION,
+  RENDER_PRINT_TEMPLATE_SUMMARY,
   UPDATE_PRINT_TEMPLATE_SUMMARY,
 } from '../constants/print-template.swagger';
 import { CreatePrintTemplateDTO } from '../dto/create-print-template.dto';
+import { PrintTemplateRenderResultDTO } from '../dto/print-template-render-result.dto';
 import { PrintTemplateResponseDTO } from '../dto/print-template-response.dto';
+import { RenderPrintTemplateDTO } from '../dto/render-print-template.dto';
 import { UpdatePrintTemplateDTO } from '../dto/update-print-template.dto';
 import { PrintTemplate } from '../entities/print-template.entity';
 import { PrintTemplatesService } from '../services/print-templates.service';
@@ -138,5 +141,21 @@ export class PrintTemplatesController extends BaseControllerOperations<
     @CurrentUser() currentUser: IUserSession,
   ): Promise<void> {
     return super.softDelete(id, currentUser);
+  }
+
+  @Post(':id/render')
+  @RequirePermission('report:print_template_render', {
+    th: 'สร้างเอกสาร PDF จากเทมเพลต',
+    en: 'Render print template to PDF',
+  })
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: RENDER_PRINT_TEMPLATE_SUMMARY })
+  @ApiParam({ name: 'id', description: PRINT_TEMPLATE_ID_PARAM_DESCRIPTION })
+  @ApiJsonApiCreatedResponse('print-templates', PrintTemplateRenderResultDTO)
+  render(
+    @Param('id', ParseUuidParamPipe) id: string,
+    @Body() renderDTO: RenderPrintTemplateDTO,
+  ): Promise<PrintTemplateRenderResultDTO> {
+    return this.service.render(id, renderDTO.params ?? {});
   }
 }

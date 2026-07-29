@@ -6,6 +6,8 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
+import { randomUUID } from 'crypto';
+
 import { ClientProxy } from '@nestjs/microservices';
 import { DeepPartial, Repository } from 'typeorm';
 
@@ -17,15 +19,22 @@ import { MicroserviceClientService } from '@lib/common/services/microservice-cli
 import { BaseServiceOperations } from '@lib/common/utils/base-operations/base-service-operations.util';
 import { ConfigService } from '@lib/config';
 
+import {
+  PRINT_TEMPLATE_PAPER_DIMENSIONS_IN,
+  PrintTemplatePaperSize,
+} from '../constants/print-template.constants';
 import { CreatePrintTemplateDTO } from '../dto/create-print-template.dto';
+import { PrintTemplateRenderResultDTO } from '../dto/print-template-render-result.dto';
 import { UpdatePrintTemplateDTO } from '../dto/update-print-template.dto';
 import { PrintTemplate } from '../entities/print-template.entity';
 import {
   IPrintTemplateFilePayload,
   IPrintTemplateStorageUploadResult,
 } from '../interfaces/storage-upload.interface';
+import { GotenbergService } from '../../print/services/gotenberg.service';
 
 const STORAGE_KEY_PREFIX = 'reports/print-templates';
+const RENDER_STORAGE_KEY_PREFIX = 'reports/print-template-renders';
 
 /**
  * Owns print-template CRUD. `html_content` never touches Postgres: create/
@@ -47,6 +56,7 @@ export class PrintTemplatesService extends BaseServiceOperations<
     protected readonly logger: LogsService,
     private readonly configService: ConfigService,
     private readonly microserviceClient: MicroserviceClientService,
+    private readonly gotenbergService: GotenbergService,
     @Inject(AppMicroservice.Storage.name)
     private readonly storageClient: ClientProxy,
     @InjectRepository(PrintTemplate, ErpDatabases.REPORT)
@@ -246,5 +256,100 @@ export class PrintTemplatesService extends BaseServiceOperations<
       entity.html_path,
     );
     return entity;
+  }
+
+  /**
+   * Substitutes every `{{key}}` occurrence in `html`, renders it to PDF at
+   * the template's configured paper size, and uploads the PDF to storage —
+   * the "generate a real report" counterpart to plain CRUD. Missing keys in
+   * `params` fall back to that parameter's `default_value`, then `''`.
+   */
+  async render(
+    id: string,
+    params: Record<string, string> = {},
+  ): Promise<PrintTemplateRenderResultDTO> {
+    const template = await this.findById(id);
+    const html = this.substituteParameters(
+      template.html_content ?? '',
+      template.parameters,
+      params,
+    );
+
+    const paperSize = this.resolvePaperDimensions(
+      template.paper_size,
+      template.orientation,
+    );
+    const pdfBuffer = await this.gotenbergService.convertHtmlToPdf(html, paperSize);
+
+    const bucket = this.configService.get<string>(
+      'STORAGE_S3_BUCKET',
+      'erp-storage',
+    );
+    const file: IPrintTemplateFilePayload = {
+      originalname: `${template.code}-${randomUUID()}.pdf`,
+      mimetype: 'application/pdf',
+      buffer: pdfBuffer,
+    };
+
+    const uploadResult = await this.microserviceClient.sendWithContext<
+      IPrintTemplateStorageUploadResult,
+      { bucket: string; key: string; file: IPrintTemplateFilePayload }
+    >(
+      this.logger,
+      this.storageClient,
+      { cmd: AppMicroservice.Storage.cmd.UploadWithMeta },
+      { bucket, key: RENDER_STORAGE_KEY_PREFIX, file },
+      null,
+    );
+    if (!uploadResult) {
+      throw new ServiceUnavailableException(
+        'Generated the PDF but failed to store it — the storage service is unavailable.',
+      );
+    }
+
+    const signedUrls = await this.microserviceClient.sendWithContext<
+      string[],
+      { paths: string[] }
+    >(
+      this.logger,
+      this.storageClient,
+      { cmd: AppMicroservice.Storage.cmd.GenerateSignedUrls },
+      { paths: [uploadResult.path] },
+      [],
+    );
+
+    return {
+      id: randomUUID(),
+      template_code: template.code,
+      path: uploadResult.path,
+      bucket: uploadResult.bucket,
+      url: signedUrls?.[0] ?? '',
+      size: uploadResult.size,
+      generated_at: new Date().toISOString(),
+    };
+  }
+
+  private substituteParameters(
+    html: string,
+    parameterDefs: PrintTemplate['parameters'],
+    params: Record<string, string>,
+  ): string {
+    return (parameterDefs ?? []).reduce((acc, def) => {
+      const value = params[def.key] ?? def.default_value ?? '';
+      const escapedKey = def.key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      return acc.replace(new RegExp(`{{\\s*${escapedKey}\\s*}}`, 'g'), value);
+    }, html);
+  }
+
+  private resolvePaperDimensions(
+    paperSize: string,
+    orientation: string,
+  ): { widthIn: number; heightIn: number } {
+    const dims =
+      PRINT_TEMPLATE_PAPER_DIMENSIONS_IN[paperSize as PrintTemplatePaperSize] ??
+      PRINT_TEMPLATE_PAPER_DIMENSIONS_IN.A4;
+    return orientation === 'landscape'
+      ? { widthIn: dims.height, heightIn: dims.width }
+      : { widthIn: dims.width, heightIn: dims.height };
   }
 }

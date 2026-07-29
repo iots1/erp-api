@@ -1,13 +1,20 @@
 import { handleAuthLogin } from '../../../js/auth-guard.service.js';
 import { toggleTheme } from '../../../js/theme.service.js';
 import {
+  addPrintTemplateParameterRow,
   confirmDeletePrintTemplate,
+  generatePrintTemplateTestPdf,
   goToPrintTemplatesPage,
   handlePrintTemplateFormSubmit,
   initPrintTemplateForm,
   loadPrintTemplates,
+  removePrintTemplateParameterRow,
   setPrintTemplatesFilter,
   setPrintTemplatesPageSize,
+  setPrintTemplateViewMode,
+  togglePrintTemplateFullscreen,
+  updatePrintTemplateParameterField,
+  updatePrintTemplateTestValue,
 } from '../../user-management/js/print-templates.service.js';
 import {
   bootAdminPage,
@@ -24,6 +31,13 @@ Object.assign(window, {
   handlePrintTemplateFormSubmit,
   confirmDeletePrintTemplate,
   goToPrintTemplatesPage,
+  addPrintTemplateParameterRow,
+  removePrintTemplateParameterRow,
+  updatePrintTemplateParameterField,
+  updatePrintTemplateTestValue,
+  setPrintTemplateViewMode,
+  togglePrintTemplateFullscreen,
+  generatePrintTemplateTestPdf,
 });
 
 function wireFilters() {
