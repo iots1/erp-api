@@ -18,6 +18,18 @@ export const PRINT_TEMPLATE_ORIENTATIONS = ['portrait', 'landscape'] as const;
 export type PrintTemplateOrientation =
   (typeof PRINT_TEMPLATE_ORIENTATIONS)[number];
 
+export const PRINT_TEMPLATE_ENGINES = ['simple', 'banded'] as const;
+
+export const PRINT_TEMPLATE_MEDIA_TYPES = ['print', 'screen'] as const;
+
+export const PRINT_TEMPLATE_PARAMETER_TYPES = [
+  'string',
+  'number',
+  'date',
+  'boolean',
+  'array',
+] as const;
+
 /** Portrait dimensions in inches — swapped for landscape by the caller. */
 export const PRINT_TEMPLATE_PAPER_DIMENSIONS_IN: Record<
   PrintTemplatePaperSize,

@@ -7,6 +7,7 @@ import { ErpDatabases } from '@lib/common/enum/erp-databases.enum';
 import { GotenbergService } from '../print/services/gotenberg.service';
 import { PrintTemplatesController } from './controllers/print-templates.controller';
 import { PrintTemplate } from './entities/print-template.entity';
+import { BandedRenderService } from './services/banded-render.service';
 import { PrintTemplatesService } from './services/print-templates.service';
 
 @Module({
@@ -17,7 +18,7 @@ import { PrintTemplatesService } from './services/print-templates.service';
   controllers: [PrintTemplatesController],
   // GotenbergService is stateless (wraps a fetch() client) — re-provided here
   // rather than importing PrintModule, keeping the two modules independent.
-  providers: [PrintTemplatesService, GotenbergService],
+  providers: [PrintTemplatesService, GotenbergService, BandedRenderService],
   exports: [PrintTemplatesService],
 })
 export class PrintTemplateModule {}

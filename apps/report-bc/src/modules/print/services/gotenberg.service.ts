@@ -27,6 +27,15 @@ export class GotenbergService {
    * `/forms/chromium/convert/html` route. Gotenberg requires the main file be
    * named exactly `index.html`. `paperSize` defaults to A4 portrait — the
    * dimensions every existing caller (invoice mock print) relies on.
+   *
+   * `emulatedMediaType` defaults to `'print'` (Chromium's own default for PDF
+   * export) — banded templates rely on `<thead>`/`<tfoot>` repeating on every
+   * physical page, which Chromium only does under `print` media; `'screen'`
+   * silently repeats them on page 1 only (verified against a live Gotenberg
+   * instance — see reviews/print-template-pagination-2026-07-29.md §1).
+   * `waitForExpression` defaults to a plain font-ready check; banded
+   * templates override it to also wait on their in-page paginator finishing
+   * (`window.__PAGINATION_DONE === true`).
    */
   async convertHtmlToPdf(
     html: string,
@@ -34,6 +43,10 @@ export class GotenbergService {
       widthIn: 8.27,
       heightIn: 11.7,
     },
+    options: {
+      emulatedMediaType?: 'print' | 'screen';
+      waitForExpression?: string;
+    } = {},
   ): Promise<Buffer> {
     const form = new FormData();
     form.append('files', new Blob([html], { type: 'text/html' }), 'index.html');
@@ -44,17 +57,17 @@ export class GotenbergService {
     form.append('marginLeft', '0.4');
     form.append('marginRight', '0.4');
     form.append('printBackground', 'true');
-    // Templates are authored/previewed as regular (screen) HTML — without this,
-    // Chromium's PDF export defaults to `print` media, which can silently
-    // apply different rules than what the admin's live preview showed.
-    form.append('emulatedMediaType', 'screen');
+    form.append('emulatedMediaType', options.emulatedMediaType ?? 'print');
     // Gotenberg 8 skips waiting for network-idle by default (perf trade-off),
     // so a template's own async resources (webfonts, remote scripts/images)
     // can still be mid-flight when Chromium snapshots the page — producing a
     // PDF that doesn't match what fully loaded in a browser. Wait for both
     // network idle and font decoding to finish before printing.
     form.append('skipNetworkIdleEvent', 'false');
-    form.append('waitForExpression', "document.fonts.status === 'loaded'");
+    form.append(
+      'waitForExpression',
+      options.waitForExpression ?? "document.fonts.status === 'loaded'",
+    );
 
     let response: Response;
     try {

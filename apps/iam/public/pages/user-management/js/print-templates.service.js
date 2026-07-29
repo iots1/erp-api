@@ -131,13 +131,19 @@ function setPreviewLoading(isLoading) {
 /** Renders the current (unsaved) editor content through the real Gotenberg
  * pipeline (POST /print-templates/preview) instead of an iframe srcdoc, so
  * the preview matches actual print output (fonts, page breaks, @media
- * print rules) rather than a plain-browser approximation of it. */
+ * print rules) rather than a plain-browser approximation of it.
+ *
+ * 'simple' substitutes {{key}} client-side first (as before) — 'banded'
+ * can't do that in the browser (band/loop substitution needs the paginator,
+ * which only runs server-side against real Gotenberg — see
+ * BandedRenderService), so it sends the raw html_content + mock_data
+ * straight through and lets the server inject the paginator itself. */
 async function updatePreview() {
   const frame = document.getElementById('templatePreviewFrame');
   if (!frame || !htmlEditor) return;
 
-  const html = substituteParameters(htmlEditor.getValue(), currentParameters);
-  if (!html.trim()) {
+  const rawHtml = htmlEditor.getValue();
+  if (!rawHtml.trim()) {
     if (previewBlobUrl) {
       URL.revokeObjectURL(previewBlobUrl);
       previewBlobUrl = null;
@@ -146,14 +152,36 @@ async function updatePreview() {
     return;
   }
 
+  const engine = getTemplateEngine();
+  const isBanded = engine === 'banded';
+  let requestBody;
+  if (isBanded) {
+    const parsed = tryParseMockData();
+    const errEl = document.getElementById('templateMockDataError');
+    if (errEl) {
+      errEl.textContent = parsed.ok ? '' : `Mock Data ไม่ใช่ JSON ที่ถูกต้อง: ${parsed.message}`;
+      errEl.classList.toggle('hidden', parsed.ok);
+    }
+    if (!parsed.ok) return; // leave the last good preview up, error shown inline
+    requestBody = {
+      html_content: rawHtml,
+      paper_size: document.getElementById('frmTemplatePaperSize')?.value || 'A4',
+      orientation: document.getElementById('frmTemplateOrientation')?.value || 'portrait',
+      template_engine: 'banded',
+      params: parsed.value,
+    };
+  } else {
+    requestBody = {
+      html_content: substituteParameters(rawHtml, currentParameters),
+      paper_size: document.getElementById('frmTemplatePaperSize')?.value || 'A4',
+      orientation: document.getElementById('frmTemplateOrientation')?.value || 'portrait',
+    };
+  }
+
   const requestId = ++previewRequestId;
   setPreviewLoading(true);
   try {
-    const blob = await reportPostBlob('/print-templates/preview', {
-      html_content: html,
-      paper_size: document.getElementById('frmTemplatePaperSize')?.value || 'A4',
-      orientation: document.getElementById('frmTemplateOrientation')?.value || 'portrait',
-    });
+    const blob = await reportPostBlob('/print-templates/preview', requestBody);
     if (requestId !== previewRequestId) return; // superseded by a newer edit
     const url = URL.createObjectURL(blob);
     if (previewBlobUrl) URL.revokeObjectURL(previewBlobUrl);
@@ -406,6 +434,57 @@ export function togglePrintTemplateFullscreen() {
 
 // ── Form init / submit ──────────────────────────────────────────────────
 
+function getTemplateEngine() {
+  return document.getElementById('frmTemplateEngine')?.value || 'simple';
+}
+
+/** Pasting a JSON code block copied out of a chat/doc very commonly drags
+ * the ```json / ``` fence lines along with it — strip them instead of
+ * making every admin re-copy without them (this is the #1 real-world cause
+ * of "valid JSON followed by unexpected trailing characters" errors here). */
+function stripCodeFence(text) {
+  return text
+    .replace(/^\s*```[a-zA-Z]*\s*\n?/, '')
+    .replace(/\n?\s*```\s*$/, '')
+    .trim();
+}
+
+/** JSON.parse only reports a character offset — on a multi-hundred-line
+ * textarea that's nearly impossible to locate by eye, so pull a short
+ * snippet of the actual text around it into the error instead. */
+function describeJsonErrorPosition(text, error) {
+  const match = /position (\d+)/.exec(error.message);
+  if (!match) return '';
+  const pos = Number(match[1]);
+  const before = text.slice(Math.max(0, pos - 20), pos);
+  const after = text.slice(pos, Math.min(text.length, pos + 20));
+  return ` — บริเวณ: "…${before}👉${after}…"`;
+}
+
+/** Non-throwing — used by updatePreview() so a keystroke leaving invalid
+ * JSON just shows the inline error and skips the render instead of
+ * spamming a toast on every debounced tick. */
+function tryParseMockData() {
+  const raw = stripCodeFence(document.getElementById('frmTemplateMockData')?.value ?? '');
+  if (!raw) return { ok: true, value: {} };
+  try {
+    return { ok: true, value: JSON.parse(raw) };
+  } catch (error) {
+    return { ok: false, message: `${error.message}${describeJsonErrorPosition(raw, error)}` };
+  }
+}
+
+/** Throwing wrapper for the save/generate-test-pdf paths — those are
+ * deliberate clicks, so surfacing the problem via the normal error toast
+ * (see handlePrintTemplateFormSubmit/generatePrintTemplateTestPdf) fits. */
+function parseMockDataOrThrow() {
+  const result = tryParseMockData();
+  if (!result.ok) {
+    throw new Error(`Mock Data ไม่ใช่ JSON ที่ถูกต้อง: ${result.message}`);
+  }
+  return result.value;
+}
+
 function buildPrintTemplatePayload() {
   return {
     code: document.getElementById('frmTemplateCode').value.trim(),
@@ -417,6 +496,8 @@ function buildPrintTemplatePayload() {
     is_active: document.getElementById('frmTemplateActive').checked,
     paper_size: document.getElementById('frmTemplatePaperSize').value,
     orientation: document.getElementById('frmTemplateOrientation').value,
+    template_engine: getTemplateEngine(),
+    mock_data: parseMockDataOrThrow(),
     parameters: currentParameters
       .filter((p) => p.key.trim() !== '')
       .map((p) => ({
@@ -426,6 +507,15 @@ function buildPrintTemplatePayload() {
         default_value: p.default_value?.trim() || null,
       })),
   };
+}
+
+/** 'banded' has no use for the flat parameters[] editor (its placeholders
+ * are dotted paths into a nested object, not standalone {{key}}s) — swap
+ * that section for the Mock Data JSON textarea instead. */
+function updateTemplateEngineSectionVisibility() {
+  const isBanded = getTemplateEngine() === 'banded';
+  document.getElementById('templateParametersSection')?.classList.toggle('hidden', isBanded);
+  document.getElementById('templateMockDataSection')?.classList.toggle('hidden', !isBanded);
 }
 
 export async function initPrintTemplateForm() {
@@ -447,6 +537,11 @@ export async function initPrintTemplateForm() {
 
   document.getElementById('frmTemplatePaperSize')?.addEventListener('change', updatePreview);
   document.getElementById('frmTemplateOrientation')?.addEventListener('change', updatePreview);
+  document.getElementById('frmTemplateEngine')?.addEventListener('change', () => {
+    updateTemplateEngineSectionVisibility();
+    updatePreview();
+  });
+  document.getElementById('frmTemplateMockData')?.addEventListener('input', debounce(updatePreview, 900));
   initSplitResizer();
 
   if (templateId) {
@@ -465,6 +560,8 @@ export async function initPrintTemplateForm() {
       document.getElementById('frmTemplateActive').checked = template.is_active;
       document.getElementById('frmTemplatePaperSize').value = template.paper_size ?? 'A4';
       document.getElementById('frmTemplateOrientation').value = template.orientation ?? 'portrait';
+      document.getElementById('frmTemplateEngine').value = template.template_engine ?? 'simple';
+      document.getElementById('frmTemplateMockData').value = JSON.stringify(template.mock_data ?? {}, null, 2);
       currentParameters = (template.parameters ?? []).map((p) => ({
         key: p.key,
         label_th: p.label?.th ?? '',
@@ -478,6 +575,8 @@ export async function initPrintTemplateForm() {
     }
   }
 
+  updateTemplateEngineSectionVisibility();
+
   renderParametersRows();
   updatePreview();
 }
@@ -485,15 +584,15 @@ export async function initPrintTemplateForm() {
 export async function handlePrintTemplateFormSubmit(event) {
   event.preventDefault();
   const editingId = event.target.dataset.editingId || null;
-  const payload = buildPrintTemplatePayload();
-
-  if (!payload.html_content.trim()) {
-    showToast('กรุณากรอกเนื้อหา HTML', 'error');
-    setPrintTemplateViewMode('code');
-    return;
-  }
 
   try {
+    const payload = buildPrintTemplatePayload(); // throws on invalid Mock Data JSON
+    if (!payload.html_content.trim()) {
+      showToast('กรุณากรอกเนื้อหา HTML', 'error');
+      setPrintTemplateViewMode('code');
+      return;
+    }
+
     if (editingId) {
       await reportPut(`/print-templates/${editingId}`, payload);
     } else {
@@ -508,27 +607,35 @@ export async function handlePrintTemplateFormSubmit(event) {
 
 // ── Generate test PDF (saves current edits in place, then renders) ─────────
 
+/** 'simple' test data still comes from parameters[]._test_value (unchanged);
+ * 'banded' has no flat parameters to draw from, so it uses the Mock Data
+ * JSON textarea (payload.mock_data) as params instead. */
+function buildSimpleTestParams() {
+  const testParams = {};
+  currentParameters.forEach((p) => {
+    if (p.key.trim()) testParams[p.key.trim()] = p._test_value ?? p.default_value ?? '';
+  });
+  return testParams;
+}
+
 export async function generatePrintTemplateTestPdf() {
   const form = document.getElementById('printTemplateForm');
   const editingId = form?.dataset.editingId;
   if (!editingId) return;
 
-  const payload = buildPrintTemplatePayload();
-  if (!payload.html_content.trim()) {
-    showToast('กรุณากรอกเนื้อหา HTML', 'error');
-    return;
-  }
-
-  const testParams = {};
-  currentParameters.forEach((p) => {
-    if (p.key.trim()) testParams[p.key.trim()] = p._test_value ?? p.default_value ?? '';
-  });
-
   try {
+    const payload = buildPrintTemplatePayload(); // throws on invalid Mock Data JSON
+    if (!payload.html_content.trim()) {
+      showToast('กรุณากรอกเนื้อหา HTML', 'error');
+      return;
+    }
+
+    const params = payload.template_engine === 'banded' ? payload.mock_data : buildSimpleTestParams();
+
     // Save first — render() reads the persisted object from storage, so a
     // stale save would produce a PDF that doesn't match what's in the editor.
     await reportPut(`/print-templates/${editingId}`, payload);
-    const result = await reportPost(`/print-templates/${editingId}/render`, { params: testParams });
+    const result = await reportPost(`/print-templates/${editingId}/render`, { params });
     window.open(result.url, '_blank', 'noopener');
   } catch (error) {
     showApiError(error, 'สร้าง PDF ทดสอบไม่สำเร็จ');

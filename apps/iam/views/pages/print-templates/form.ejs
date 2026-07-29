@@ -44,6 +44,13 @@ const topbarActions = [
                                         <option value="landscape">แนวนอน (Landscape)</option>
                                     </select>
                                 </div>
+                                <div class="p-field">
+                                    <label for="frmTemplateEngine">เอนจิน</label>
+                                    <select id="frmTemplateEngine">
+                                        <option value="simple">Simple — แทนที่ {{key}} ตรงๆ</option>
+                                        <option value="banded">Banded — แบ่งหน้าอัตโนมัติ</option>
+                                    </select>
+                                </div>
                             </div>
                             <div class="um-form-grid um-form-grid-half">
                                 <%- include('../../components/ui/field', { id: 'frmTemplateDescriptionTh', label: 'คำอธิบาย (ไทย)', rows: 2 }) %>
@@ -51,7 +58,7 @@ const topbarActions = [
                             </div>
                         </article>
 
-                        <article class="um-form-section">
+                        <article class="um-form-section" id="templateParametersSection">
                             <div class="um-section-header-row">
                                 <div>
                                     <h3 class="um-section-title">ตัวแปร (Parameters)</h3>
@@ -65,6 +72,21 @@ const topbarActions = [
                                 </button>
                             </div>
                             <div id="templateParametersContainer" class="um-parameters-list"></div>
+                        </article>
+
+                        <article class="um-form-section hidden" id="templateMockDataSection">
+                            <div class="um-section-header-row">
+                                <div>
+                                    <h3 class="um-section-title">Mock Data (JSON)</h3>
+                                    <p class="um-muted-note">
+                                        เอนจิน Banded ต้องการโครงสร้างข้อมูลแบบซ้อน (nested object/array) ตามที่ band template ใช้ —
+                                        กรอกเป็น JSON ก้อนเดียวที่นี่ ใช้เป็น <code>params</code> ทั้ง Live Preview และ "Generate Test PDF"
+                                        (ไม่เกี่ยวกับ <code>params</code> ที่ผู้เรียก render จริงส่งมา)
+                                    </p>
+                                </div>
+                            </div>
+                            <%- include('../../components/ui/field', { id: 'frmTemplateMockData', label: 'Mock Data', rows: 10, extraClass: 'um-mono-input', placeholder: '{\n  "customer_name": "บริษัท เอบีซี จำกัด"\n}' }) %>
+                            <span id="templateMockDataError" class="um-field-error hidden"></span>
                         </article>
 
                         <article class="um-form-section" id="templateHtmlSection">

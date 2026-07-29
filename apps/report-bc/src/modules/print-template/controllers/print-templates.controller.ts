@@ -170,6 +170,8 @@ export class PrintTemplatesController extends BaseControllerOperations<
       previewDTO.html_content,
       previewDTO.paper_size,
       previewDTO.orientation,
+      previewDTO.template_engine,
+      previewDTO.params,
     );
     reply
       .header('Content-Type', 'application/pdf')

@@ -25,6 +25,7 @@ import {
 } from '../constants/print-template.constants';
 import { CreatePrintTemplateDTO } from '../dto/create-print-template.dto';
 import { PrintTemplateRenderResultDTO } from '../dto/print-template-render-result.dto';
+import { PrintTemplateRenderParams } from '../dto/render-print-template.dto';
 import { UpdatePrintTemplateDTO } from '../dto/update-print-template.dto';
 import { PrintTemplate } from '../entities/print-template.entity';
 import {
@@ -32,6 +33,7 @@ import {
   IPrintTemplateStorageUploadResult,
 } from '../interfaces/storage-upload.interface';
 import { GotenbergService } from '../../print/services/gotenberg.service';
+import { BandedRenderService } from './banded-render.service';
 
 const STORAGE_KEY_PREFIX = 'reports/print-templates';
 const RENDER_STORAGE_KEY_PREFIX = 'reports/print-template-renders';
@@ -57,6 +59,7 @@ export class PrintTemplatesService extends BaseServiceOperations<
     private readonly configService: ConfigService,
     private readonly microserviceClient: MicroserviceClientService,
     private readonly gotenbergService: GotenbergService,
+    private readonly bandedRenderService: BandedRenderService,
     @Inject(AppMicroservice.Storage.name)
     private readonly storageClient: ClientProxy,
     @InjectRepository(PrintTemplate, ErpDatabases.REPORT)
@@ -149,30 +152,47 @@ export class PrintTemplatesService extends BaseServiceOperations<
       );
     }
 
-    const maxAttempts = 3;
+    // 5 attempts / ~3s of backoff — long enough to ride out a short network
+    // blip (MinIO still starting up, a brief VPN hiccup) without making an
+    // admin page load hang indefinitely on a genuinely dead link.
+    const maxAttempts = 5;
     let lastError: unknown;
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
-        const response = await fetch(url);
+        // Node's fetch has no default timeout — without this, a connection
+        // that's silently dropping packets (a flaky VPN, not a clean
+        // refusal) can hang for the OS's full TCP timeout (often 60s+) on
+        // a single attempt, defeating the retry loop entirely by never
+        // reaching attempt 2. 8s is generous for same-network object storage.
+        const response = await fetch(url, {
+          signal: AbortSignal.timeout(8000),
+        });
         if (!response.ok) {
           throw new Error(`Storage returned ${response.status}`);
         }
         return await response.text();
       } catch (error) {
         lastError = error;
-        // MinIO can still be finishing startup on the very first request
-        // after a fresh `docker compose up` — a short retry absorbs that
-        // instead of surfacing a 503 on transient connection refusals.
         if (attempt < maxAttempts) {
           await new Promise((resolve) => setTimeout(resolve, attempt * 300));
         }
       }
     }
 
+    // `fetch failed` (a plain TypeError from undici) hides the actual OS-level
+    // reason — ECONNREFUSED, ETIMEDOUT, ENOTFOUND — in `error.cause`, which a
+    // plain `error.message` log silently drops. Surfacing it here is the
+    // difference between "storage is unavailable" (unhelpful, every time)
+    // and actually knowing whether the network path to storage was refusing
+    // connections, timing out, or failing DNS the next time this happens.
+    const cause =
+      lastError instanceof Error && 'cause' in lastError
+        ? String(lastError.cause)
+        : undefined;
     this.logger.error(
       'Failed to fetch print template HTML from storage',
       lastError instanceof Error ? lastError : undefined,
-      { bucket, key, attempts: maxAttempts },
+      { bucket, key, attempts: maxAttempts, cause },
     );
     throw new ServiceUnavailableException(
       'Failed to load the template HTML — the storage service is unavailable.',
@@ -292,36 +312,55 @@ export class PrintTemplatesService extends BaseServiceOperations<
    * Renders arbitrary (typically unsaved) HTML straight to PDF bytes via
    * Gotenberg — no storage upload, no DB read. Backs the admin form's live
    * preview so what the admin sees matches Gotenberg's actual output
-   * instead of a browser-only approximation.
+   * instead of a browser-only approximation. `'banded'` HTML still carries
+   * its raw `<template data-band>` blocks (the browser can't do band
+   * substitution), so it goes through `BandedRenderService` first, exactly
+   * like a real `render()` call — see `render()` below.
    */
   async previewRender(
     html: string,
     paperSize?: string,
     orientation?: string,
+    templateEngine?: string,
+    params?: PrintTemplateRenderParams,
   ): Promise<Buffer> {
     const dims = this.resolvePaperDimensions(
       paperSize ?? 'A4',
       orientation ?? 'portrait',
     );
-    return this.gotenbergService.convertHtmlToPdf(html, dims);
+    const isBanded = templateEngine === 'banded';
+    const renderHtml = isBanded
+      ? this.bandedRenderService.render(html, params ?? {})
+      : html;
+    return this.gotenbergService.convertHtmlToPdf(renderHtml, dims, {
+      waitForExpression: isBanded
+        ? BandedRenderService.WAIT_FOR_EXPRESSION
+        : undefined,
+    });
   }
 
   /**
-   * Substitutes every `{{key}}` occurrence in `html`, renders it to PDF at
-   * the template's configured paper size, and uploads the PDF to storage —
-   * the "generate a real report" counterpart to plain CRUD. Missing keys in
-   * `params` fall back to that parameter's `default_value`, then `''`.
+   * Renders the template to PDF and uploads it to storage — the "generate a
+   * real report" counterpart to plain CRUD. `'simple'` templates get every
+   * `{{key}}` substituted with a plain string (missing keys fall back to
+   * that parameter's `default_value`, then `''`); `'banded'` templates hand
+   * `params` untouched to `BandedRenderService`, which lets the client-side
+   * paginator do its own (dotted-path, array-aware) substitution — see
+   * reviews/print-template-pagination-2026-07-29.md.
    */
   async render(
     id: string,
-    params: Record<string, string> = {},
+    params: PrintTemplateRenderParams = {},
   ): Promise<PrintTemplateRenderResultDTO> {
     const template = await this.findById(id);
-    const html = this.substituteParameters(
-      template.html_content ?? '',
-      template.parameters,
-      params,
-    );
+    const isBanded = template.template_engine === 'banded';
+    const html = isBanded
+      ? this.bandedRenderService.render(template.html_content ?? '', params)
+      : this.substituteParameters(
+          template.html_content ?? '',
+          template.parameters,
+          params,
+        );
 
     const paperSize = this.resolvePaperDimensions(
       template.paper_size,
@@ -330,6 +369,13 @@ export class PrintTemplatesService extends BaseServiceOperations<
     const pdfBuffer = await this.gotenbergService.convertHtmlToPdf(
       html,
       paperSize,
+      {
+        emulatedMediaType:
+          template.emulated_media_type === 'screen' ? 'screen' : 'print',
+        waitForExpression: isBanded
+          ? BandedRenderService.WAIT_FOR_EXPRESSION
+          : undefined,
+      },
     );
 
     const bucket = this.configService.get<string>(
@@ -380,13 +426,21 @@ export class PrintTemplatesService extends BaseServiceOperations<
     };
   }
 
+  /** `'simple'`-engine substitution only — flat `{{key}}` replaced with a
+   * plain string. A `params[def.key]` that's an array (only meaningful for
+   * `'banded'` templates) has no sane flat-string form, so it's treated the
+   * same as "not provided" and falls back to `default_value`. */
   private substituteParameters(
     html: string,
     parameterDefs: PrintTemplate['parameters'],
-    params: Record<string, string>,
+    params: PrintTemplateRenderParams,
   ): string {
     return (parameterDefs ?? []).reduce((acc, def) => {
-      const value = params[def.key] ?? def.default_value ?? '';
+      const raw = params[def.key];
+      const value =
+        raw !== undefined && raw !== null && !Array.isArray(raw)
+          ? String(raw)
+          : (def.default_value ?? '');
       const escapedKey = def.key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       return acc.replace(new RegExp(`{{\\s*${escapedKey}\\s*}}`, 'g'), value);
     }, html);

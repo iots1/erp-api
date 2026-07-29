@@ -5,6 +5,7 @@ import {
   IsArray,
   IsBoolean,
   IsIn,
+  IsObject,
   IsOptional,
   IsString,
   MaxLength,
@@ -12,9 +13,12 @@ import {
 } from 'class-validator';
 
 import {
+  PRINT_TEMPLATE_ENGINES,
+  PRINT_TEMPLATE_MEDIA_TYPES,
   PRINT_TEMPLATE_ORIENTATIONS,
   PRINT_TEMPLATE_PAPER_SIZES,
 } from '../constants/print-template.constants';
+import { PrintTemplateLayoutConfigDTO } from './print-template-layout-config.dto';
 import { PrintTemplateParameterDTO } from './print-template-parameter.dto';
 
 export class CreatePrintTemplateDTO {
@@ -96,4 +100,42 @@ export class CreatePrintTemplateDTO {
     type: [PrintTemplateParameterDTO],
   })
   parameters: PrintTemplateParameterDTO[];
+
+  @IsOptional()
+  @IsIn(PRINT_TEMPLATE_ENGINES)
+  @ApiPropertyOptional({
+    description:
+      "เอนจินสร้าง PDF — 'simple' (ค่าเริ่มต้น) แทนที่ {{key}} ตรงๆ ไม่มีการแบ่งหน้า, 'banded' แบ่งหน้าอัตโนมัติจาก band template",
+    enum: PRINT_TEMPLATE_ENGINES,
+    example: 'simple',
+  })
+  template_engine?: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => PrintTemplateLayoutConfigDTO)
+  @ApiPropertyOptional({
+    description: "ค่าตั้งค่าเลย์เอาต์ — มีผลเฉพาะ template_engine='banded'",
+    type: PrintTemplateLayoutConfigDTO,
+  })
+  layout_config?: PrintTemplateLayoutConfigDTO;
+
+  @IsOptional()
+  @IsIn(PRINT_TEMPLATE_MEDIA_TYPES)
+  @ApiPropertyOptional({
+    description:
+      "CSS media type ที่ Gotenberg ใช้ตอน render — ปกติใช้ 'print' (ค่าเริ่มต้น จำเป็นสำหรับ thead/tfoot ซ้ำทุกหน้า)",
+    enum: PRINT_TEMPLATE_MEDIA_TYPES,
+    example: 'print',
+  })
+  emulated_media_type?: string;
+
+  @IsOptional()
+  @IsObject()
+  @ApiPropertyOptional({
+    description:
+      "ตัวอย่างข้อมูลสำหรับ preview/Generate Test PDF ในหน้า admin เท่านั้น — 'simple' ใช้ {key: string} แบบแบน, 'banded' ใช้โครงสร้างซ้อน object/array ตามที่ band template ต้องการ ไม่เกี่ยวกับ params ที่ผู้เรียก render() จริงส่งมา",
+    example: { customer_name: 'บริษัท เอบีซี จำกัด' },
+  })
+  mock_data?: Record<string, unknown>;
 }

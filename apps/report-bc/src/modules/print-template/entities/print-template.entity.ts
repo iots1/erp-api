@@ -3,6 +3,18 @@ import { Column, Entity, Unique } from 'typeorm';
 import { BaseEntity } from '@lib/common/abstracts/base-entity.abstract';
 import { ErpDatabases } from '@lib/common/enum/erp-databases.enum';
 
+/** Field of one `type: 'array'` parameter's items — lets the admin form build
+ * a test-data row without knowing the band template's exact `{{row.*}}` keys. */
+export interface IPrintTemplateParameterField {
+  key: string;
+  label_th: string;
+  label_en: string;
+  /** One of `PRINT_TEMPLATE_PARAMETER_TYPES` (constants/print-template.constants.ts)
+   * — plain `string` here, validated only via the DTO's `@IsIn()`, same as
+   * how `paper_size`/`orientation` are handled below. */
+  type: string;
+}
+
 /**
  * One `{{key}}` placeholder definition — `PrintTemplatesService.render()`
  * substitutes every occurrence of `{{key}}` in `html_content` with the
@@ -14,7 +26,21 @@ export interface IPrintTemplateParameter {
   key: string;
   label_th: string;
   label_en: string;
+  /** Optional — defaults to `'string'` at the usage site (rows written
+   * before this field existed, and the DTO itself, both omit it). */
+  type?: string;
   default_value: string | null;
+  /** Only for `type: 'array'` — shape of each item, e.g. the `row` in a
+   * `<template data-repeat="items">{{row.description}}</template>` band. */
+  item_schema?: IPrintTemplateParameterField[];
+}
+
+/** Layout tuning for the `'banded'` engine — every field optional, the
+ * paginator falls back to measuring available space itself when omitted. */
+export interface IPrintTemplateLayoutConfig {
+  detail_height_mm?: number;
+  reserve_summary_mm?: number;
+  margin_mm?: { top?: number; bottom?: number; left?: number; right?: number };
 }
 
 /**
@@ -122,6 +148,57 @@ export class PrintTemplate extends BaseEntity {
       'รายการตัวแปร {{key}} สำหรับแทนที่ใน html_content ตอน render / {{key}} parameter definitions substituted at render time',
   })
   parameters: IPrintTemplateParameter[];
+
+  /**
+   * `'simple'` (default, backward compatible) — `html_content` is one flat
+   * document; `{{key}}` gets a plain string substitution, no pagination.
+   * `'banded'` — `html_content` declares `<template data-band="...">` blocks
+   * (page-header/detail-header/detail-row/filler-row/summary/page-footer);
+   * the in-page paginator measures real row heights and splits into
+   * physical pages itself. See reviews/print-template-pagination-2026-07-29.md.
+   */
+  @Column({
+    type: 'varchar',
+    length: 20,
+    default: 'simple',
+    comment:
+      "เอนจินสร้าง PDF: 'simple' = แทนที่ {{key}} ตรงๆ ไม่มีการแบ่งหน้า (ของเดิม), 'banded' = แบ่งหน้าอัตโนมัติจาก band template / PDF rendering engine",
+  })
+  template_engine: string;
+
+  @Column({
+    type: 'jsonb',
+    default: () => "'{}'",
+    comment:
+      'ค่าตั้งค่าเลย์เอาต์สำหรับ engine banded เท่านั้น (ความสูง detail band, พื้นที่กันไว้ให้ summary, margin) / Layout tuning, only meaningful when template_engine=banded',
+  })
+  layout_config: IPrintTemplateLayoutConfig;
+
+  @Column({
+    type: 'varchar',
+    length: 10,
+    default: 'print',
+    comment:
+      "CSS media type ที่ Gotenberg ใช้ตอน render ('print'/'screen') ส่งต่อเป็น emulatedMediaType — ปกติใช้ 'print' (default ของ Chromium และจำเป็นสำหรับ thead/tfoot ซ้ำทุกหน้า) / Gotenberg emulatedMediaType override per template",
+  })
+  emulated_media_type: string;
+
+  /**
+   * Sample render data the admin form's live preview and "Generate Test
+   * PDF" send as `params` — for `template_engine = 'simple'` this is a flat
+   * `{key: string}` map matching `parameters[].key`; for `'banded'` it's
+   * whatever nested shape the band template's `{{path}}`/`data-repeat`
+   * placeholders expect (see `PrintTemplateRenderParams`). Never used by the
+   * real `render()` call a document-generation caller makes — that always
+   * supplies its own `params` — this only seeds the editor.
+   */
+  @Column({
+    type: 'jsonb',
+    default: () => "'{}'",
+    comment:
+      "ตัวอย่างข้อมูลสำหรับ preview/Generate Test PDF ในหน้า admin เท่านั้น ไม่เกี่ยวกับ render จริง / Sample params the admin form's preview and test-render use — unrelated to a real caller's render()",
+  })
+  mock_data: Record<string, unknown>;
 
   /**
    * Not a DB column — populated on demand by `PrintTemplatesService.findById()`
