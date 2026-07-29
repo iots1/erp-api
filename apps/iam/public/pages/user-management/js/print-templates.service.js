@@ -6,7 +6,7 @@ import { showConfirmDialog } from '../../../js/confirm-dialog.service.js';
 import { hasPermission } from '../../../js/login.service.js';
 import { createHtmlEditor } from './codemirror-html-editor.js';
 import { createPaginatedList } from './paginated-list.js';
-import { reportDelete, reportGet, reportPost, reportPut } from './report-api.js';
+import { reportDelete, reportGet, reportPost, reportPostBlob, reportPut } from './report-api.js';
 import { showApiError, showToast } from './toast.service.js';
 import { debounce, escapeHtml, refreshIcons } from './utils.js';
 
@@ -117,10 +117,54 @@ function substituteParameters(html, parameters) {
   }, html);
 }
 
-function updatePreview() {
+let previewBlobUrl = null;
+let previewRequestId = 0;
+
+function setPreviewLoading(isLoading) {
+  document.getElementById('templatePreviewLoading')?.classList.toggle('hidden', !isLoading);
+  // Gotenberg round-trips take real server time (unlike the old instant
+  // srcdoc swap) — show a skeleton over the previous render so the pane
+  // never looks frozen/blank while waiting.
+  document.getElementById('templatePreviewSkeleton')?.classList.toggle('is-visible', isLoading);
+}
+
+/** Renders the current (unsaved) editor content through the real Gotenberg
+ * pipeline (POST /print-templates/preview) instead of an iframe srcdoc, so
+ * the preview matches actual print output (fonts, page breaks, @media
+ * print rules) rather than a plain-browser approximation of it. */
+async function updatePreview() {
   const frame = document.getElementById('templatePreviewFrame');
   if (!frame || !htmlEditor) return;
-  frame.srcdoc = substituteParameters(htmlEditor.getValue(), currentParameters);
+
+  const html = substituteParameters(htmlEditor.getValue(), currentParameters);
+  if (!html.trim()) {
+    if (previewBlobUrl) {
+      URL.revokeObjectURL(previewBlobUrl);
+      previewBlobUrl = null;
+    }
+    frame.removeAttribute('src');
+    return;
+  }
+
+  const requestId = ++previewRequestId;
+  setPreviewLoading(true);
+  try {
+    const blob = await reportPostBlob('/print-templates/preview', {
+      html_content: html,
+      paper_size: document.getElementById('frmTemplatePaperSize')?.value || 'A4',
+      orientation: document.getElementById('frmTemplateOrientation')?.value || 'portrait',
+    });
+    if (requestId !== previewRequestId) return; // superseded by a newer edit
+    const url = URL.createObjectURL(blob);
+    if (previewBlobUrl) URL.revokeObjectURL(previewBlobUrl);
+    previewBlobUrl = url;
+    frame.src = url;
+  } catch (error) {
+    if (requestId !== previewRequestId) return;
+    showApiError(error, 'สร้างตัวอย่าง PDF ไม่สำเร็จ');
+  } finally {
+    if (requestId === previewRequestId) setPreviewLoading(false);
+  }
 }
 
 // ── Parameters editor ────────────────────────────────────────────────────
@@ -209,13 +253,129 @@ export function updatePrintTemplateTestValue(index, value) {
 
 export function setPrintTemplateViewMode(mode) {
   const split = document.getElementById('templateEditorSplit');
+  const editorPane = document.getElementById('templateEditorPane');
   if (!split) return;
   split.classList.remove('um-view-mode-code', 'um-view-mode-preview');
   if (mode === 'code') split.classList.add('um-view-mode-code');
   if (mode === 'preview') split.classList.add('um-view-mode-preview');
 
+  // code/preview are single-pane (CSS grows that pane to 100% — see
+  // .um-view-mode-code/.um-view-mode-preview in layout.css), so any %-basis
+  // left over from a drag would otherwise stick around and fight it once
+  // the admin switches back; restore the last dragged ratio for split mode,
+  // and go back to CSS's 50/50 default when neither has run yet.
+  if (editorPane) {
+    editorPane.style.flexBasis = mode === 'split' && lastSplitPct != null ? `${lastSplitPct}%` : '';
+  }
+
   document.querySelectorAll('.um-view-toggle-btn').forEach((btn) => {
     btn.classList.toggle('active', btn.dataset.viewMode === mode);
+  });
+}
+
+// ── Resizable split — drag templateEditorResizer to reallocate width ────────
+
+const SPLIT_MIN_PCT = 20;
+const SPLIT_MAX_PCT = 80;
+let lastSplitPct = null;
+
+function initSplitResizer() {
+  const resizer = document.getElementById('templateEditorResizer');
+  const split = document.getElementById('templateEditorSplit');
+  const editorPane = document.getElementById('templateEditorPane');
+  if (!resizer || !split || !editorPane) return;
+
+  let activePointerId = null;
+  let rafId = null;
+  let pendingClientX = null;
+
+  function setSplitPct(pct) {
+    const clamped = Math.min(SPLIT_MAX_PCT, Math.max(SPLIT_MIN_PCT, pct));
+    lastSplitPct = clamped;
+    editorPane.style.flexBasis = `${clamped}%`;
+  }
+
+  function applyClientX(clientX) {
+    const rect = split.getBoundingClientRect();
+    setSplitPct(((clientX - rect.left) / rect.width) * 100);
+  }
+
+  // rAF-throttled: CodeMirror re-lays-out its whole viewport on every resize
+  // of its mount, so applying the raw flex-basis on every single pointermove
+  // (which can fire far faster than the browser can repaint/relayout) is
+  // what made the drag feel laggy and stop tracking the cursor — collapsing
+  // every move between frames down to the latest position keeps it in sync
+  // with what the browser can actually paint.
+  function flushFrame() {
+    rafId = null;
+    if (pendingClientX !== null) {
+      applyClientX(pendingClientX);
+      pendingClientX = null;
+    }
+  }
+
+  function onPointerMove(event) {
+    if (event.pointerId !== activePointerId) return;
+    pendingClientX = event.clientX;
+    if (rafId === null) rafId = requestAnimationFrame(flushFrame);
+    event.preventDefault();
+  }
+
+  function endDrag(event) {
+    if (activePointerId === null) return;
+    if (event && event.pointerId !== activePointerId) return;
+    if (rafId !== null) {
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
+    pendingClientX = null;
+    if (resizer.hasPointerCapture(activePointerId)) {
+      resizer.releasePointerCapture(activePointerId);
+    }
+    activePointerId = null;
+    resizer.classList.remove('is-dragging');
+    split.classList.remove('is-resizing');
+    document.body.style.removeProperty('cursor');
+    document.body.style.removeProperty('user-select');
+    window.removeEventListener('blur', forceEndDrag);
+  }
+
+  function forceEndDrag() {
+    endDrag(null);
+  }
+
+  function startDrag(event) {
+    if (event.button !== 0 && event.pointerType === 'mouse') return;
+    activePointerId = event.pointerId;
+    // setPointerCapture pins every subsequent pointer event for this
+    // pointerId to `resizer` regardless of what's visually underneath the
+    // cursor (the preview iframe's own document, CodeMirror's internals,
+    // etc.) — the standard fix for a drag handle that crosses an iframe,
+    // and what actually guarantees pointerup fires so the drag can never
+    // get stuck in "is-dragging" if the release happens over one of them.
+    resizer.setPointerCapture(activePointerId);
+    resizer.classList.add('is-dragging');
+    split.classList.add('is-resizing');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    // A window-level fallback in case the OS/browser eats the pointerup
+    // entirely (e.g. alt-tabbing away mid-drag) — capture alone still
+    // relies on an eventual pointerup/cancel to release itself.
+    window.addEventListener('blur', forceEndDrag);
+    event.preventDefault();
+  }
+
+  resizer.addEventListener('pointerdown', startDrag);
+  resizer.addEventListener('pointermove', onPointerMove);
+  resizer.addEventListener('pointerup', endDrag);
+  resizer.addEventListener('pointercancel', endDrag);
+  resizer.addEventListener('keydown', (event) => {
+    const rect = split.getBoundingClientRect();
+    const currentPct = (editorPane.getBoundingClientRect().width / rect.width) * 100;
+    if (event.key === 'ArrowLeft') setSplitPct(currentPct - 2);
+    else if (event.key === 'ArrowRight') setSplitPct(currentPct + 2);
+    else return;
+    event.preventDefault();
   });
 }
 
@@ -279,8 +439,15 @@ export async function initPrintTemplateForm() {
   htmlEditor = createHtmlEditor({
     mountEl: document.getElementById('templateHtmlEditorMount'),
     initialDoc: '',
-    onChange: debounce(updatePreview, 200),
+    // Preview now round-trips through Gotenberg (see updatePreview) instead
+    // of an instant srcdoc render — a longer debounce avoids firing a real
+    // PDF conversion on every keystroke.
+    onChange: debounce(updatePreview, 900),
   });
+
+  document.getElementById('frmTemplatePaperSize')?.addEventListener('change', updatePreview);
+  document.getElementById('frmTemplateOrientation')?.addEventListener('change', updatePreview);
+  initSplitResizer();
 
   if (templateId) {
     try {

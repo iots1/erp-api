@@ -91,8 +91,8 @@ const topbarActions = [
                                 </div>
                             </div>
                             <p class="um-muted-note">
-                                แก้ไข HTML ในกล่องด้านซ้าย ผลลัพธ์จะแสดงตัวอย่างแบบ live ทางด้านขวาทันที (ทดสอบค่าตัวแปรได้ในแถบด้านล่าง)
-                                — เนื้อหานี้จะถูกอัปโหลดไปเก็บที่ object storage เมื่อบันทึก (ไม่ได้เก็บลงฐานข้อมูลโดยตรง)
+                                แก้ไข HTML ในกล่องด้านซ้าย ผลลัพธ์จะแสดงตัวอย่างจริงจาก Gotenberg ทางด้านขวา (ทดสอบค่าตัวแปรได้ในแถบด้านล่าง)
+                                — เนื้อหานี้จะถูกอัปโหลดไปเก็บที่ object storage เมื่อบันทึก (ไม่ได้เก็บลงฐานข้อมูลโดยตรง) ลากเส้นแบ่งตรงกลางเพื่อปรับขนาดพื้นที่ได้
                             </p>
                             <div id="templateTestParamsContainer" class="um-test-params-row hidden"></div>
                             <div id="templateEditorSplit" class="um-editor-split">
@@ -100,15 +100,25 @@ const topbarActions = [
                                     <label class="um-editor-pane-label" for="templateHtmlEditorMount">HTML Editor</label>
                                     <div id="templateHtmlEditorMount" class="um-html-editor-mount"></div>
                                 </div>
+                                <div id="templateEditorResizer" class="um-editor-resizer" role="separator" aria-orientation="vertical" aria-label="ปรับขนาดพื้นที่ระหว่าง Editor กับ Preview" tabindex="0"></div>
                                 <div class="um-editor-pane" id="templatePreviewPane">
-                                    <span class="um-editor-pane-label">Live Preview</span>
-                                    <!-- allow-scripts (no allow-same-origin): templates that pull in a
-                                         JS-driven CSS framework (e.g. Tailwind's CDN script) need scripts
-                                         to actually run for the preview to match what Gotenberg's headless
-                                         Chromium will render. Omitting allow-same-origin keeps the srcdoc
-                                         document's origin opaque, so a script here still can't reach the
-                                         parent admin page's DOM/cookies/localStorage. -->
-                                    <iframe id="templatePreviewFrame" class="um-preview-frame" title="Live HTML preview" sandbox="allow-scripts"></iframe>
+                                    <span class="um-editor-pane-label">
+                                        Live Preview
+                                        <span id="templatePreviewLoading" class="um-preview-loading hidden" role="status">กำลังสร้างตัวอย่าง…</span>
+                                    </span>
+                                    <div class="um-preview-viewport">
+                                        <!-- src is a blob: URL of the actual Gotenberg-rendered PDF (see
+                                             updatePreview() in print-templates.service.js) — the browser's
+                                             native PDF viewer renders it, so this is WYSIWYG with real print
+                                             output instead of a browser-only approximation of the raw HTML. -->
+                                        <iframe id="templatePreviewFrame" class="um-preview-frame" title="Live PDF preview"></iframe>
+                                        <div id="templatePreviewSkeleton" class="um-preview-skeleton is-visible" aria-hidden="true">
+                                            <div class="um-skeleton-line" style="width:55%"></div>
+                                            <div class="um-skeleton-line" style="width:35%"></div>
+                                            <div class="um-skeleton-line" style="width:70%"></div>
+                                            <div class="um-skeleton-block"></div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </article>

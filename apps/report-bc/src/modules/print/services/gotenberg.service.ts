@@ -44,6 +44,17 @@ export class GotenbergService {
     form.append('marginLeft', '0.4');
     form.append('marginRight', '0.4');
     form.append('printBackground', 'true');
+    // Templates are authored/previewed as regular (screen) HTML — without this,
+    // Chromium's PDF export defaults to `print` media, which can silently
+    // apply different rules than what the admin's live preview showed.
+    form.append('emulatedMediaType', 'screen');
+    // Gotenberg 8 skips waiting for network-idle by default (perf trade-off),
+    // so a template's own async resources (webfonts, remote scripts/images)
+    // can still be mid-flight when Chromium snapshots the page — producing a
+    // PDF that doesn't match what fully loaded in a browser. Wait for both
+    // network idle and font decoding to finish before printing.
+    form.append('skipNetworkIdleEvent', 'false');
+    form.append('waitForExpression', "document.fonts.status === 'loaded'");
 
     let response: Response;
     try {

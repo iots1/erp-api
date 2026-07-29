@@ -8,8 +8,17 @@ import {
   Param,
   Post,
   Put,
+  Res,
 } from '@nestjs/common';
-import { ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiOperation,
+  ApiParam,
+  ApiProduces,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
+
+import type { FastifyReply } from 'fastify';
 
 import {
   CurrentUser,
@@ -33,11 +42,13 @@ import {
   DELETE_PRINT_TEMPLATE_SUMMARY,
   GET_PRINT_TEMPLATE_SUMMARY,
   GET_PRINT_TEMPLATES_SUMMARY,
+  PREVIEW_PRINT_TEMPLATE_SUMMARY,
   PRINT_TEMPLATE_ID_PARAM_DESCRIPTION,
   RENDER_PRINT_TEMPLATE_SUMMARY,
   UPDATE_PRINT_TEMPLATE_SUMMARY,
 } from '../constants/print-template.swagger';
 import { CreatePrintTemplateDTO } from '../dto/create-print-template.dto';
+import { PreviewPrintTemplateDTO } from '../dto/preview-print-template.dto';
 import { PrintTemplateRenderResultDTO } from '../dto/print-template-render-result.dto';
 import { PrintTemplateResponseDTO } from '../dto/print-template-response.dto';
 import { RenderPrintTemplateDTO } from '../dto/render-print-template.dto';
@@ -141,6 +152,29 @@ export class PrintTemplatesController extends BaseControllerOperations<
     @CurrentUser() currentUser: IUserSession,
   ): Promise<void> {
     return super.softDelete(id, currentUser);
+  }
+
+  @Post('preview')
+  @RequirePermission('report:print_template_render', {
+    th: 'สร้างเอกสาร PDF จากเทมเพลต',
+    en: 'Render print template to PDF',
+  })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: PREVIEW_PRINT_TEMPLATE_SUMMARY })
+  @ApiProduces('application/pdf')
+  async preview(
+    @Body() previewDTO: PreviewPrintTemplateDTO,
+    @Res({ passthrough: false }) reply: FastifyReply,
+  ): Promise<void> {
+    const pdfBuffer = await this.service.previewRender(
+      previewDTO.html_content,
+      previewDTO.paper_size,
+      previewDTO.orientation,
+    );
+    reply
+      .header('Content-Type', 'application/pdf')
+      .header('Content-Length', String(pdfBuffer.length))
+      .send(pdfBuffer);
   }
 
   @Post(':id/render')

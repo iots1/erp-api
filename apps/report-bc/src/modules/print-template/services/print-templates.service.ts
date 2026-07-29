@@ -289,6 +289,24 @@ export class PrintTemplatesService extends BaseServiceOperations<
   }
 
   /**
+   * Renders arbitrary (typically unsaved) HTML straight to PDF bytes via
+   * Gotenberg — no storage upload, no DB read. Backs the admin form's live
+   * preview so what the admin sees matches Gotenberg's actual output
+   * instead of a browser-only approximation.
+   */
+  async previewRender(
+    html: string,
+    paperSize?: string,
+    orientation?: string,
+  ): Promise<Buffer> {
+    const dims = this.resolvePaperDimensions(
+      paperSize ?? 'A4',
+      orientation ?? 'portrait',
+    );
+    return this.gotenbergService.convertHtmlToPdf(html, dims);
+  }
+
+  /**
    * Substitutes every `{{key}}` occurrence in `html`, renders it to PDF at
    * the template's configured paper size, and uploads the PDF to storage —
    * the "generate a real report" counterpart to plain CRUD. Missing keys in

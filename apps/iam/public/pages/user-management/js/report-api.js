@@ -76,3 +76,15 @@ export const reportGet = (path, query) => request(path, { query });
 export const reportPost = (path, body) => request(path, { method: 'POST', body });
 export const reportPut = (path, body) => request(path, { method: 'PUT', body });
 export const reportDelete = (path) => request(path, { method: 'DELETE' });
+
+/** Like reportPost, but for endpoints returning a raw binary body (e.g. a
+ * PDF) instead of a JSON:API envelope — resolves to a Blob. */
+export async function reportPostBlob(path, body) {
+  const response = await fetchWithAuth(buildUrl(path), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) throw await toApiError(response);
+  return response.blob();
+}

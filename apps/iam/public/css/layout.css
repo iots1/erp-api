@@ -468,18 +468,23 @@
 /* ── HTML editor + live preview split (print-templates form) ────── */
 
 .um-editor-split {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
+  display: flex;
+  align-items: stretch;
   margin-top: 0.75rem;
 }
 .um-editor-split.um-view-mode-code #templatePreviewPane,
-.um-editor-split.um-view-mode-preview #templateEditorPane {
+.um-editor-split.um-view-mode-code .um-editor-resizer,
+.um-editor-split.um-view-mode-preview #templateEditorPane,
+.um-editor-split.um-view-mode-preview .um-editor-resizer {
   display: none;
 }
-.um-editor-split.um-view-mode-code,
-.um-editor-split.um-view-mode-preview {
-  grid-template-columns: 1fr;
+/* Single-pane modes: the one remaining pane must grow to fill the row —
+   without this it keeps whatever %-basis the split was last dragged to
+   (JS also clears the inline basis on mode switch; this is the CSS-side
+   half of that fix, and covers the initial 50% default too). */
+.um-editor-split.um-view-mode-code #templateEditorPane,
+.um-editor-split.um-view-mode-preview #templatePreviewPane {
+  flex: 1 1 100%;
 }
 .um-editor-pane {
   display: flex;
@@ -488,7 +493,52 @@
   min-width: 0;
   min-height: 0;
 }
+/* Draggable split: the editor pane holds an explicit %-basis that
+   #templateEditorResizer's drag handler adjusts inline; the preview pane
+   always grows to fill whatever's left. Falls back to an even 50/50 split
+   until JS sets a basis. */
+#templateEditorPane {
+  flex: 0 0 50%;
+}
+#templatePreviewPane {
+  flex: 1 1 0%;
+}
+.um-editor-resizer {
+  flex: 0 0 auto;
+  width: 14px;
+  margin: 0 -0.35rem;
+  cursor: col-resize;
+  position: relative;
+  z-index: 1;
+  align-self: stretch;
+  touch-action: none;
+}
+.um-editor-resizer::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 50%;
+  width: 3px;
+  transform: translateX(-50%);
+  background: var(--slate-300);
+  border-radius: 3px;
+  transition: background 0.15s ease;
+}
+.um-editor-resizer:hover::before,
+.um-editor-resizer.is-dragging::before {
+  background: var(--pico-primary, #3b82f6);
+}
+/* While dragging, the iframe (and to a lesser extent CodeMirror) would
+   otherwise swallow mousemove — the pointer crosses into the iframe's own
+   document and stops generating events on `document`, so the split looks
+   laggy/jumpy and stops tracking the cursor. Killing pointer-events on both
+   panes' content for the drag's duration routes every move to `document`. */
+.um-editor-split.is-resizing .um-html-editor-mount,
+.um-editor-split.is-resizing .um-preview-viewport {
+  pointer-events: none;
+}
 .um-editor-pane-label {
+  display: flex;
+  align-items: center;
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--slate-700);
@@ -506,12 +556,70 @@
   height: 100%;
   font-size: 0.85rem;
 }
-.um-preview-frame {
+/* Preview pane: iframe + skeleton are both absolutely positioned inside this
+   viewport so the skeleton can sit exactly over the iframe regardless of
+   how wide the drag handle has made this pane. */
+.um-preview-viewport {
+  position: relative;
   width: 100%;
   height: 520px;
+}
+.um-preview-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   border: 1px solid var(--border);
   border-radius: var(--pico-border-radius, 0.5rem);
   background: #fff;
+}
+
+/* ── Preview skeleton — shown while waiting on a Gotenberg render ─── */
+
+.um-preview-skeleton {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 1.5rem;
+  border-radius: var(--pico-border-radius, 0.5rem);
+  background: #fff;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+.um-preview-skeleton.is-visible {
+  opacity: 1;
+}
+.um-skeleton-line,
+.um-skeleton-block {
+  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--slate-100) 25%,
+    var(--slate-200) 37%,
+    var(--slate-100) 63%
+  );
+  background-size: 400% 100%;
+  animation: um-skeleton-shimmer 1.4s ease infinite;
+}
+.um-skeleton-line {
+  height: 0.65rem;
+  flex-shrink: 0;
+}
+.um-skeleton-block {
+  height: 100%;
+  min-height: 4rem;
+  margin-top: 0.25rem;
+}
+@keyframes um-skeleton-shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
 }
 
 /* ── Fullscreen mode — Dreamweaver-style distraction-free editing ──── */
@@ -531,7 +639,7 @@
   min-height: 0;
 }
 .um-editor-fullscreen .um-html-editor-mount,
-.um-editor-fullscreen .um-preview-frame {
+.um-editor-fullscreen .um-preview-viewport {
   height: 100%;
 }
 

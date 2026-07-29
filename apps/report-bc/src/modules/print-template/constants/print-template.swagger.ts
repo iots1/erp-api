@@ -10,5 +10,7 @@ export const DELETE_PRINT_TEMPLATE_SUMMARY =
   'Delete print template (soft delete)';
 export const RENDER_PRINT_TEMPLATE_SUMMARY =
   'Render print template to PDF with parameter substitution';
+export const PREVIEW_PRINT_TEMPLATE_SUMMARY =
+  'Render unsaved HTML to PDF for live preview (no storage/DB writes)';
 
 export const PRINT_TEMPLATE_ID_PARAM_DESCRIPTION = 'Print template ID';
