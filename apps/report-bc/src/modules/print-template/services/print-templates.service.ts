@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
-import { randomUUID } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 
 import { ClientProxy } from '@nestjs/microservices';
 import { DeepPartial, Repository } from 'typeorm';
@@ -69,6 +69,11 @@ export class PrintTemplatesService extends BaseServiceOperations<
         serviceVersion: configService.get('REPORT_PREFIX_VERSION'),
       },
     });
+  }
+
+  /** SHA-256 of the HTML body — lets create/update skip a no-op re-upload. */
+  private hashHtml(htmlContent: string): string {
+    return createHash('sha256').update(htmlContent, 'utf-8').digest('hex');
   }
 
   /** Uploads HTML content to storage; throws if the storage service is unreachable. */
@@ -144,22 +149,34 @@ export class PrintTemplatesService extends BaseServiceOperations<
       );
     }
 
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`Storage returned ${response.status}`);
+    const maxAttempts = 3;
+    let lastError: unknown;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`Storage returned ${response.status}`);
+        }
+        return await response.text();
+      } catch (error) {
+        lastError = error;
+        // MinIO can still be finishing startup on the very first request
+        // after a fresh `docker compose up` — a short retry absorbs that
+        // instead of surfacing a 503 on transient connection refusals.
+        if (attempt < maxAttempts) {
+          await new Promise((resolve) => setTimeout(resolve, attempt * 300));
+        }
       }
-      return await response.text();
-    } catch (error) {
-      this.logger.error(
-        'Failed to fetch print template HTML from storage',
-        error instanceof Error ? error : undefined,
-        { bucket, key },
-      );
-      throw new ServiceUnavailableException(
-        'Failed to load the template HTML — the storage service is unavailable.',
-      );
     }
+
+    this.logger.error(
+      'Failed to fetch print template HTML from storage',
+      lastError instanceof Error ? lastError : undefined,
+      { bucket, key, attempts: maxAttempts },
+    );
+    throw new ServiceUnavailableException(
+      'Failed to load the template HTML — the storage service is unavailable.',
+    );
   }
 
   async create(
@@ -174,6 +191,7 @@ export class PrintTemplatesService extends BaseServiceOperations<
         ...rest,
         html_bucket: uploaded.bucket,
         html_path: uploaded.path,
+        html_hash: this.hashHtml(html_content),
       } as DeepPartial<PrintTemplate>);
 
       if (currentUser !== undefined) {
@@ -202,16 +220,27 @@ export class PrintTemplatesService extends BaseServiceOperations<
 
       let html_bucket = existing.html_bucket;
       let html_path = existing.html_path;
+      let html_hash = existing.html_hash;
       let superseded: { bucket: string; path: string } | null = null;
 
+      // `existing.html_hash` is null for rows written before this column
+      // existed — always re-upload in that case, since there's nothing to
+      // compare against yet (it self-heals: the row gets a hash here).
       if (html_content !== undefined) {
-        const uploaded = await this.uploadHtml(
-          rest.code ?? existing.code,
-          html_content,
-        );
-        superseded = { bucket: existing.html_bucket, path: existing.html_path };
-        html_bucket = uploaded.bucket;
-        html_path = uploaded.path;
+        const newHash = this.hashHtml(html_content);
+        if (newHash !== existing.html_hash) {
+          const uploaded = await this.uploadHtml(
+            rest.code ?? existing.code,
+            html_content,
+          );
+          superseded = {
+            bucket: existing.html_bucket,
+            path: existing.html_path,
+          };
+          html_bucket = uploaded.bucket;
+          html_path = uploaded.path;
+          html_hash = newHash;
+        }
       }
 
       const preloadData: Record<string, unknown> = {
@@ -219,6 +248,7 @@ export class PrintTemplatesService extends BaseServiceOperations<
         ...rest,
         html_bucket,
         html_path,
+        html_hash,
       };
       if (currentUser !== undefined) {
         preloadData.updated_by =
@@ -279,7 +309,10 @@ export class PrintTemplatesService extends BaseServiceOperations<
       template.paper_size,
       template.orientation,
     );
-    const pdfBuffer = await this.gotenbergService.convertHtmlToPdf(html, paperSize);
+    const pdfBuffer = await this.gotenbergService.convertHtmlToPdf(
+      html,
+      paperSize,
+    );
 
     const bucket = this.configService.get<string>(
       'STORAGE_S3_BUCKET',

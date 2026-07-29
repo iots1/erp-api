@@ -83,6 +83,15 @@ export class PrintTemplate extends BaseEntity {
   html_path: string;
 
   @Column({
+    type: 'varchar',
+    length: 64,
+    nullable: true,
+    comment:
+      'SHA-256 ของ html_content ล่าสุดที่อัปโหลด (null = แถวเก่าก่อนมีคอลัมน์นี้ ยังไม่เคยคำนวณ) ใช้ข้ามการอัปโหลดซ้ำเมื่อเนื้อหาไม่เปลี่ยน / SHA-256 of the last-uploaded html_content (null = pre-existing row, not yet computed), used to skip re-uploading when content is unchanged',
+  })
+  html_hash: string | null;
+
+  @Column({
     type: 'boolean',
     default: true,
     comment: 'สถานะใช้งาน / Is active',
@@ -93,7 +102,8 @@ export class PrintTemplate extends BaseEntity {
     type: 'varchar',
     length: 20,
     default: 'A4',
-    comment: 'ขนาดกระดาษสำหรับ render PDF (A4/A5/Letter/Legal) / Paper size for PDF rendering',
+    comment:
+      'ขนาดกระดาษสำหรับ render PDF (A4/A5/Letter/Legal) / Paper size for PDF rendering',
   })
   paper_size: string;
 
