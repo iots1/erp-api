@@ -50,6 +50,26 @@ export class StorageService {
     this.s3Client = new S3Client({
       endpoint: this.configService.get<string>('STORAGE_S3_ENDPOINT'),
       region: this.configService.get<string>('STORAGE_S3_REGION', 'us-east-1'),
+      // Bound every S3 call so a hung/unreachable object store fails fast instead
+      // of blocking forever. The AWS SDK ships with NO request timeout by
+      // default: an endpoint that accepts the TCP connection but never responds
+      // leaves the RPC handler pending, so `RmqAckInterceptor` never acks, and
+      // with `prefetchCount: 1` the whole `erp_storage_queue` head-of-line blocks
+      // until RabbitMQ kills the channel at its 30-minute consumer_timeout — then
+      // redelivers the same message and jams again. Budget (3s + 10s) × 2 attempts
+      // stays under the caller's DEFAULT_RPC_TIMEOUT_MS (15s) on the first try, so
+      // the caller sees a real error envelope rather than an RPC timeout.
+      maxAttempts: this.configService.get<number>('STORAGE_S3_MAX_ATTEMPTS', 2),
+      requestHandler: {
+        connectionTimeout: this.configService.get<number>(
+          'STORAGE_S3_CONNECTION_TIMEOUT_MS',
+          3000,
+        ),
+        requestTimeout: this.configService.get<number>(
+          'STORAGE_S3_REQUEST_TIMEOUT_MS',
+          10000,
+        ),
+      },
       credentials: {
         accessKeyId: this.configService.get<string>(
           'STORAGE_S3_ACCESS_KEY_ID',

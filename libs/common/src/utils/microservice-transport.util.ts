@@ -50,6 +50,25 @@ function buildRmqUrls(config: ConfigService): RmqUrls {
 }
 
 /**
+ * Connection tuning shared by every client and server registration.
+ *
+ * `amqp-connection-manager` defaults `heartbeatIntervalInSeconds` to **5**, so a
+ * client that goes quiet for ~10s (laptop sleep, a stalled event loop, a brief
+ * packet-loss window on a WAN link to the broker) is dropped by RabbitMQ with
+ * `missed heartbeats from client, timeout: 5s`, surfacing on this side as
+ * `ECONNRESET` / "Disconnected from RMQ. Trying to reconnect." That is far too
+ * aggressive for a broker reached over the internet rather than a local docker
+ * network, so the interval is widened (broker closes after 2 missed intervals ≈
+ * 40s) and made env-tunable.
+ */
+function buildRmqSocketOptions(config: ConfigService) {
+  return {
+    heartbeatIntervalInSeconds: config.get<number>('RABBITMQ_HEARTBEAT', 20),
+    reconnectTimeInSeconds: config.get<number>('RABBITMQ_RECONNECT_DELAY', 5),
+  };
+}
+
+/**
  * Build the `ClientProxy` provider config for injecting `service` from another BC.
  * Honours the platform-wide {@link resolveTransport} selection.
  */
@@ -73,6 +92,7 @@ export function buildClientProvider(
       urls: buildRmqUrls(config),
       queue: service.queue,
       queueOptions: { durable: true },
+      socketOptions: buildRmqSocketOptions(config),
     },
   };
 }
@@ -104,6 +124,7 @@ export function buildServerOptions(
       urls: buildRmqUrls(config),
       queue: service.queue,
       queueOptions: { durable: true },
+      socketOptions: buildRmqSocketOptions(config),
       // Manual ack on the server so failed handlers don't silently drop messages.
       noAck: false,
       prefetchCount: 1,
