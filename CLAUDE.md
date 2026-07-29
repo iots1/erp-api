@@ -145,13 +145,38 @@ the returned value into a **JSON:API** envelope (without the decorator, raw data
   flagged `conditional_permissions` at login). A non-public endpoint with no
   `@RequirePermission()` is **default-denied**.
 - The `permissions` catalog (iam-bc, `erp_iam.permissions`) is **not hand-maintained** — run
-  `npm run permissions:sync` after adding/renaming/removing `@RequirePermission()` calls. It
-  scans every `apps/<service>/src/**/*.ts`, upserts by **`(service, permission)`** (the same
-  `resource:action` string can mean different things in different BCs), soft-deletes permissions
-  no longer found in code (never hard-deletes — nothing FK's `permissions.id`), and logs
-  add/remove history to `permission_sync_logs`. It only ever touches `plane = 'api'` rows —
-  `ui` permissions (`page:*`, `component:*`, frontend `data-permission` attributes) are managed
-  manually and the script never touches them.
+  `npm run permissions:sync` after adding/renaming/removing `@RequirePermission()` calls, **or**
+  click **Sync Permissions** on the iam admin Permissions page
+  (`apps/iam/views/pages/permissions/index.ejs` → `POST /permission-syncs`,
+  `permission_sync:create`) — same diff/apply logic, running in-process instead of a separate
+  CLI invocation, so an operator never has to shell in. `permission-syncs` is its own RESTful
+  resource (`PermissionSyncsController`) rather than a `/permissions/sync` action route — a sync
+  run is itself a `permission_sync_logs` row, so `POST /permission-syncs` *creates* one and `GET
+  /permission-syncs` lists history (`permission_sync:read`), no verb-in-URI needed. The scan
+  itself lives in `libs/database/src/scripts/permission-sync-scan.util.ts`, shared by both the
+  CLI script (`sync-permissions.script.ts`) and the in-app `PermissionsSyncService`
+  (`apps/iam/src/modules/permissions/services/permissions-sync.service.ts`).
+  - **`api`-plane rows**: scanned from every `apps/<service>/src/**/*.ts`
+    `@RequirePermission('resource:action', { th, en })` decorator.
+  - **`ui`-plane rows** (`page:*`, `component:*`): scanned from `data-permission="..."`
+    attributes in `apps/<service>/views/**` + `apps/<service>/public/**`, *and* from an optional
+    declarative `apps/<service>/ui-permissions.manifest.json` (see
+    `ui-permissions-manifest.schema.ts`) for a frontend that can't be regex-scanned for a
+    literal attribute — e.g. `apps/frontend-web/ui-permissions.manifest.json`. The manifest is
+    picked up automatically for any dir under `apps/` that has one; it only ever produces
+    `plane: 'ui'` rows (`page:*`/`component:*`) — it has **no api-plane equivalent**. A BC that
+    exposes its own REST endpoints (an api controller) still needs real
+    `@RequirePermission()` decorators in its `src/**/*.ts` for those `resource:action`
+    permissions to be scanned; the manifest cannot declare api-plane permissions on a
+    controller's behalf.
+  - Both planes are diffed and applied independently in the same run (upserts by
+    **`(service, permission)`** — the same `resource:action` string can mean different things in
+    different BCs — soft-deletes permissions no longer found in either source, never
+    hard-deletes since nothing FK's `permissions.id`), and one `permission_sync_logs` row records
+    what changed. `npm run permissions:sync` only ever touches the `permissions` catalog itself,
+    never `statement_actions` — a newly-synced permission (either plane) still needs a one-off
+    grant migration to actually be usable by a policy (see
+    `GrantAccessKeyPermissionsToMockPolicies...` for the pattern).
 
 ### Migrations — generate from the entity diff, never hand-write schema
 

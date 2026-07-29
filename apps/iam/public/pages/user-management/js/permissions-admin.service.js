@@ -233,6 +233,29 @@ export async function handlePermissionFormSubmit(event) {
   }
 }
 
+// ── Sync Permissions (runs permissions:sync in-process) ──────────
+
+export async function handleSyncPermissions() {
+  const confirmed = await showConfirmDialog({
+    title: 'Sync Permissions',
+    message:
+      'สแกน @RequirePermission()/data-permission ในโค้ดล่าสุด แล้วอัปเดตแคตตาล็อกสิทธิ์ทั้งหมด — ดำเนินการต่อ?',
+    confirmText: 'Sync',
+  });
+  if (!confirmed) return;
+
+  try {
+    const log = await iamPost('/permission-syncs');
+    showToast(
+      `Sync สำเร็จ — เพิ่ม ${log.added_count} ลบ ${log.removed_count} ไม่เปลี่ยนแปลง ${log.unchanged_count}`,
+      'success',
+    );
+    loadPermissions(pager.getCurrentPage());
+  } catch (error) {
+    showApiError(error, 'Sync Permissions ไม่สำเร็จ');
+  }
+}
+
 export async function confirmDeletePermission(id, label) {
   const confirmed = await showConfirmDialog({
     title: 'ลบสิทธิ์',

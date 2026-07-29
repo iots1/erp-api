@@ -1,0 +1,35 @@
+<%- include('../../components/layout/page-head', { pageName: 'permission-sync-logs' }) %>
+<%- include('../../components/admin-shell/shell-open', { activeView: 'permission-sync-logs', pageTitle: 'ประวัติการ Sync Permissions' }) %>
+
+                <section id="view-permission-sync-logs" class="um-view active">
+                    <p class="um-view-subtitle">ประวัติการรัน <span class="mono">permissions:sync</span> ทั้งจากปุ่มในหน้า Permissions และคำสั่ง CLI — แสดงผลอย่างเดียว (read-only)</p>
+
+                    <article class="um-table-card">
+                        <div class="um-table-scroll-area">
+                            <table class="p-table">
+                                <thead>
+                                    <tr>
+                                        <th>วันที่รัน</th>
+                                        <th>เพิ่ม</th>
+                                        <th>ลบ (soft-delete)</th>
+                                        <th>ไม่เปลี่ยนแปลง</th>
+                                        <th>รันโดย</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="permissionSyncLogsTableBody"></tbody>
+                            </table>
+                        </div>
+                        <%- include('../../components/ui/pager', {
+                            infoId: 'permissionSyncLogsPagerInfo',
+                            prevId: 'permissionSyncLogsPrevBtn',
+                            nextId: 'permissionSyncLogsNextBtn',
+                            onPrev: 'goToPermissionSyncLogsPage(-1)',
+                            onNext: 'goToPermissionSyncLogsPage(1)',
+                            pageSizeId: 'permissionSyncLogPageSize',
+                            pageSizeOptions: [20, 50, 100],
+                        }) %>
+                    </article>
+                </section>
+
+<%- include('../../components/admin-shell/shell-close') %>
+<%- include('../../components/layout/page-foot', { pageName: 'permission-sync-logs' }) %>

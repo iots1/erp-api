@@ -1,0 +1,83 @@
+<%- include('../../components/layout/page-head', { pageName: 'document-types' }) %>
+<%
+const isEdit = !!documentTypeId;
+const parentCrumb = { label: 'ประเภทเอกสาร', href: `/${prefix}/views/document-types` };
+const topbarActions = [
+    { btnClass: 'p-btn p-btn-sky p-btn-sm', icon: 'save', label: 'บันทึก', onClick: "document.getElementById('documentTypeForm').requestSubmit()" },
+];
+%>
+<%- include('../../components/admin-shell/shell-open', { activeView: 'document-types', pageTitle: isEdit ? 'แก้ไขประเภทเอกสาร' : 'สร้างประเภทเอกสารใหม่', parentCrumb: parentCrumb, topbarActions: topbarActions }) %>
+
+                <!-- VIEW: Document type form -->
+                <section id="view-document-type-form" class="um-view active" data-document-type-id="<%= documentTypeId ?? '' %>">
+                    <%- include('../../components/ui/form-header', {
+                        backHref: `/${prefix}/views/document-types`,
+                        titleId: 'documentTypeFormTitle',
+                        titleText: isEdit ? 'แก้ไขประเภทเอกสาร' : 'สร้างประเภทเอกสารใหม่',
+                        subtitleText: 'กำหนดประเภทเอกสาร ผูก print template ที่ใช้ render และตั้งค่าเลขที่เอกสาร (running number)',
+                    }) %>
+
+                    <form id="documentTypeForm" onsubmit="handleDocumentTypeFormSubmit(event)">
+                        <article class="um-form-section">
+                            <div class="um-form-grid">
+                                <%- include('../../components/ui/field', { id: 'frmDocTypeCode', label: 'รหัสประเภทเอกสาร', required: true, extraClass: 'um-mono-input', placeholder: 'เช่น invoice' }) %>
+                                <%- include('../../components/ui/field', { id: 'frmDocTypeNameTh', label: 'ชื่อประเภทเอกสาร (ไทย)', required: true }) %>
+                                <%- include('../../components/ui/field', { id: 'frmDocTypeNameEn', label: 'ชื่อประเภทเอกสาร (English)', required: true }) %>
+                                <div class="p-field um-field-checkbox">
+                                    <label><input type="checkbox" id="frmDocTypeActive" checked> เปิดใช้งาน (Active)</label>
+                                </div>
+                            </div>
+                            <div class="um-form-grid">
+                                <div class="p-field">
+                                    <label for="frmDocTypePrintTemplate">Print Template <span class="required">*</span></label>
+                                    <select id="frmDocTypePrintTemplate" required>
+                                        <option value="">— เลือก print template —</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article class="um-form-section">
+                            <h3 class="um-section-title">เลขที่เอกสาร (Running Number)</h3>
+                            <div class="um-form-grid">
+                                <div class="p-field um-field-checkbox">
+                                    <label><input type="checkbox" id="frmDocTypeHasRunningNumber" onchange="toggleDocumentTypeRunningNumberFields()"> เอกสารนี้มีเลขที่รันอัตโนมัติ</label>
+                                </div>
+                            </div>
+                            <div id="docTypeRunningNumberFields" class="hidden">
+                                <div class="um-form-grid">
+                                    <%- include('../../components/ui/field', { id: 'frmDocTypeRunningNumberFormat', label: 'รูปแบบเลขที่เอกสาร', extraClass: 'um-mono-input', placeholder: 'เช่น INV-{YYYY}{MM}-{SEQ:5}' }) %>
+                                </div>
+                                <p class="um-muted-note">
+                                    Placeholder ที่ใช้ได้: <code>{YYYY}</code> ปี 4 หลัก, <code>{YY}</code> ปี 2 หลัก, <code>{MM}</code> เดือน,
+                                    <code>{DD}</code> วัน, <code>{SEQ:n}</code> เลขรัน n หลัก (ต้องมีเพียงครั้งเดียว) —
+                                    เมื่อ pattern เปลี่ยนหรือช่วงเวลาเปลี่ยน (เช่น ขึ้นเดือนใหม่) ระบบจะรีเซ็ตเลขกลับเป็น 1 ให้อัตโนมัติ
+                                </p>
+
+                                <div id="docTypeRunningNumberStatus" class="um-test-params-row hidden">
+                                    <div class="um-test-param-field">
+                                        <label>เลขล่าสุด</label>
+                                        <input type="text" id="docTypeLastRunningNumber" readonly class="um-mono-input">
+                                    </div>
+                                    <div class="um-test-param-field">
+                                        <label>เลขที่เอกสารล่าสุด</label>
+                                        <input type="text" id="docTypeLastValue" readonly class="um-mono-input">
+                                    </div>
+                                    <div class="um-test-param-field">
+                                        <label>ออกเมื่อ</label>
+                                        <input type="text" id="docTypeLastIssuedAt" readonly>
+                                    </div>
+                                    <div class="um-test-param-field">
+                                        <label>&nbsp;</label>
+                                        <button type="button" class="p-btn p-btn-ghost p-btn-sm" id="docTypeGenerateTestBtn" onclick="generateDocumentTypeTestNumber()">
+                                            <i data-lucide="hash" class="um-icon-sm"></i> ทดสอบออกเลขถัดไป
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+                    </form>
+                </section>
+
+<%- include('../../components/admin-shell/shell-close') %>
+<%- include('../../components/layout/page-foot', { pageName: 'document-types' }) %>

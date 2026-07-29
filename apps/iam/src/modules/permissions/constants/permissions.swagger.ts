@@ -11,5 +11,7 @@ export const UPDATE_PERMISSION_SUMMARY =
   'Update a permission — display name is always editable, service/permission only if the row was added manually';
 export const DELETE_PERMISSION_SUMMARY =
   'Delete a permission — only allowed for manually-added rows, never for rows synced from code';
+export const SYNC_PERMISSIONS_SUMMARY =
+  'Run permissions:sync in-process (scan @RequirePermission()/data-permission usage and diff into the catalog) — same effect as the CLI script, recorded as a new permission_sync_logs row';
 
 export const PERMISSION_ID_PARAM_DESCRIPTION = 'Permission id';

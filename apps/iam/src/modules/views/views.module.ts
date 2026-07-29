@@ -3,6 +3,8 @@ import { Module } from '@nestjs/common';
 import { AccessKeysViewController } from './controllers/access-keys.controller';
 import { AuditLogsViewController } from './controllers/audit-logs.controller';
 import { DashboardViewController } from './controllers/dashboard.controller';
+import { DocumentTypesViewController } from './controllers/document-types.controller';
+import { PermissionSyncLogsViewController } from './controllers/permission-sync-logs.controller';
 import { PermissionsViewController } from './controllers/permissions.controller';
 import { PoliciesViewController } from './controllers/policies.controller';
 import { PrintTemplatesViewController } from './controllers/print-templates.controller';
@@ -20,8 +22,10 @@ import { ViewsIndexController } from './controllers/views-index.controller';
     RolesViewController,
     PoliciesViewController,
     PermissionsViewController,
+    PermissionSyncLogsViewController,
     AccessKeysViewController,
     PrintTemplatesViewController,
+    DocumentTypesViewController,
     AuditLogsViewController,
     SessionsViewController,
     SystemSettingViewController,

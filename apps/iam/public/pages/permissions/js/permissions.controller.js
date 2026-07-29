@@ -6,6 +6,7 @@ import {
   ensureServiceFilterOptions,
   goToPermissionsPage,
   handlePermissionFormSubmit,
+  handleSyncPermissions,
   loadPermissions,
   openPermissionModal,
   setPermissionsFilter,
@@ -28,6 +29,7 @@ Object.assign(window, {
   handlePermissionFormSubmit,
   confirmDeletePermission,
   goToPermissionsPage,
+  handleSyncPermissions,
 });
 
 function wireFilters() {

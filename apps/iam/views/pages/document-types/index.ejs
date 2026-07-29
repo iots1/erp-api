@@ -1,0 +1,48 @@
+<%- include('../../components/layout/page-head', { pageName: 'document-types' }) %>
+<%
+const topbarActions = [
+    { btnClass: 'p-btn p-btn-sky p-btn-sm', icon: 'plus', label: 'สร้างประเภทเอกสาร', onClick: `location.href='/${prefix}/views/document-types/new'`, permission: 'report:document_type_create' },
+];
+%>
+<%- include('../../components/admin-shell/shell-open', { activeView: 'document-types', pageTitle: 'ประเภทเอกสาร', topbarActions: topbarActions }) %>
+
+                <!-- VIEW: Document Types -->
+                <section id="view-document-types" class="um-view active">
+                    <article class="um-table-card">
+                        <div class="um-table-toolbar">
+                            <input type="text" id="documentTypeSearchFilter" class="um-filter-input" placeholder="ค้นหารหัส, ชื่อประเภทเอกสาร...">
+                            <select id="documentTypeStatusFilter">
+                                <option value="">ทุกสถานะ</option>
+                                <option value="true">Active</option>
+                                <option value="false">Inactive</option>
+                            </select>
+                        </div>
+                        <div class="um-table-scroll-area">
+                            <table class="p-table">
+                                <thead>
+                                    <tr>
+                                        <th>รหัส</th>
+                                        <th>ชื่อประเภทเอกสาร</th>
+                                        <th>Print Template</th>
+                                        <th>เลขที่รัน</th>
+                                        <th>สถานะ</th>
+                                        <th class="um-th-right">จัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="documentTypeTableBody"></tbody>
+                            </table>
+                        </div>
+                        <%- include('../../components/ui/pager', {
+                            infoId: 'documentTypesPagerInfo',
+                            prevId: 'documentTypesPrevBtn',
+                            nextId: 'documentTypesNextBtn',
+                            onPrev: 'goToDocumentTypesPage(-1)',
+                            onNext: 'goToDocumentTypesPage(1)',
+                            pageSizeId: 'documentTypePageSize',
+                            pageSizeOptions: [20, 50, 100],
+                        }) %>
+                    </article>
+                </section>
+
+<%- include('../../components/admin-shell/shell-close') %>
+<%- include('../../components/layout/page-foot', { pageName: 'document-types' }) %>

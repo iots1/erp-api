@@ -2,6 +2,8 @@
 <%
 const topbarActions = [
     { btnClass: 'p-btn p-btn-sky p-btn-sm', icon: 'plus', label: 'เพิ่มสิทธิ์', onClick: 'openPermissionModal()', permission: 'permission:create' },
+    { btnClass: 'p-btn p-btn-sm', icon: 'refresh-cw', label: 'Sync Permissions', onClick: 'handleSyncPermissions()', permission: 'permission_sync:create' },
+    { btnClass: 'p-btn p-btn-sm', icon: 'history', label: 'ประวัติ Sync', onClick: `location.href='/${prefix}/views/permission-sync-logs'`, permission: 'permission_sync:read' },
 ];
 %>
 <%- include('../../components/admin-shell/shell-open', { activeView: 'permissions', pageTitle: 'จัดการสิทธิ์ (Permissions)', topbarActions: topbarActions }) %>
