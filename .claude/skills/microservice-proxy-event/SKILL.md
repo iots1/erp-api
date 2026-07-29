@@ -147,19 +147,21 @@ Naming convention: `<bcCamelCase>.<resourceCamelCase>.<action>` — all lowercas
 File: `apps/owner-bc/src/modules/<domain>/controllers/<resource>-events.controller.ts`
 
 ```typescript
-import { Controller } from '@nestjs/common';
+import { Controller, UseInterceptors } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 
 import { type IMicroservicePayload, type IResponsePaginatedService, type IUserSession, throwAsRpcException } from '@lib/common';
 import { AppMicroservice } from '@lib/common/enum/app-microservice.enum';
 import { LogsService } from '@lib/common/modules/log/logs.service';
 import { QueryParamsDTO } from '@lib/common/dto/query-params.dto';
+import { RmqAckInterceptor } from '@lib/common/utils/rmq-ack-interceptor.util';
 
 import { CreateXxxDTO } from '@lib/common/dto/medical/create-xxx.dto';
 import { UpdateXxxDTO } from '@lib/common/dto/medical/update-xxx.dto';
 import { Xxx } from '../entities/xxx.entity';
 import { XxxService } from '../services/xxx.service';
 
+@UseInterceptors(RmqAckInterceptor)   // ← MANDATORY, see key rules below
 @Controller()
 export class XxxEventsController {
     constructor(
@@ -246,7 +248,22 @@ export class XxxEventsController {
 ```
 
 ### Key rules for EventsController
+- **`@UseInterceptors(RmqAckInterceptor)` on the class — never skip this.** The RMQ server runs
+  with `noAck: false` + `prefetchCount: 1` (`buildServerOptions`), and NestJS's `ServerRMQ` does
+  **not** ack on the success path (it only `nack`s when no handler matches). Without the
+  interceptor every handled message stays unacked, each consumer permanently holds its one
+  prefetched message, and the queue **head-of-line blocks forever**: new requests are never
+  delivered, every caller times out at 15s, and restarting the service does **not** clear it (the
+  fresh consumer grabs a stale message, fails to ack, re-jams). There is no error log and no
+  crash — it surfaces only as unrelated-looking timeouts in the *calling* BC. Symptom to look for
+  in RabbitMQ: `messages_ready` climbing while `messages_unacknowledged` sits pinned at exactly
+  the consumer count.
+- Naming: the class **must** end in `EventsController` (not plain `Controller`) — that suffix is
+  what marks a file as "RMQ/TCP handlers, ack interceptor required". See CLAUDE.md's
+  "Controller types" table.
 - `@Controller()` with **no path** — this is a microservice controller, not HTTP
+- Never put HTTP routes in this class — split them into a separate `<Resource>Controller`, so the
+  ack requirement applies to the whole file rather than a subset of its methods
 - `@MessagePattern({ cmd: AppMicroservice.OwnerBc.cmd.XxxResources.ActionXxx })`
 - `@Payload()` type is always `IMicroservicePayload<{ ... }>` — never raw type
 - Always call `this.logger.setContextFromPayload(data._context)` first
@@ -520,7 +537,11 @@ import { XxxProxyService } from './integrations/owner-bc/xxx.proxy-service';
 - [ ] ProxyService and ProxyController import DTOs from `@lib/common/dto/medical/` — NOT from `@apps/owner-bc/...`
 - [ ] ProxyController `@ApiJsonApi*Response` decorators use `XxxResponseDTO` (not the entity class)
 - [ ] CMD keys added in `app-microservice.enum.ts` with correct naming `<bc>.<resource>.<action>`
-- [ ] `EventsController` has `@Controller()` with NO path
+- [ ] **`EventsController` class carries `@UseInterceptors(RmqAckInterceptor)`** — omitting it
+      permanently deadlocks the owner BC's queue (no error, no crash; callers just time out, and
+      a restart does not clear it)
+- [ ] `EventsController` class name ends in `EventsController`, file in `-events.controller.ts`
+- [ ] `EventsController` has `@Controller()` with NO path, and contains **no** HTTP routes
 - [ ] Every `@MessagePattern` uses `{ cmd: AppMicroservice.OwnerBc.cmd.XxxResources.ActionXxx }`
 - [ ] `IMicroservicePayload<{ ... }>` wraps all `@Payload()` types
 - [ ] `logger.setContextFromPayload(data._context)` is first line of every handler

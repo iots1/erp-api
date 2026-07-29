@@ -41,6 +41,9 @@
         </a>
 
         <p class="um-nav-group-label">ระบบ</p>
+        <a href="/<%= prefix %>/views/print-templates" class="um-nav-item <%= activeView === 'print-templates' ? 'active' : '' %>" data-permission="page:view_print_templates">
+            <i data-lucide="file-text"></i><span>เทมเพลตพิมพ์เอกสาร</span>
+        </a>
         <a href="/<%= prefix %>/views/system-setting" class="um-nav-item <%= activeView === 'system-setting' ? 'active' : '' %>" data-permission="page:view_settings">
             <i data-lucide="settings"></i><span>ตั้งค่าระบบ</span>
         </a>

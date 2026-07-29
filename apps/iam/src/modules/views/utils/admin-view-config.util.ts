@@ -6,6 +6,7 @@ import { getAssetVersion } from './asset-version.util';
 export interface IAdminViewConfig {
   prefix: string;
   authApiBase: string;
+  reportApiBase: string;
   assetVersion: string;
 }
 
@@ -13,8 +14,7 @@ export function buildAdminViewConfig(
   configService: ConfigService,
 ): IAdminViewConfig {
   const prefixName = configService.get<string>('IAM_PREFIX_NAME') ?? 'iam';
-  const prefixVersion =
-    configService.get<string>('IAM_PREFIX_VERSION') ?? 'v1';
+  const prefixVersion = configService.get<string>('IAM_PREFIX_VERSION') ?? 'v1';
   const prefix = `${prefixName}/${prefixVersion}`;
 
   const authPrefixName =
@@ -25,5 +25,20 @@ export function buildAdminViewConfig(
     configService.get<string>('AUTH_PUBLIC_URL') ?? 'http://localhost:3001';
   const authApiBase = `${authPublicUrl.replace(/\/$/, '')}/${authPrefixName}/${authPrefixVersion}`;
 
-  return { prefix, authApiBase, assetVersion: getAssetVersion() };
+  // report-bc — used by the print-templates admin pages, which are hosted
+  // in iam's views but manage a resource that lives in report-bc's own DB.
+  const reportPrefixName =
+    configService.get<string>('REPORT_PREFIX_NAME') ?? 'report-bc';
+  const reportPrefixVersion =
+    configService.get<string>('REPORT_PREFIX_VERSION') ?? 'v1';
+  const reportPublicUrl =
+    configService.get<string>('REPORT_PUBLIC_URL') ?? 'http://localhost:3007';
+  const reportApiBase = `${reportPublicUrl.replace(/\/$/, '')}/${reportPrefixName}/${reportPrefixVersion}`;
+
+  return {
+    prefix,
+    authApiBase,
+    reportApiBase,
+    assetVersion: getAssetVersion(),
+  };
 }

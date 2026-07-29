@@ -70,7 +70,7 @@ Authoritative full version: `docs/plan-erp/backend-convention.html`.
 | Category | Pattern | Examples |
 |---|---|---|
 | Module | `Singular` + `Module` | `PatientModule`, `MedicalVisitModule` |
-| Controller | `Plural` + `Controller` | `PatientsController`, `MedicalVisitsController` |
+| Controller | `Plural` + `Controller` (see "Controller types" below for the `Events`/`Jobs` variants) | `PatientsController`, `MedicalVisitsController` |
 | Service | `Plural` + `Service` | `PatientsService`, `MedicalVisitsService` |
 | Entity / DTO (class) | `Singular`, `PascalCase` | `Patient`, `CreatePatientDTO` |
 | Entity / DTO (property) | `snake_case` | `first_name_thai`, `birth_date`, `is_active` |
@@ -189,10 +189,53 @@ need to be ordered *within* a BC.
   `erp_auth`, the user profile in `erp_iam`) — no migration may touch another BC's DB. Keep the
   linking UUIDs in sync and cross-reference the sibling file in both docblocks.
 
-### Microservice (TCP) calls
+### Microservice calls (RMQ default · TCP fallback)
+
+Transport is platform-wide, from `TRANSPORT` env (`rmq` default, `tcp` fallback) — read by both
+the client registrations (`CommonModule`) and the server listeners (`bootstrapApplication`), so
+one env change flips every BC. See `libs/common/src/utils/microservice-transport.util.ts`.
+
+**Caller side**
 
 - Use `sendWithContext(...)` — the **no-throw** pattern: returns `defaultValue`/`null` on error
   and logs consistently; the caller decides (e.g. `if (!x) throw new NotFoundException(...)`).
+  It times out at `DEFAULT_RPC_TIMEOUT_MS` (15s), so a jammed consumer surfaces to the caller as
+  a `null` → whatever exception the caller maps it to, **never** as the real downstream error.
+
+**Handler side — `@UseInterceptors(RmqAckInterceptor)` is MANDATORY**
+
+- Every controller holding `@MessagePattern`/`@EventPattern` handlers **must** carry
+  `@UseInterceptors(RmqAckInterceptor)` (from `@lib/common/utils/rmq-ack-interceptor.util`).
+- Why it cannot be skipped: `buildServerOptions` configures the RMQ server with `noAck: false`
+  (manual ack) + `prefetchCount: 1`, and NestJS's `ServerRMQ` **does not ack on the success
+  path** — it only `nack`s when no handler matches. So without the interceptor every handled
+  message stays unacked; with `prefetchCount: 1` each consumer permanently holds its one
+  prefetched message and the queue **head-of-line blocks forever**. New requests are never
+  delivered, every caller times out at 15s, and *restarting the service does not help* — the
+  fresh consumer immediately picks up a stale message, fails to ack, and re-jams. The failure is
+  silent (no error log, no crash) and only shows up as unrelated-looking timeouts in the caller.
+- `RmqAckInterceptor` acks on **both** success and error — acking a failed handler is deliberate
+  (the `RpcExceptionsFilter` already returns a proper error envelope to the caller; requeuing an
+  RPC request whose caller has already timed out would just duplicate side effects like uploads).
+- Diagnosing a jam: check the queue's `messages_ready` climbing while `messages_unacknowledged`
+  sits pinned at exactly the consumer count — that pattern *is* this bug.
+
+### Controller types — three kinds, distinct suffixes
+
+A BC's controllers split by **who calls them**, and the suffix must say which:
+
+| Suffix | Transport / trigger | Decorators | Example |
+|---|---|---|---|
+| `<Resource>Controller` | Public HTTP (REST) | `@Controller('path')` + `@ResourceType()`, `@RequirePermission()` | `SuppliersController`, `PrintTemplatesController` |
+| `<Resource>EventsController` | Inter-BC RMQ/TCP | `@Controller()` (no path) + `@MessagePattern`/`@EventPattern` + **`@UseInterceptors(RmqAckInterceptor)`** | `SupplierEventsController`, `StorageEventsController`, `AccessEventsController` |
+| `<Resource>JobsController` | Scheduled/queued work | `@Cron`/queue processor; no HTTP route | — (none yet; use this name when one is added) |
+
+- Filename matches the class: `suppliers.controller.ts`, `supplier-events.controller.ts`,
+  `supplier-jobs.controller.ts`.
+- Never mix HTTP routes and `@MessagePattern` handlers in one class — split them, so the ack
+  requirement above applies to a whole file rather than a subset of its methods.
+- A view-rendering controller (EJS admin pages) is the HTTP kind, named
+  `<Page>ViewController` — see the EJS admin views section below.
 
 ### Swagger/Scalar strings
 

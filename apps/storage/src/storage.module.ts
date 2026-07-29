@@ -3,12 +3,12 @@ import { Module } from '@nestjs/common';
 import { CommonModule } from '@lib/common';
 import { ConfigModule } from '@lib/config';
 
-import { StorageController } from './storage.controller';
+import { StorageEventsController } from './storage-events.controller';
 import { StorageService } from './storage.service';
 
 @Module({
   imports: [ConfigModule, CommonModule],
-  controllers: [StorageController],
+  controllers: [StorageEventsController],
   providers: [StorageService],
 })
 export class StorageModule {}

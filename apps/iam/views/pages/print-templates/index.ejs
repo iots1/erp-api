@@ -1,0 +1,46 @@
+<%- include('../../components/layout/page-head', { pageName: 'print-templates' }) %>
+<%
+const topbarActions = [
+    { btnClass: 'p-btn p-btn-sky p-btn-sm', icon: 'plus', label: 'สร้างเทมเพลต', onClick: `location.href='/${prefix}/views/print-templates/new'`, permission: 'report:print_template_create' },
+];
+%>
+<%- include('../../components/admin-shell/shell-open', { activeView: 'print-templates', pageTitle: 'เทมเพลตพิมพ์เอกสาร', topbarActions: topbarActions }) %>
+
+                <!-- VIEW: Print Templates -->
+                <section id="view-print-templates" class="um-view active">
+                    <article class="um-table-card">
+                        <div class="um-table-toolbar">
+                            <input type="text" id="printTemplateSearchFilter" class="um-filter-input" placeholder="ค้นหารหัส, ชื่อเทมเพลต...">
+                            <select id="printTemplateStatusFilter">
+                                <option value="">ทุกสถานะ</option>
+                                <option value="true">Active</option>
+                                <option value="false">Inactive</option>
+                            </select>
+                        </div>
+                        <div class="um-table-scroll-area">
+                            <table class="p-table">
+                                <thead>
+                                    <tr>
+                                        <th>รหัส</th>
+                                        <th>ชื่อเทมเพลต</th>
+                                        <th>สถานะ</th>
+                                        <th class="um-th-right">จัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="printTemplateTableBody"></tbody>
+                            </table>
+                        </div>
+                        <%- include('../../components/ui/pager', {
+                            infoId: 'printTemplatesPagerInfo',
+                            prevId: 'printTemplatesPrevBtn',
+                            nextId: 'printTemplatesNextBtn',
+                            onPrev: 'goToPrintTemplatesPage(-1)',
+                            onNext: 'goToPrintTemplatesPage(1)',
+                            pageSizeId: 'printTemplatePageSize',
+                            pageSizeOptions: [20, 50, 100],
+                        }) %>
+                    </article>
+                </section>
+
+<%- include('../../components/admin-shell/shell-close') %>
+<%- include('../../components/layout/page-foot', { pageName: 'print-templates' }) %>

@@ -1,0 +1,63 @@
+<%- include('../../components/layout/page-head', { pageName: 'print-templates' }) %>
+<%
+const isEdit = !!printTemplateId;
+const parentCrumb = { label: 'เทมเพลตพิมพ์เอกสาร', href: `/${prefix}/views/print-templates` };
+const topbarActions = [
+    { btnClass: 'p-btn p-btn-sky p-btn-sm', icon: 'save', label: 'บันทึก', onClick: "document.getElementById('printTemplateForm').requestSubmit()" },
+];
+%>
+<%- include('../../components/admin-shell/shell-open', { activeView: 'print-templates', pageTitle: isEdit ? 'แก้ไขเทมเพลต' : 'สร้างเทมเพลตใหม่', parentCrumb: parentCrumb, topbarActions: topbarActions }) %>
+
+                <!-- VIEW: Print template form -->
+                <section id="view-print-template-form" class="um-view active" data-print-template-id="<%= printTemplateId ?? '' %>">
+                    <%- include('../../components/ui/form-header', {
+                        backHref: `/${prefix}/views/print-templates`,
+                        titleId: 'printTemplateFormTitle',
+                        titleText: isEdit ? 'แก้ไขเทมเพลต' : 'สร้างเทมเพลตใหม่',
+                        subtitleText: 'กำหนดรหัสเทมเพลตและเนื้อหา HTML ที่จะส่งให้ Gotenberg แปลงเป็น PDF',
+                    }) %>
+
+                    <form id="printTemplateForm" onsubmit="handlePrintTemplateFormSubmit(event)">
+                        <article class="um-form-section">
+                            <div class="um-form-grid">
+                                <%- include('../../components/ui/field', { id: 'frmTemplateCode', label: 'รหัสเทมเพลต', required: true, extraClass: 'um-mono-input', placeholder: 'เช่น invoice' }) %>
+                                <%- include('../../components/ui/field', { id: 'frmTemplateNameTh', label: 'ชื่อเทมเพลต (ไทย)', required: true }) %>
+                                <%- include('../../components/ui/field', { id: 'frmTemplateNameEn', label: 'ชื่อเทมเพลต (English)', required: true }) %>
+                                <div class="p-field um-field-checkbox">
+                                    <label><input type="checkbox" id="frmTemplateActive" checked> เปิดใช้งาน (Active)</label>
+                                </div>
+                            </div>
+                            <div class="um-form-grid um-form-grid-half">
+                                <%- include('../../components/ui/field', { id: 'frmTemplateDescriptionTh', label: 'คำอธิบาย (ไทย)', rows: 2 }) %>
+                                <%- include('../../components/ui/field', { id: 'frmTemplateDescriptionEn', label: 'คำอธิบาย (English)', rows: 2 }) %>
+                            </div>
+                        </article>
+
+                        <article class="um-form-section">
+                            <h3 class="um-section-title">เนื้อหา HTML</h3>
+                            <p class="um-muted-note">
+                                แก้ไข HTML ในกล่องด้านซ้าย ผลลัพธ์จะแสดงตัวอย่างแบบ live ทางด้านขวาทันที
+                                — เนื้อหานี้จะถูกอัปโหลดไปเก็บที่ object storage เมื่อบันทึก (ไม่ได้เก็บลงฐานข้อมูลโดยตรง)
+                            </p>
+                            <div class="um-editor-split">
+                                <div class="um-editor-pane">
+                                    <label class="um-editor-pane-label" for="frmTemplateHtml">HTML Editor</label>
+                                    <textarea id="frmTemplateHtml" class="um-html-editor" spellcheck="false" required placeholder="<html>...</html>"></textarea>
+                                </div>
+                                <div class="um-editor-pane">
+                                    <span class="um-editor-pane-label">Live Preview</span>
+                                    <!-- allow-scripts (no allow-same-origin): templates that pull in a
+                                         JS-driven CSS framework (e.g. Tailwind's CDN script) need scripts
+                                         to actually run for the preview to match what Gotenberg's headless
+                                         Chromium will render. Omitting allow-same-origin keeps the srcdoc
+                                         document's origin opaque, so a script here still can't reach the
+                                         parent admin page's DOM/cookies/localStorage. -->
+                                    <iframe id="templatePreviewFrame" class="um-preview-frame" title="Live HTML preview" sandbox="allow-scripts"></iframe>
+                                </div>
+                            </div>
+                        </article>
+                    </form>
+                </section>
+
+<%- include('../../components/admin-shell/shell-close') %>
+<%- include('../../components/layout/page-foot', { pageName: 'print-templates' }) %>

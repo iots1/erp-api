@@ -1,4 +1,4 @@
-import { Controller } from '@nestjs/common';
+import { Controller, UseInterceptors } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 
 import type { IResponsePaginatedService } from '@lib/common';
@@ -6,6 +6,7 @@ import { AppMicroservice } from '@lib/common/enum/app-microservice.enum';
 import { QueryParamsDTO } from '@lib/common/dto/query-params.dto';
 import type { IMicroservicePayload } from '@lib/common/interfaces';
 import { LogsService } from '@lib/common/modules/log/logs.service';
+import { RmqAckInterceptor } from '@lib/common/utils/rmq-ack-interceptor.util';
 
 import { Supplier } from '../entities/supplier.entity';
 import { SuppliersService } from '../services/suppliers.service';
@@ -15,7 +16,12 @@ import { SuppliersService } from '../services/suppliers.service';
  * can resolve a supplier by UUID without a cross-database FK. Exceptions thrown
  * by the service bubble to the globally-registered `RpcExceptionsFilter`, which
  * formats them into the standard RPC error envelope — no manual try/catch needed.
+ *
+ * `RmqAckInterceptor` is mandatory on every RPC controller — without it the
+ * queue head-of-line blocks permanently after `prefetchCount` messages. See
+ * `StorageEventsController`'s docblock for the full explanation.
  */
+@UseInterceptors(RmqAckInterceptor)
 @Controller()
 export class SupplierEventsController {
   constructor(

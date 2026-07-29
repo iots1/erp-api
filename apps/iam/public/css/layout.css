@@ -364,6 +364,45 @@
   gap: 0.75rem;
 }
 
+/* ── HTML editor + live preview split (print-templates form) ────── */
+
+.um-editor-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+.um-editor-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0;
+}
+.um-editor-pane-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--slate-700);
+}
+.um-html-editor {
+  width: 100%;
+  height: 520px;
+  resize: vertical;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  tab-size: 2;
+  white-space: pre;
+  overflow-wrap: normal;
+  overflow-x: auto;
+}
+.um-preview-frame {
+  width: 100%;
+  height: 520px;
+  border: 1px solid var(--border);
+  border-radius: var(--pico-border-radius, 0.5rem);
+  background: #fff;
+}
+
 /* ── Empty-state placeholder (audit / settings) ──────────────────── */
 
 .um-placeholder {

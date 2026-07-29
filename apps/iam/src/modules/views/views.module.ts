@@ -5,6 +5,7 @@ import { AuditLogsViewController } from './controllers/audit-logs.controller';
 import { DashboardViewController } from './controllers/dashboard.controller';
 import { PermissionsViewController } from './controllers/permissions.controller';
 import { PoliciesViewController } from './controllers/policies.controller';
+import { PrintTemplatesViewController } from './controllers/print-templates.controller';
 import { RolesViewController } from './controllers/roles.controller';
 import { SessionsViewController } from './controllers/sessions.controller';
 import { SystemSettingViewController } from './controllers/system-setting.controller';
@@ -20,6 +21,7 @@ import { ViewsIndexController } from './controllers/views-index.controller';
     PoliciesViewController,
     PermissionsViewController,
     AccessKeysViewController,
+    PrintTemplatesViewController,
     AuditLogsViewController,
     SessionsViewController,
     SystemSettingViewController,
