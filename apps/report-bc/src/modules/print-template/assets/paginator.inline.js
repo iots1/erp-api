@@ -147,8 +147,36 @@
       if (n.parentNode) n.parentNode.removeChild(n);
     });
   }
+  // `scrollHeight` only reports a value *larger* than `clientHeight` once
+  // content genuinely overflows a box with an explicit height — while
+  // content is still shorter than the box, scrollHeight just clamps to
+  // clientHeight (verified empirically; it does NOT report the shorter
+  // "real" content height). That makes it a reliable "did the last addition
+  // push past capacity" signal — but only for an exact `>` comparison; an
+  // earlier attempt at `scrollHeight > clientHeight - 2` (meant to leave the
+  // last row's border some breathing room) broke this entirely, since
+  // scrollHeight === clientHeight for every non-overflowing addition, so
+  // that check was true from the very first filler row.
   function overflows(page) {
     return page.box.scrollHeight > page.box.clientHeight;
+  }
+
+  // Filling a box to its *exact* pixel capacity can leave the final row's
+  // own 1px bottom border sitting precisely on the overflow:hidden clip
+  // edge, which Chromium's print rasterizer can round away. Unlike the
+  // scrollHeight/clientHeight pair above (clamped, unusable for a margin),
+  // a row's own getBoundingClientRect() always reports its true rendered
+  // position, so checking the last real row's bottom edge against the box's
+  // bottom edge (with a small margin) gives an accurate "close enough to
+  // stop" signal without the clamping problem.
+  var FILLER_SAFETY_PX = 2;
+  function fillerWouldOverflow(page) {
+    if (overflows(page)) return true;
+    var lastRow = page.tbody.lastElementChild;
+    if (!lastRow) return false;
+    var boxBottom = page.box.getBoundingClientRect().bottom;
+    var rowBottom = lastRow.getBoundingClientRect().bottom;
+    return rowBottom > boxBottom - FILLER_SAFETY_PX;
   }
 
   // ── PASS 1: lay out detail-row per item, measuring real height ─────────
@@ -209,7 +237,7 @@
       var fillerHtml = renderBand(bands['filler-row'], page.scope);
       for (var guard = 0; guard < 500; guard++) {
         var filler = appendRows(page.tbody, fillerHtml);
-        if (overflows(page)) {
+        if (fillerWouldOverflow(page)) {
           removeNodes(filler);
           break;
         }
