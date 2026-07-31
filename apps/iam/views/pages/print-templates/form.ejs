@@ -84,8 +84,16 @@ const topbarActions = [
                                         (ไม่เกี่ยวกับ <code>params</code> ที่ผู้เรียก render จริงส่งมา)
                                     </p>
                                 </div>
+                                <div class="um-editor-toolbar">
+                                    <button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="formatPrintTemplateMockData()">
+                                        <i data-lucide="sparkles" class="um-icon-sm"></i> Format
+                                    </button>
+                                    <button type="button" class="p-btn p-btn-ghost p-btn-sm" id="templateMockDataFullscreenBtn" onclick="toggleMockDataFullscreen()">
+                                        <i data-lucide="maximize" class="um-icon-sm"></i> Fullscreen
+                                    </button>
+                                </div>
                             </div>
-                            <%- include('../../components/ui/field', { id: 'frmTemplateMockData', label: 'Mock Data', rows: 10, extraClass: 'um-mono-input', placeholder: '{\n  "customer_name": "บริษัท เอบีซี จำกัด"\n}' }) %>
+                            <div id="templateMockDataEditorMount" class="um-mockdata-editor-mount"></div>
                             <span id="templateMockDataError" class="um-field-error hidden"></span>
                         </article>
 

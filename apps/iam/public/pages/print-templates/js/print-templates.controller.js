@@ -3,6 +3,7 @@ import { toggleTheme } from '../../../js/theme.service.js';
 import {
   addPrintTemplateParameterRow,
   confirmDeletePrintTemplate,
+  formatPrintTemplateMockData,
   generatePrintTemplateTestPdf,
   goToPrintTemplatesPage,
   handlePrintTemplateFormSubmit,
@@ -13,6 +14,7 @@ import {
   setPrintTemplatesPageSize,
   setPrintTemplateViewMode,
   togglePrintTemplateFullscreen,
+  toggleMockDataFullscreen,
   updatePrintTemplateParameterField,
   updatePrintTemplateTestValue,
 } from '../../user-management/js/print-templates.service.js';
@@ -37,6 +39,8 @@ Object.assign(window, {
   updatePrintTemplateTestValue,
   setPrintTemplateViewMode,
   togglePrintTemplateFullscreen,
+  toggleMockDataFullscreen,
+  formatPrintTemplateMockData,
   generatePrintTemplateTestPdf,
 });
 

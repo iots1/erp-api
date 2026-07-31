@@ -5,6 +5,7 @@
 import { showConfirmDialog } from '../../../js/confirm-dialog.service.js';
 import { hasPermission } from '../../../js/login.service.js';
 import { createHtmlEditor } from './codemirror-html-editor.js';
+import { createJsonEditor } from './codemirror-json-editor.js';
 import { createPaginatedList } from './paginated-list.js';
 import { reportDelete, reportGet, reportPost, reportPostBlob, reportPut } from './report-api.js';
 import { showApiError, showToast } from './toast.service.js';
@@ -100,8 +101,10 @@ function renderPrintTemplatesTable() {
 // ── Create / edit form page (apps/iam/views/pages/print-templates/form.ejs) ──
 
 let htmlEditor = null;
+let mockDataEditor = null;
 let currentParameters = []; // [{ key, label_th, label_en, default_value, _test_value }] — _test_value is UI-only, stripped before save
 let isFullscreen = false;
+let isMockDataFullscreen = false;
 
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -432,6 +435,41 @@ export function togglePrintTemplateFullscreen() {
   }
 }
 
+function exitMockDataFullscreenOnEscape(event) {
+  if (event.key === 'Escape' && isMockDataFullscreen) toggleMockDataFullscreen();
+}
+
+/** Same fullscreen mechanism as the HTML editor, applied to
+ * #templateMockDataSection directly — that section has no split/preview
+ * pane to expand alongside, just the one JSON editor mount (see
+ * .um-editor-fullscreen .um-mockdata-editor-mount in layout.css). */
+export function toggleMockDataFullscreen() {
+  const section = document.getElementById('templateMockDataSection');
+  const btn = document.getElementById('templateMockDataFullscreenBtn');
+  if (!section || !btn) return;
+
+  isMockDataFullscreen = !isMockDataFullscreen;
+  section.classList.toggle('um-editor-fullscreen', isMockDataFullscreen);
+  btn.innerHTML = isMockDataFullscreen
+    ? '<i data-lucide="minimize" class="um-icon-sm"></i> Exit Fullscreen'
+    : '<i data-lucide="maximize" class="um-icon-sm"></i> Fullscreen';
+  refreshIcons();
+
+  if (isMockDataFullscreen) {
+    document.addEventListener('keydown', exitMockDataFullscreenOnEscape);
+  } else {
+    document.removeEventListener('keydown', exitMockDataFullscreenOnEscape);
+  }
+}
+
+export function formatPrintTemplateMockData() {
+  if (mockDataEditor?.format()) {
+    document.getElementById('templateMockDataError')?.classList.add('hidden');
+  } else {
+    showToast('Mock Data ไม่ใช่ JSON ที่ถูกต้อง จัดรูปแบบไม่ได้', 'error');
+  }
+}
+
 // ── Form init / submit ──────────────────────────────────────────────────
 
 function getTemplateEngine() {
@@ -465,7 +503,7 @@ function describeJsonErrorPosition(text, error) {
  * JSON just shows the inline error and skips the render instead of
  * spamming a toast on every debounced tick. */
 function tryParseMockData() {
-  const raw = stripCodeFence(document.getElementById('frmTemplateMockData')?.value ?? '');
+  const raw = stripCodeFence(mockDataEditor?.getValue() ?? '');
   if (!raw) return { ok: true, value: {} };
   try {
     return { ok: true, value: JSON.parse(raw) };
@@ -534,6 +572,11 @@ export async function initPrintTemplateForm() {
     // PDF conversion on every keystroke.
     onChange: debounce(updatePreview, 900),
   });
+  mockDataEditor = createJsonEditor({
+    mountEl: document.getElementById('templateMockDataEditorMount'),
+    initialDoc: '{}',
+    onChange: debounce(updatePreview, 900),
+  });
 
   document.getElementById('frmTemplatePaperSize')?.addEventListener('change', updatePreview);
   document.getElementById('frmTemplateOrientation')?.addEventListener('change', updatePreview);
@@ -541,7 +584,6 @@ export async function initPrintTemplateForm() {
     updateTemplateEngineSectionVisibility();
     updatePreview();
   });
-  document.getElementById('frmTemplateMockData')?.addEventListener('input', debounce(updatePreview, 900));
   initSplitResizer();
 
   if (templateId) {
@@ -561,7 +603,7 @@ export async function initPrintTemplateForm() {
       document.getElementById('frmTemplatePaperSize').value = template.paper_size ?? 'A4';
       document.getElementById('frmTemplateOrientation').value = template.orientation ?? 'portrait';
       document.getElementById('frmTemplateEngine').value = template.template_engine ?? 'simple';
-      document.getElementById('frmTemplateMockData').value = JSON.stringify(template.mock_data ?? {}, null, 2);
+      mockDataEditor.setValue(JSON.stringify(template.mock_data ?? {}, null, 2));
       currentParameters = (template.parameters ?? []).map((p) => ({
         key: p.key,
         label_th: p.label?.th ?? '',

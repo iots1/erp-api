@@ -563,6 +563,21 @@
   height: 100%;
   font-size: 0.85rem;
 }
+/* Mock Data's own CodeMirror mount — same look as the HTML editor's but
+   shorter by default (a separate class rather than a modifier on
+   .um-html-editor-mount so its fullscreen override below can't lose a
+   same-specificity cascade-order fight with a "compact" modifier). */
+.um-mockdata-editor-mount {
+  width: 100%;
+  height: 280px;
+  border: 1px solid var(--slate-300);
+  border-radius: var(--pico-border-radius, 0.5rem);
+  overflow: hidden;
+}
+.um-mockdata-editor-mount .cm-editor {
+  height: 100%;
+  font-size: 0.85rem;
+}
 /* Preview pane: iframe + skeleton are both absolutely positioned inside this
    viewport so the skeleton can sit exactly over the iframe regardless of
    how wide the drag handle has made this pane. */
@@ -648,6 +663,15 @@
 .um-editor-fullscreen .um-html-editor-mount,
 .um-editor-fullscreen .um-preview-viewport {
   height: 100%;
+}
+/* Mock Data's fullscreen has no .um-editor-split/.um-editor-pane stretch
+   chain to inherit a height from (it's just this mount as a direct child
+   of the fullscreen <article>) — flex-grow within the fullscreen column
+   instead of a percentage height that would have nothing to resolve against. */
+.um-editor-fullscreen .um-mockdata-editor-mount {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
 }
 
 /* ── Empty-state placeholder (audit / settings) ──────────────────── */
