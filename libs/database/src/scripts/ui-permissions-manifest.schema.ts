@@ -10,13 +10,25 @@
  * — mirroring how EJS-based apps are scanned from `apps/<service>/views` +
  * `apps/<service>/public`. `sync-permissions.script.ts` picks it up
  * automatically if present; nothing else needs to change when a new frontend
- * app adopts it. No such app exists in this repo yet — this file documents
- * the shape ahead of one being built.
+ * app adopts it. `apps/frontend-web` and `apps/iam` both have one.
+ *
+ * It is worth adopting even for an app the attribute scan *can* read (as
+ * `apps/iam` did): a `data-permission` attribute has nowhere to carry a
+ * `{ th, en }`, so those rows land in the catalog with a humanized placeholder
+ * name, and the attribute says nothing about which page a component sits on.
+ * A manifest entry wins over an attribute hit for the same
+ * `(service, permission)`, so adding one is purely additive.
  *
  * One page = one sidebar/route-level permission, with its own components
  * (buttons, widgets, sections — anything gated independently of the page
  * itself) nested underneath, so a single file gives a full picture of "this
  * page, and everything on it that can be individually shown/hidden."
+ *
+ * That nesting is load-bearing, not just documentation: a nested component
+ * takes its parent page's derived `resource` (`page:view_dashboard` →
+ * `page_dashboard`) instead of the generic `component`, which is what makes
+ * the Policy Generator's "หน้าจอ / Component Group (UI)" dropdown list one
+ * entry per page holding the page permission and its components together.
  *
  * @example
  * ```json

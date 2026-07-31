@@ -5,7 +5,7 @@ import { hostname } from 'os';
 import { Client } from 'pg';
 
 import {
-  humanize,
+  derivePlaceholderName,
   IScannedPermission,
   scanApiPermissions,
   scanUiPermissions,
@@ -104,7 +104,7 @@ async function syncPlane(
     // Placeholder is only used on first insert; ON CONFLICT keeps the existing
     // name unless this run supplied an explicit { th, en } (never true for ui
     // rows — data-permission attributes carry no name).
-    const placeholder = `${humanize(p.action)} ${humanize(p.resource)}`;
+    const placeholder = derivePlaceholderName(p.permission);
     const nameTh = p.name?.th ?? placeholder;
     const nameEn = p.name?.en ?? placeholder;
 

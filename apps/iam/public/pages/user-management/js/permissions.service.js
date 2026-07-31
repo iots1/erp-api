@@ -18,17 +18,43 @@ function catalogByPlane(plane) {
 /** Dropdown 1 options: API -> distinct services; UI -> distinct resources (pages/components groups). */
 export function getDropdown1Options(plane) {
   const rows = catalogByPlane(plane);
-  const seen = new Map();
-  for (const row of rows) {
-    const key = plane === 'api' ? row.service : row.resource;
-    if (!seen.has(key)) {
-      seen.set(key, {
-        id: key,
-        label: plane === 'api' ? key : (row.permission_name?.th ?? key),
-      });
+
+  if (plane === 'api') {
+    const services = new Map();
+    for (const row of rows) {
+      if (!services.has(row.service)) {
+        services.set(row.service, { id: row.service, label: row.service });
+      }
     }
+    return [...services.values()];
   }
-  return [...seen.values()];
+
+  // A ui group is one page (`page_<slug>`) holding that page's own permission
+  // plus every component declared on it, so the group is named after its
+  // `page:*` member — never after an arbitrary component. Two services can
+  // declare the same page (permissions are unique per (service, permission),
+  // not per permission), so both names show and the services are spelled out.
+  // The leftover `component` group has no page member and keeps its key.
+  const groups = new Map();
+  for (const row of rows) {
+    if (!groups.has(row.resource)) groups.set(row.resource, []);
+    groups.get(row.resource).push(row);
+  }
+  return [...groups.entries()].map(([resource, members]) => {
+    const pageNames = [
+      ...new Set(
+        members
+          .filter((m) => m.permission?.startsWith('page:'))
+          .map((m) => m.permission_name?.th ?? m.permission),
+      ),
+    ];
+    const services = [...new Set(members.map((m) => m.service))];
+    const label = pageNames.length > 0 ? pageNames.join(' / ') : resource;
+    return {
+      id: resource,
+      label: services.length > 1 ? `${label} (${services.join(', ')})` : label,
+    };
+  });
 }
 
 /** Dropdown 2 (API only): resources within the selected service(s). */

@@ -1,0 +1,76 @@
+{
+  "pages": [
+    {
+      "permission": "page:view_dashboard",
+      "name": { "th": "เข้าหน้าแดชบอร์ด", "en": "View dashboard page" },
+      "components": [
+        {
+          "permission": "component:widget_total_users",
+          "name": { "th": "กล่องสถิติ: บุคลากรทั้งหมด", "en": "Total users widget" }
+        },
+        {
+          "permission": "component:widget_total_roles",
+          "name": { "th": "กล่องสถิติ: บทบาทในระบบ", "en": "Total roles widget" }
+        },
+        {
+          "permission": "component:widget_active_policies",
+          "name": { "th": "กล่องสถิติ: นโยบายที่เปิดใช้งาน", "en": "Active policies widget" }
+        },
+        {
+          "permission": "component:widget_login_graph",
+          "name": { "th": "กราฟการเข้าใช้งาน", "en": "Login analytics graph widget" }
+        }
+      ]
+    },
+    {
+      "permission": "page:view_users",
+      "name": { "th": "เข้าหน้าผู้ใช้งาน", "en": "View users page" },
+      "components": [
+        {
+          "permission": "component:btn_add_user",
+          "name": { "th": "ปุ่มเพิ่มบุคลากร", "en": "Add user button" }
+        }
+      ]
+    },
+    {
+      "permission": "page:view_roles",
+      "name": { "th": "เข้าหน้าบทบาทการใช้งาน", "en": "View roles page" }
+    },
+    {
+      "permission": "page:view_policies",
+      "name": { "th": "เข้าหน้านโยบายความปลอดภัย", "en": "View policies page" }
+    },
+    {
+      "permission": "page:view_permissions",
+      "name": { "th": "เข้าหน้าจัดการสิทธิ์", "en": "View permissions page" }
+    },
+    {
+      "permission": "page:view_permission_sync_logs",
+      "name": { "th": "เข้าหน้าประวัติการซิงค์สิทธิ์", "en": "View permission sync logs page" }
+    },
+    {
+      "permission": "page:view_access_keys",
+      "name": { "th": "เข้าหน้า Access Keys", "en": "View access keys page" }
+    },
+    {
+      "permission": "page:view_sessions",
+      "name": { "th": "เข้าหน้าผู้ใช้งานที่ออนไลน์", "en": "View active sessions page" }
+    },
+    {
+      "permission": "page:view_audit",
+      "name": { "th": "เข้าหน้าบันทึกการใช้งาน", "en": "View audit log page" }
+    },
+    {
+      "permission": "page:view_print_templates",
+      "name": { "th": "เข้าหน้าเทมเพลตพิมพ์เอกสาร", "en": "View print templates page" }
+    },
+    {
+      "permission": "page:view_document_types",
+      "name": { "th": "เข้าหน้าประเภทเอกสาร", "en": "View document types page" }
+    },
+    {
+      "permission": "page:view_settings",
+      "name": { "th": "เข้าหน้าตั้งค่าระบบ", "en": "View settings page" }
+    }
+  ]
+}

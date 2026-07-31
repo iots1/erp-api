@@ -168,7 +168,22 @@ the returned value into a **JSON:API** envelope (without the decorator, raw data
     exposes its own REST endpoints (an api controller) still needs real
     `@RequirePermission()` decorators in its `src/**/*.ts` for those `resource:action`
     permissions to be scanned; the manifest cannot declare api-plane permissions on a
-    controller's behalf.
+    controller's behalf. **A manifest is the preferred source for any app whose UI permissions
+    are worth naming** — an attribute scan can't carry a `{ th, en }` (there's nowhere to put one
+    on an HTML attribute) so those rows get a humanized placeholder, and it can't say which page
+    a component belongs to. `apps/iam` therefore has its own manifest covering the same
+    permissions its `data-permission` attributes declare; on a key collision the manifest wins.
+  - **`resource` is derived, and it is not just the part before the colon** —
+    `derivePermissionParts()` in `permission-sync-scan.util.ts` is the single source of truth,
+    and hand-written seed migrations must match it. Every `page:*` gets its own per-page
+    resource (`page:view_dashboard` → `page_dashboard`, `view_` stripped); a `component:*`
+    nested under a page in a manifest **inherits that page's resource**, so the Policy
+    Generator's "หน้าจอ / Component Group (UI)" dropdown offers one entry per page whose
+    checkbox list is the page permission plus everything gated on that page. Bare `component`
+    is only the group for components with no declared page; api-plane rows keep the prefix
+    (`role:create` → `role`). Getting this wrong is silent: both sync paths
+    `UPDATE … SET resource = EXCLUDED.resource`, so a bad derivation overwrites every correctly
+    seeded row on the next sync run.
   - Both planes are diffed and applied independently in the same run (upserts by
     **`(service, permission)`** — the same `resource:action` string can mean different things in
     different BCs — soft-deletes permissions no longer found in either source, never

@@ -5,7 +5,7 @@ import { DataSource, EntityManager } from 'typeorm';
 
 import { ErpDatabases } from '@lib/common/enum/erp-databases.enum';
 import {
-  humanize,
+  derivePlaceholderName,
   IScannedPermission,
   scanApiPermissions,
   scanUiPermissions,
@@ -116,7 +116,7 @@ export class PermissionsSyncService {
 
     for (const p of scanned) {
       const hasExplicitName = p.name !== undefined;
-      const placeholder = `${humanize(p.action)} ${humanize(p.resource)}`;
+      const placeholder = derivePlaceholderName(p.permission);
       const nameTh = p.name?.th ?? placeholder;
       const nameEn = p.name?.en ?? placeholder;
 
@@ -156,7 +156,11 @@ export class PermissionsSyncService {
     for (const r of removed) {
       await repo.update(
         { service: r.service, permission: r.permission, is_manual: false },
-        { is_deleted: true, deleted_at: new Date(), deleted_reason: removedReason },
+        {
+          is_deleted: true,
+          deleted_at: new Date(),
+          deleted_reason: removedReason,
+        },
       );
     }
 

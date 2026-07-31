@@ -361,14 +361,25 @@ export function renderActionCheckboxes() {
   const permissions = getMatchingPermissions(activeType, selection);
   const groups = groupPermissionsByResource(permissions);
 
+  // A ui group is keyed by `page_<slug>`, which is not a name anyone should
+  // have to read — reuse the dropdown's own label for the heading. api groups
+  // are keyed by resource (dd1 is services there), so the lookup misses and the
+  // raw resource stays, which is what an api group should show anyway.
+  const groupLabels = new Map(
+    getDropdown1Options(activeType).map((option) => [option.id, option.label]),
+  );
+
   let html = '';
   let groupIndex = 0;
   for (const [resource, perms] of groups) {
     const groupId = `actionGroup${groupIndex++}`;
+    // Only worth spelling out the owning service when the group actually mixes
+    // more than one — the same page can be declared by two services.
+    const showService = new Set(perms.map((p) => p.service)).size > 1;
     html += `
       <div class="um-action-group" id="${groupId}">
         <h4 class="um-action-group-title">
-          <span class="um-action-group-title-text"><i data-lucide="${activeType === 'ui' ? 'layout' : 'folder-key'}" class="um-icon-sm"></i> ${escapeHtml(resource)}</span>
+          <span class="um-action-group-title-text"><i data-lucide="${activeType === 'ui' ? 'layout' : 'folder-key'}" class="um-icon-sm"></i> ${escapeHtml(groupLabels.get(resource) ?? resource)}</span>
           <label class="um-action-group-select-all">
             <input type="checkbox" onchange="toggleGroupActions('${groupId}', this.checked)">
             เลือกทั้งหมด
@@ -382,7 +393,7 @@ export function renderActionCheckboxes() {
               <input type="checkbox" name="stmtActions" value="${p.id}" onchange="syncGroupSelectAll('${groupId}')">
               <div>
                 <span class="um-checkbox-title">${escapeHtml(p.permission_name?.th)}</span>
-                <span class="um-checkbox-sub">${escapeHtml(p.permission_name?.en ?? p.permission)}</span>
+                <span class="um-checkbox-sub">${escapeHtml(p.permission_name?.en ?? p.permission)}${showService ? ` · ${escapeHtml(p.service)}` : ''}</span>
               </div>
             </label>
           `,

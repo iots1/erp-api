@@ -9,6 +9,16 @@
           "name": { "th": "ปุ่ม Export รายงาน", "en": "Export reports button" } 
         }
       ]
+    },
+    {
+      "permission": "page:view_dashboard",
+      "name": { "th": "หน้าแดชบอร์ด", "en": "Dashboard page" },
+      "components": [
+        { 
+          "permission": "component:btn_fiter_date",
+          "name": { "th": "ปุ่ม กรองวันที่", "en": "Filter date button" } 
+        }
+      ]
     }
   ]
 }
