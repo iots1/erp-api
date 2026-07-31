@@ -9,6 +9,7 @@ import {
   getDropdown2Options,
   getMatchingPermissions,
   groupPermissionsByResource,
+  splitUiGroupKey,
 } from './permissions.service.js';
 import { resetPolicyFormDraft, state } from './state.js';
 import { showApiError, showToast } from './toast.service.js';
@@ -359,12 +360,13 @@ export function renderActionCheckboxes() {
   }
 
   const permissions = getMatchingPermissions(activeType, selection);
-  const groups = groupPermissionsByResource(permissions);
+  const groups = groupPermissionsByResource(permissions, activeType);
 
-  // A ui group is keyed by `page_<slug>`, which is not a name anyone should
-  // have to read — reuse the dropdown's own label for the heading. api groups
-  // are keyed by resource (dd1 is services there), so the lookup misses and the
-  // raw resource stays, which is what an api group should show anyway.
+  // A ui group is keyed by `service::page_<slug>`, which is not a name anyone
+  // should have to read — reuse the dropdown's own label (already tagged with
+  // the service) for the heading. api groups are keyed by bare resource (dd1
+  // is services there), so the lookup misses and the raw resource stays,
+  // which is what an api group should show anyway.
   const groupLabels = new Map(
     getDropdown1Options(activeType).map((option) => [option.id, option.label]),
   );
@@ -373,9 +375,6 @@ export function renderActionCheckboxes() {
   let groupIndex = 0;
   for (const [resource, perms] of groups) {
     const groupId = `actionGroup${groupIndex++}`;
-    // Only worth spelling out the owning service when the group actually mixes
-    // more than one — the same page can be declared by two services.
-    const showService = new Set(perms.map((p) => p.service)).size > 1;
     html += `
       <div class="um-action-group" id="${groupId}">
         <h4 class="um-action-group-title">
@@ -393,7 +392,7 @@ export function renderActionCheckboxes() {
               <input type="checkbox" name="stmtActions" value="${p.id}" onchange="syncGroupSelectAll('${groupId}')">
               <div>
                 <span class="um-checkbox-title">${escapeHtml(p.permission_name?.th)}</span>
-                <span class="um-checkbox-sub">${escapeHtml(p.permission_name?.en ?? p.permission)}${showService ? ` · ${escapeHtml(p.service)}` : ''}</span>
+                <span class="um-checkbox-sub">${escapeHtml(p.permission_name?.en ?? p.permission)}</span>
               </div>
             </label>
           `,
@@ -521,9 +520,18 @@ export function addStatementToDraft() {
       return;
     }
     const allPages = getDropdown1Options('ui');
-    service = ['frontend-ui'];
-    resource =
-      multiSelect.dd1.length === allPages.length ? ['*'] : [...multiSelect.dd1];
+    // dd1 ids are `${service}::${resource}` (see `uiGroupKey` in
+    // permissions.service.js) so the same page string declared by two
+    // services never collapses into one target — decode both parts back out
+    // for the statement rather than storing the raw composite key.
+    if (multiSelect.dd1.length === allPages.length) {
+      service = ['*'];
+      resource = ['*'];
+    } else {
+      const decoded = multiSelect.dd1.map(splitUiGroupKey);
+      service = [...new Set(decoded.map((d) => d.service))];
+      resource = [...new Set(decoded.map((d) => d.resource))];
+    }
   }
 
   const checked = Array.from(
