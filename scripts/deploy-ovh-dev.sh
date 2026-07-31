@@ -23,7 +23,7 @@ echo "==> deploying to ${REMOTE_HOST}:${REMOTE_DIR}"
 ssh -T "$REMOTE_HOST" bash -s -- "$REMOTE_DIR" "$BRANCH" <<'REMOTE_SCRIPT'
 set -euo pipefail
 REMOTE_DIR="$1"
-BRANCH="$2"
+BRANCH="${2:-}"
 cd "$REMOTE_DIR"
 
 # node/pm2 aren't on PATH in a non-interactive ssh session (nvm + pnpm global
