@@ -47,6 +47,7 @@ import type { HttpLoggingOptions } from '@lib/common/utils/logger/http-logging.o
 import { buildPinoHttpMiddleware } from '@lib/common/utils/logger/pino-http.config';
 import {
   buildServerOptions,
+  installRmqChannelErrorGuard,
   resolveTransport,
 } from '@lib/common/utils/microservice-transport.util';
 
@@ -656,6 +657,12 @@ export async function bootstrapApplication(
   options: BootstrapOptions,
 ): Promise<NestFastifyApplication> {
   initializeTimezone();
+
+  // Before NestFactory.create(), so the guard is in place ahead of the server
+  // listener in setupMicroservice() and ahead of any client that connects during
+  // module init — a ChannelWrapper created before this runs would keep NestJS's
+  // unlistened `error` event and crash the process on the next broker blip.
+  installRmqChannelErrorGuard();
 
   // Note: trustProxy read directly from process.env before ConfigService is available.
   const trustProxy = resolveTrustProxy(process.env.TRUST_PROXY);

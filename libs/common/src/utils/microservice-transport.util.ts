@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   ClientProvider,
@@ -5,6 +6,12 @@ import {
   TcpOptions,
   Transport,
 } from '@nestjs/microservices';
+
+import {
+  AmqpConnectionManagerClass,
+  type ChannelWrapper,
+  type CreateChannelOpts,
+} from 'amqp-connection-manager';
 
 import {
   AppMicroservice,
@@ -66,6 +73,93 @@ function buildRmqSocketOptions(config: ConfigService) {
     heartbeatIntervalInSeconds: config.get<number>('RABBITMQ_HEARTBEAT', 20),
     reconnectTimeInSeconds: config.get<number>('RABBITMQ_RECONNECT_DELAY', 5),
   };
+}
+
+/** Shape of `AmqpConnectionManager.prototype.createChannel`, plus the flag used
+ * to mark it as already wrapped by {@link installRmqChannelErrorGuard}. */
+type CreateChannelFn = ((options?: CreateChannelOpts) => ChannelWrapper) & {
+  is_channel_error_guard_installed?: boolean;
+};
+
+/**
+ * Attach an `error` listener to every `ChannelWrapper` the RMQ transport creates,
+ * so a mid-flight broker disconnect can never take the whole process down.
+ *
+ * `ChannelWrapper` is an `EventEmitter` that emits `error` on four *recoverable*
+ * paths (a setup function that rejects, a failed `_onConnect`, a failed publish
+ * worker tick, a failed consumer re-registration). NestJS attaches listeners to
+ * the `AmqpConnectionManager` — `connect`/`disconnect`/`blocked`/`unblocked` —
+ * but never to the `ChannelWrapper` it builds from it (`ClientRMQ.createChannel()`
+ * and `ServerRMQ.start()` both store the wrapper unlistened). Node's
+ * `EventEmitter` contract turns an `error` emit with no listener into a thrown
+ * exception, so each of those recoverable errors instead **crashes the service**:
+ *
+ *     Error: Channel ended, no reply will be forthcoming
+ *         at ConfirmChannel._rejectPending (amqplib/lib/channel.js:159)
+ *       Emitted 'error' event on ChannelWrapper instance at:
+ *         at ChannelWrapper._onConnect (amqp-connection-manager/…/ChannelWrapper.js:323)
+ *
+ * That is precisely what a laptop waking from sleep produces: the socket to the
+ * broker died with no FIN/RST, the reconnect starts asserting the queue, the dead
+ * connection tears the channel down mid-setup, and the rejected setup promise is
+ * emitted as `error` with nobody listening. The same sequence occurs in
+ * production on any disconnect with work in flight — broker restart/failover, an
+ * idle connection reaped by a load balancer, a pod eviction — so this is a real
+ * availability bug, not a local-dev artifact.
+ *
+ * Distinct from the heartbeat tuning in {@link buildRmqSocketOptions}: that
+ * governs how eagerly a disconnect is *declared*, this governs what happens once
+ * one occurs. Logging is the entire fix — `amqp-connection-manager` reconnects
+ * after `reconnectTimeInSeconds` and re-runs each wrapper's setup (which for
+ * NestJS re-asserts the queue and re-registers the consumer), so the listener
+ * exists to satisfy the `EventEmitter` contract and make the event visible, not
+ * to drive recovery.
+ *
+ * Patching `createChannel` rather than any individual proxy is deliberate: it is
+ * the single factory every wrapper comes from, so one hook covers both the client
+ * and the server, the initial channel and every one rebuilt on a later reconnect
+ * — without reaching into NestJS's protected `channel` field or forcing the
+ * lazily-connected clients to connect early. Idempotent (a second call is a
+ * no-op) and must run before any BC connects, hence the call at the top of
+ * `bootstrapApplication`.
+ */
+export function installRmqChannelErrorGuard(): void {
+  const prototype = AmqpConnectionManagerClass.prototype;
+  // Deliberately captured unbound: the wrapper re-binds it with `.call(this, …)`
+  // so it runs against whichever connection manager instance invoked it.
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  const originalCreateChannel = prototype.createChannel as CreateChannelFn;
+
+  if (originalCreateChannel.is_channel_error_guard_installed === true) {
+    return;
+  }
+
+  const logger = new Logger('RmqChannelErrorGuard');
+
+  const guardedCreateChannel: CreateChannelFn = function (
+    this: AmqpConnectionManagerClass,
+    options?: CreateChannelOpts,
+  ): ChannelWrapper {
+    // Cast back explicitly: `strictBindCallApply` is off, so `.call()` is typed
+    // `any` and would otherwise erase ChannelWrapper's `on('error')` overload.
+    const channel = originalCreateChannel.call(this, options) as ChannelWrapper;
+
+    // `info` is typed as always-present upstream, but two of the four emit sites
+    // (`_startWorker`, the consumer re-register path) pass the error alone — so
+    // it genuinely is undefined at runtime and must be read defensively.
+    channel.on('error', (error: Error, info?: { name?: string }): void => {
+      const channelName = info?.name;
+      logger.error(
+        `RMQ channel error${channelName === undefined ? '' : ` on '${channelName}'`}: ${error.message} — connection manager will reconnect`,
+        error.stack,
+      );
+    });
+
+    return channel;
+  };
+
+  guardedCreateChannel.is_channel_error_guard_installed = true;
+  prototype.createChannel = guardedCreateChannel;
 }
 
 /**
