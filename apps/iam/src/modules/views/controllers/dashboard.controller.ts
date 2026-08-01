@@ -16,7 +16,7 @@ export class DashboardViewController {
   @Render('pages/dashboard/index')
   page(): Record<string, unknown> {
     return {
-      title: 'ERP IAM Admin - แดชบอร์ด',
+      title: 'Admin Console - แดชบอร์ด',
       ...buildAdminViewConfig(this.configService),
     };
   }

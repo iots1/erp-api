@@ -16,7 +16,7 @@ export class UsersViewController {
   @Render('pages/users/index')
   page(): Record<string, unknown> {
     return {
-      title: 'ERP IAM Admin - จัดการผู้ใช้งาน',
+      title: 'Admin Console - จัดการผู้ใช้งาน',
       ...buildAdminViewConfig(this.configService),
     };
   }
@@ -26,7 +26,7 @@ export class UsersViewController {
   @Render('pages/users/form')
   newPage(): Record<string, unknown> {
     return {
-      title: 'ERP IAM Admin - เพิ่มบุคลากรใหม่',
+      title: 'Admin Console - เพิ่มบุคลากรใหม่',
       userId: null,
       ...buildAdminViewConfig(this.configService),
     };
@@ -37,7 +37,7 @@ export class UsersViewController {
   @Render('pages/users/form')
   editPage(@Param('id', ParseUuidParamPipe) id: string): Record<string, unknown> {
     return {
-      title: 'ERP IAM Admin - แก้ไขบุคลากร',
+      title: 'Admin Console - แก้ไขบุคลากร',
       userId: id,
       ...buildAdminViewConfig(this.configService),
     };

@@ -16,7 +16,7 @@ export class PermissionsViewController {
   @Render('pages/permissions/index')
   page(): Record<string, unknown> {
     return {
-      title: 'ERP IAM Admin - จัดการสิทธิ์',
+      title: 'Admin Console - จัดการสิทธิ์',
       ...buildAdminViewConfig(this.configService),
     };
   }

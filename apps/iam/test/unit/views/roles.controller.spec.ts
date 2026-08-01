@@ -33,7 +33,7 @@ describe('RolesViewController (Unit)', () => {
     it('should return the title and admin view config locals for the roles index template', () => {
       const result = controller.page();
 
-      expect(result.title).toBe('ERP IAM Admin - สิทธิ์การใช้งาน (Roles)');
+      expect(result.title).toBe('Admin Console - สิทธิ์การใช้งาน (Roles)');
       expect(result.prefix).toBe('iam/v1');
       expect(result.authApiBase).toBe('http://localhost:3001/auth/v1');
       expect(typeof result.assetVersion).toBe('string');
@@ -45,7 +45,7 @@ describe('RolesViewController (Unit)', () => {
       const result = controller.newPage();
 
       expect(result.title).toBe(
-        'ERP IAM Admin - เพิ่มสิทธิ์การใช้งานใหม่ (Roles)',
+        'Admin Console - เพิ่มสิทธิ์การใช้งานใหม่ (Roles)',
       );
       expect(result.roleId).toBeNull();
       expect(result.prefix).toBe('iam/v1');
@@ -57,7 +57,7 @@ describe('RolesViewController (Unit)', () => {
     it('should pass the route param through as roleId for the edit-role form', () => {
       const result = controller.editPage(MOCK_ROLE_ID);
 
-      expect(result.title).toBe('ERP IAM Admin - แก้ไขสิทธิ์การใช้งาน (Roles)');
+      expect(result.title).toBe('Admin Console - แก้ไขสิทธิ์การใช้งาน (Roles)');
       expect(result.roleId).toBe(MOCK_ROLE_ID);
       expect(result.prefix).toBe('iam/v1');
       expect(result.authApiBase).toBe('http://localhost:3001/auth/v1');

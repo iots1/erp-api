@@ -34,7 +34,7 @@ describe('PermissionsViewController (Unit)', () => {
     it('should return the title and admin view config locals for the permissions template', () => {
       const result = controller.page();
 
-      expect(result.title).toBe('ERP IAM Admin - จัดการสิทธิ์');
+      expect(result.title).toBe('Admin Console - จัดการสิทธิ์');
       expect(result.prefix).toBe('iam/v1');
       expect(result.authApiBase).toBe('http://localhost:3001/auth/v1');
       expect(typeof result.assetVersion).toBe('string');

@@ -16,7 +16,7 @@ export class RolesViewController {
   @Render('pages/roles/index')
   page(): Record<string, unknown> {
     return {
-      title: 'ERP IAM Admin - สิทธิ์การใช้งาน (Roles)',
+      title: 'Admin Console - สิทธิ์การใช้งาน (Roles)',
       ...buildAdminViewConfig(this.configService),
     };
   }
@@ -26,7 +26,7 @@ export class RolesViewController {
   @Render('pages/roles/form')
   newPage(): Record<string, unknown> {
     return {
-      title: 'ERP IAM Admin - เพิ่มสิทธิ์การใช้งานใหม่ (Roles)',
+      title: 'Admin Console - เพิ่มสิทธิ์การใช้งานใหม่ (Roles)',
       roleId: null,
       ...buildAdminViewConfig(this.configService),
     };
@@ -37,7 +37,7 @@ export class RolesViewController {
   @Render('pages/roles/form')
   editPage(@Param('id', ParseUuidParamPipe) id: string): Record<string, unknown> {
     return {
-      title: 'ERP IAM Admin - แก้ไขสิทธิ์การใช้งาน (Roles)',
+      title: 'Admin Console - แก้ไขสิทธิ์การใช้งาน (Roles)',
       roleId: id,
       ...buildAdminViewConfig(this.configService),
     };

@@ -16,7 +16,7 @@ export class PrintTemplatesViewController {
   @Render('pages/print-templates/index')
   page(): Record<string, unknown> {
     return {
-      title: 'ERP IAM Admin - เทมเพลตพิมพ์เอกสาร (Print Templates)',
+      title: 'Admin Console - เทมเพลตพิมพ์เอกสาร (Print Templates)',
       ...buildAdminViewConfig(this.configService),
     };
   }
@@ -26,7 +26,7 @@ export class PrintTemplatesViewController {
   @Render('pages/print-templates/form')
   newPage(): Record<string, unknown> {
     return {
-      title: 'ERP IAM Admin - สร้างเทมเพลต (Print Templates)',
+      title: 'Admin Console - สร้างเทมเพลต (Print Templates)',
       printTemplateId: null,
       ...buildAdminViewConfig(this.configService),
     };
@@ -39,7 +39,7 @@ export class PrintTemplatesViewController {
     @Param('id', ParseUuidParamPipe) id: string,
   ): Record<string, unknown> {
     return {
-      title: 'ERP IAM Admin - แก้ไขเทมเพลต (Print Templates)',
+      title: 'Admin Console - แก้ไขเทมเพลต (Print Templates)',
       printTemplateId: id,
       ...buildAdminViewConfig(this.configService),
     };

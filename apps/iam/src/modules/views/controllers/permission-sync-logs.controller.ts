@@ -16,7 +16,7 @@ export class PermissionSyncLogsViewController {
   @Render('pages/permission-sync-logs/index')
   page(): Record<string, unknown> {
     return {
-      title: 'ERP IAM Admin - ประวัติการ Sync Permissions',
+      title: 'Admin Console - ประวัติการ Sync Permissions',
       ...buildAdminViewConfig(this.configService),
     };
   }

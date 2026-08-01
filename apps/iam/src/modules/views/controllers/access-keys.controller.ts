@@ -16,7 +16,7 @@ export class AccessKeysViewController {
   @Render('pages/access-keys/index')
   page(): Record<string, unknown> {
     return {
-      title: 'ERP IAM Admin - Access Keys',
+      title: 'Admin Console - Access Keys',
       ...buildAdminViewConfig(this.configService),
     };
   }
@@ -26,7 +26,7 @@ export class AccessKeysViewController {
   @Render('pages/access-keys/form')
   newPage(): Record<string, unknown> {
     return {
-      title: 'ERP IAM Admin - สร้าง Access Key (Access Keys)',
+      title: 'Admin Console - สร้าง Access Key (Access Keys)',
       accessKeyId: null,
       ...buildAdminViewConfig(this.configService),
     };
@@ -39,7 +39,7 @@ export class AccessKeysViewController {
     @Param('id', ParseUuidParamPipe) id: string,
   ): Record<string, unknown> {
     return {
-      title: 'ERP IAM Admin - แก้ไข Access Key (Access Keys)',
+      title: 'Admin Console - แก้ไข Access Key (Access Keys)',
       accessKeyId: id,
       ...buildAdminViewConfig(this.configService),
     };

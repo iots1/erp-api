@@ -33,7 +33,7 @@ describe('PoliciesViewController (Unit)', () => {
     it('should return the title and admin view config locals for the policies index template', () => {
       const result = controller.page();
 
-      expect(result.title).toBe('ERP IAM Admin - นโยบายความปลอดภัย');
+      expect(result.title).toBe('Admin Console - นโยบายความปลอดภัย');
       expect(result.prefix).toBe('iam/v1');
       expect(result.authApiBase).toBe('http://localhost:3001/auth/v1');
       expect(typeof result.assetVersion).toBe('string');
@@ -44,7 +44,7 @@ describe('PoliciesViewController (Unit)', () => {
     it('should return a null policyId and the title for the create-policy form', () => {
       const result = controller.newPage();
 
-      expect(result.title).toBe('ERP IAM Admin - สร้าง Policy ใหม่');
+      expect(result.title).toBe('Admin Console - สร้าง Policy ใหม่');
       expect(result.policyId).toBeNull();
       expect(result.prefix).toBe('iam/v1');
       expect(result.authApiBase).toBe('http://localhost:3001/auth/v1');
@@ -55,7 +55,7 @@ describe('PoliciesViewController (Unit)', () => {
     it('should pass the route param through as policyId for the edit-policy form', () => {
       const result = controller.editPage(MOCK_POLICY_ID);
 
-      expect(result.title).toBe('ERP IAM Admin - แก้ไข Policy');
+      expect(result.title).toBe('Admin Console - แก้ไข Policy');
       expect(result.policyId).toBe(MOCK_POLICY_ID);
       expect(result.prefix).toBe('iam/v1');
       expect(result.authApiBase).toBe('http://localhost:3001/auth/v1');

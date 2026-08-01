@@ -32,7 +32,7 @@ describe('DashboardViewController (Unit)', () => {
     it('should return the title and admin view config locals for the dashboard template', () => {
       const result = controller.page();
 
-      expect(result.title).toBe('ERP IAM Admin - แดชบอร์ด');
+      expect(result.title).toBe('Admin Console - แดชบอร์ด');
       expect(result.prefix).toBe('iam/v1');
       expect(result.authApiBase).toBe('http://localhost:3001/auth/v1');
       expect(typeof result.assetVersion).toBe('string');

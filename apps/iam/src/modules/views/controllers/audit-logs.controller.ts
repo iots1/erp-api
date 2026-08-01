@@ -16,7 +16,7 @@ export class AuditLogsViewController {
   @Render('pages/audit-logs/index')
   page(): Record<string, unknown> {
     return {
-      title: 'ERP IAM Admin - ประวัติการเข้าใช้งาน',
+      title: 'Admin Console - ประวัติการเข้าใช้งาน',
       ...buildAdminViewConfig(this.configService),
     };
   }

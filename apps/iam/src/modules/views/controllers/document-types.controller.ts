@@ -16,7 +16,7 @@ export class DocumentTypesViewController {
   @Render('pages/document-types/index')
   page(): Record<string, unknown> {
     return {
-      title: 'ERP IAM Admin - ประเภทเอกสาร (Document Types)',
+      title: 'Admin Console - ประเภทเอกสาร (Document Types)',
       ...buildAdminViewConfig(this.configService),
     };
   }
@@ -26,7 +26,7 @@ export class DocumentTypesViewController {
   @Render('pages/document-types/form')
   newPage(): Record<string, unknown> {
     return {
-      title: 'ERP IAM Admin - สร้างประเภทเอกสาร (Document Types)',
+      title: 'Admin Console - สร้างประเภทเอกสาร (Document Types)',
       documentTypeId: null,
       ...buildAdminViewConfig(this.configService),
     };
@@ -39,7 +39,7 @@ export class DocumentTypesViewController {
     @Param('id', ParseUuidParamPipe) id: string,
   ): Record<string, unknown> {
     return {
-      title: 'ERP IAM Admin - แก้ไขประเภทเอกสาร (Document Types)',
+      title: 'Admin Console - แก้ไขประเภทเอกสาร (Document Types)',
       documentTypeId: id,
       ...buildAdminViewConfig(this.configService),
     };

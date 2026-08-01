@@ -16,7 +16,7 @@ export class PoliciesViewController {
   @Render('pages/policies/index')
   page(): Record<string, unknown> {
     return {
-      title: 'ERP IAM Admin - นโยบายความปลอดภัย',
+      title: 'Admin Console - นโยบายความปลอดภัย',
       ...buildAdminViewConfig(this.configService),
     };
   }
@@ -26,7 +26,7 @@ export class PoliciesViewController {
   @Render('pages/policies/form')
   newPage(): Record<string, unknown> {
     return {
-      title: 'ERP IAM Admin - สร้าง Policy ใหม่',
+      title: 'Admin Console - สร้าง Policy ใหม่',
       policyId: null,
       ...buildAdminViewConfig(this.configService),
     };
@@ -37,7 +37,7 @@ export class PoliciesViewController {
   @Render('pages/policies/form')
   editPage(@Param('id', ParseUuidParamPipe) id: string): Record<string, unknown> {
     return {
-      title: 'ERP IAM Admin - แก้ไข Policy',
+      title: 'Admin Console - แก้ไข Policy',
       policyId: id,
       ...buildAdminViewConfig(this.configService),
     };

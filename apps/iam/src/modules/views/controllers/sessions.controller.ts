@@ -16,7 +16,7 @@ export class SessionsViewController {
   @Render('pages/sessions/index')
   page(): Record<string, unknown> {
     return {
-      title: 'ERP IAM Admin - ผู้ใช้งานที่ออนไลน์',
+      title: 'Admin Console - ผู้ใช้งานที่ออนไลน์',
       ...buildAdminViewConfig(this.configService),
     };
   }

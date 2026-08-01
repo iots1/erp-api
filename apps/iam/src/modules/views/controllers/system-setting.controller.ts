@@ -16,7 +16,7 @@ export class SystemSettingViewController {
   @Render('pages/system-setting/index')
   page(): Record<string, unknown> {
     return {
-      title: 'ERP IAM Admin - ตั้งค่าระบบ',
+      title: 'Admin Console - ตั้งค่าระบบ',
       ...buildAdminViewConfig(this.configService),
     };
   }

@@ -32,7 +32,7 @@ describe('SessionsViewController (Unit)', () => {
     it('should return the title and admin view config locals for the sessions template', () => {
       const result = controller.page();
 
-      expect(result.title).toBe('ERP IAM Admin - ผู้ใช้งานที่ออนไลน์');
+      expect(result.title).toBe('Admin Console - ผู้ใช้งานที่ออนไลน์');
       expect(result.prefix).toBe('iam/v1');
       expect(result.authApiBase).toBe('http://localhost:3001/auth/v1');
       expect(typeof result.assetVersion).toBe('string');
