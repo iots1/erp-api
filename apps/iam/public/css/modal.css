@@ -67,6 +67,42 @@ dialog footer {
      chip regardless of app theme, same as the success/error variants. */
   background: #383838;
 }
+/* ── Global loading overlay ──────────────────────────────────────── */
+
+.p-loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(2px);
+}
+.p-loading-overlay.hidden {
+  display: none;
+}
+.p-loading-spinner {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 9999px;
+  border: 4px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  animation: p-loading-spin 0.7s linear infinite;
+}
+.p-loading-message {
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+@keyframes p-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @keyframes p-toast-in {
   from {
     opacity: 0;
