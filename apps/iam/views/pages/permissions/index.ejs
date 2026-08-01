@@ -29,13 +29,13 @@ const topbarActions = [
                             </select>
                         </div>
                         <div class="um-table-scroll-area">
-                            <table class="p-table">
+                            <table class="p-table" id="permissionsTable">
                                 <thead>
                                     <tr>
-                                        <th>Permission Name</th>
-                                        <th>Action</th>
-                                        <th>Service</th>
-                                        <th>Source</th>
+                                        <th data-sort="permission_name_th">Permission Name</th>
+                                        <th data-sort="permission">Action</th>
+                                        <th data-sort="service">Service</th>
+                                        <th data-sort="is_manual">Source</th>
                                         <th class="um-th-right">จัดการ</th>
                                     </tr>
                                 </thead>

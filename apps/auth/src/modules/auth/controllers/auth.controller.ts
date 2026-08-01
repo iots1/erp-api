@@ -8,6 +8,7 @@ import {
   Post,
   Req,
   Res,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 
@@ -20,18 +21,21 @@ import {
   RequirePermission,
   setAuthCookies,
   SkipCsrfCheck,
+  SkipPasswordChangeCheck,
   SkipPermissionCheck,
   type IUserSession,
 } from '@lib/common';
 import { ConfigService } from '@lib/config';
 
 import {
+  CHANGE_PASSWORD_SUMMARY,
   LOGIN_SUMMARY,
   LOGOUT_SUMMARY,
   ME_SUMMARY,
   REFRESH_SUMMARY,
   SET_CREDENTIAL_SUMMARY,
 } from '../constants/auth.swagger';
+import { ChangePasswordDTO } from '../dto/change-password.dto';
 import { LoginResultDTO } from '../dto/login-result.dto';
 import { LoginDTO } from '../dto/login.dto';
 import { RefreshDTO } from '../dto/refresh.dto';
@@ -91,6 +95,7 @@ export class AuthController {
 
   @Post('logout')
   @SkipPermissionCheck()
+  @SkipPasswordChangeCheck()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: LOGOUT_SUMMARY })
   async logout(
@@ -110,10 +115,26 @@ export class AuthController {
 
   @Get('me')
   @SkipPermissionCheck()
+  @SkipPasswordChangeCheck()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: ME_SUMMARY })
   me(@CurrentUser() currentUser: IUserSession): IUserSession {
     return currentUser;
+  }
+
+  @Post('change-password')
+  @SkipPermissionCheck()
+  @SkipPasswordChangeCheck()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: CHANGE_PASSWORD_SUMMARY })
+  async changePassword(
+    @Body() dto: ChangePasswordDTO,
+    @CurrentUser() currentUser: IUserSession,
+  ): Promise<void> {
+    if (!currentUser.id) {
+      throw new UnauthorizedException('Invalid session.');
+    }
+    await this.authService.changePassword(currentUser.id, dto);
   }
 
   @Post('credentials')

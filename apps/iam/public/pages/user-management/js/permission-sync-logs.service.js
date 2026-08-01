@@ -8,6 +8,7 @@ import { showApiError } from './toast.service.js';
 import { escapeHtml, refreshIcons } from './utils.js';
 
 let currentItems = [];
+let sort = 'created_at:desc';
 
 const pager = createPaginatedList({
   defaultPageSize: 20,
@@ -21,7 +22,7 @@ const pager = createPaginatedList({
       const { items, pagination } = await iamGet('/permission-syncs', {
         page,
         limit: pageSize,
-        sort: 'created_at:desc',
+        sort,
       });
       currentItems = items;
       renderTable();
@@ -43,6 +44,11 @@ export function goToPermissionSyncLogsPage(direction) {
 
 export function setPermissionSyncLogsPageSize(size) {
   pager.setPageSize(size);
+}
+
+export function setPermissionSyncLogsSort(newSort) {
+  sort = newSort;
+  pager.load(1);
 }
 
 function formatDateTime(value) {

@@ -3,6 +3,7 @@
 // its own server route (see CLAUDE.md-style per-page split), but they all
 // share one login gate + sidebar + topbar shell, so that wiring lives here
 // once instead of being copy-pasted into every page controller.
+import { showChangePasswordModal } from '../../../js/change-password.service.js';
 import { getCurrentUser, hasPermission, isAuthenticated, login, logout } from '../../../js/login.service.js';
 import { initThemeIcon } from '../../../js/theme.service.js';
 import { refreshIcons } from './utils.js';
@@ -94,6 +95,15 @@ export function bootAdminPage({ pagePermission, loader } = {}) {
   document.getElementById('appShell').classList.remove('hidden');
   renderCurrentUser();
   applyPermissionVisibility();
-  loader?.();
   refreshIcons();
+
+  // Server-side (AuthGuard) already blocks every other endpoint while this is
+  // true — this just gets the user straight to the only thing they can
+  // actually do, instead of a page that loads and then fails every request.
+  if (getCurrentUser()?.must_change_password) {
+    showChangePasswordModal();
+    return;
+  }
+
+  loader?.();
 }

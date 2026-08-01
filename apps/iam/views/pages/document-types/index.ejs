@@ -18,14 +18,14 @@ const topbarActions = [
                             </select>
                         </div>
                         <div class="um-table-scroll-area">
-                            <table class="p-table">
+                            <table class="p-table" id="documentTypesTable">
                                 <thead>
                                     <tr>
-                                        <th>รหัส</th>
-                                        <th>ชื่อประเภทเอกสาร</th>
+                                        <th data-sort="code">รหัส</th>
+                                        <th data-sort="name_th">ชื่อประเภทเอกสาร</th>
                                         <th>Print Template</th>
                                         <th>เลขที่รัน</th>
-                                        <th>สถานะ</th>
+                                        <th data-sort="is_active">สถานะ</th>
                                         <th class="um-th-right">จัดการ</th>
                                     </tr>
                                 </thead>

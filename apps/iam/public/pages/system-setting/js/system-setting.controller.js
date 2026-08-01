@@ -1,4 +1,5 @@
 import { handleAuthLogin } from '../../../js/auth-guard.service.js';
+import { handleChangePasswordSubmit } from '../../../js/change-password.service.js';
 import { toggleTheme } from '../../../js/theme.service.js';
 import {
   bootAdminPage,
@@ -8,6 +9,7 @@ import {
 
 Object.assign(window, {
   handleAuthLogin,
+  handleChangePasswordSubmit,
   handleInitialLoginSubmit,
   handleLogout,
   toggleTheme,

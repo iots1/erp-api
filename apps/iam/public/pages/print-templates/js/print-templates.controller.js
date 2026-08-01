@@ -1,4 +1,5 @@
 import { handleAuthLogin } from '../../../js/auth-guard.service.js';
+import { handleChangePasswordSubmit } from '../../../js/change-password.service.js';
 import { toggleTheme } from '../../../js/theme.service.js';
 import {
   addPrintTemplateParameterRow,
@@ -12,6 +13,7 @@ import {
   removePrintTemplateParameterRow,
   setPrintTemplatesFilter,
   setPrintTemplatesPageSize,
+  setPrintTemplatesSort,
   setPrintTemplateViewMode,
   togglePrintTemplateFullscreen,
   toggleMockDataFullscreen,
@@ -23,10 +25,12 @@ import {
   handleInitialLoginSubmit,
   handleLogout,
 } from '../../user-management/js/shell.service.js';
+import { createSortableTable } from '../../user-management/js/sortable-table.js';
 import { debounce } from '../../user-management/js/utils.js';
 
 Object.assign(window, {
   handleAuthLogin,
+  handleChangePasswordSubmit,
   handleInitialLoginSubmit,
   handleLogout,
   toggleTheme,
@@ -58,6 +62,14 @@ function wireFilters() {
   pageSizeSelect?.addEventListener('change', (e) => setPrintTemplatesPageSize(e.target.value));
 }
 
+function wireSort() {
+  createSortableTable({
+    container: document.querySelector('#printTemplatesTable thead'),
+    defaultSort: 'created_at:desc',
+    onChange: setPrintTemplatesSort,
+  });
+}
+
 // This bundle serves both the print-templates list page (index.ejs) and the
 // create/edit form page (form.ejs) — branch on which markup is present
 // rather than splitting into two bundles.
@@ -67,5 +79,6 @@ if (isFormPage) {
   bootAdminPage({ pagePermission: 'page:view_print_templates', loader: () => initPrintTemplateForm() });
 } else {
   wireFilters();
+  wireSort();
   bootAdminPage({ pagePermission: 'page:view_print_templates', loader: () => loadPrintTemplates(1) });
 }

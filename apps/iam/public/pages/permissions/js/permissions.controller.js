@@ -1,4 +1,5 @@
 import { handleAuthLogin } from '../../../js/auth-guard.service.js';
+import { handleChangePasswordSubmit } from '../../../js/change-password.service.js';
 import { toggleTheme } from '../../../js/theme.service.js';
 import {
   closePermissionModal,
@@ -11,16 +12,19 @@ import {
   openPermissionModal,
   setPermissionsFilter,
   setPermissionsPageSize,
+  setPermissionsSort,
 } from '../../user-management/js/permissions-admin.service.js';
 import {
   bootAdminPage,
   handleInitialLoginSubmit,
   handleLogout,
 } from '../../user-management/js/shell.service.js';
+import { createSortableTable } from '../../user-management/js/sortable-table.js';
 import { debounce } from '../../user-management/js/utils.js';
 
 Object.assign(window, {
   handleAuthLogin,
+  handleChangePasswordSubmit,
   handleInitialLoginSubmit,
   handleLogout,
   toggleTheme,
@@ -60,7 +64,16 @@ function wireFilters() {
   );
 }
 
+function wireSort() {
+  createSortableTable({
+    container: document.querySelector('#permissionsTable thead'),
+    defaultSort: 'service:asc',
+    onChange: setPermissionsSort,
+  });
+}
+
 wireFilters();
+wireSort();
 bootAdminPage({
   pagePermission: 'page:view_permissions',
   loader: () => {

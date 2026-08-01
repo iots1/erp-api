@@ -40,4 +40,11 @@ export class Credential extends BaseEntity {
     comment: 'สถานะใช้งาน credential นี้',
   })
   is_active: boolean;
+
+  @Column({
+    type: 'boolean',
+    default: false,
+    comment: 'บังคับให้ผู้ใช้ตั้งรหัสผ่านใหม่ในการ login ครั้งถัดไป (เช่น หลังสร้างบัญชีด้วยรหัสผ่านสุ่ม)',
+  })
+  must_change_password: boolean;
 }

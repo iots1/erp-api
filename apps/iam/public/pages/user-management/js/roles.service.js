@@ -22,6 +22,7 @@ export async function ensureRolesLoaded(force = false) {
 
 const query = { search: '' };
 let currentItems = [];
+let sort = 'name_th:asc';
 
 const pager = createPaginatedList({
   defaultPageSize: 20,
@@ -44,7 +45,7 @@ const pager = createPaginatedList({
         iamGet('/roles', {
           page,
           limit: pageSize,
-          sort: 'name_th:asc',
+          sort,
           or,
         }),
         ensurePoliciesLoaded(),
@@ -79,6 +80,11 @@ export function setRolesFilter({ search }) {
 
 export function setRolesPageSize(size) {
   pager.setPageSize(size);
+}
+
+export function setRolesSort(newSort) {
+  sort = newSort;
+  pager.load(1);
 }
 
 export function goToRolesPage(direction) {

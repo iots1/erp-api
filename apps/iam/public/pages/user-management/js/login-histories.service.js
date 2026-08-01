@@ -7,6 +7,7 @@ import { showApiError } from './toast.service.js';
 import { escapeHtml, formatDateTime, refreshIcons } from './utils.js';
 
 const query = { username: '', result: '' };
+let sort = 'logged_in_at:desc';
 
 const pager = createPaginatedList({
   defaultPageSize: 15,
@@ -25,7 +26,7 @@ const pager = createPaginatedList({
       const { items, pagination } = await authAdminGet('/auth/login-histories', {
         page,
         limit: pageSize,
-        sort: 'logged_in_at:desc',
+        sort,
         filter,
       });
       renderTable(items);
@@ -45,6 +46,11 @@ export function setLoginHistoriesFilter({ username, result }) {
 
 export function setLoginHistoriesPageSize(size) {
   pager.setPageSize(size);
+}
+
+export function setLoginHistoriesSort(newSort) {
+  sort = newSort;
+  pager.load(1);
 }
 
 export function loadLoginHistories(page = 1) {

@@ -6,14 +6,14 @@
 
                     <article class="um-table-card">
                         <div class="um-table-scroll-area">
-                            <table class="p-table">
+                            <table class="p-table" id="permissionSyncLogsTable">
                                 <thead>
                                     <tr>
-                                        <th>วันที่รัน</th>
-                                        <th>เพิ่ม</th>
-                                        <th>ลบ (soft-delete)</th>
-                                        <th>ไม่เปลี่ยนแปลง</th>
-                                        <th>รันโดย</th>
+                                        <th data-sort="created_at">วันที่รัน</th>
+                                        <th data-sort="added_count">เพิ่ม</th>
+                                        <th data-sort="removed_count">ลบ (soft-delete)</th>
+                                        <th data-sort="unchanged_count">ไม่เปลี่ยนแปลง</th>
+                                        <th data-sort="triggered_by">รันโดย</th>
                                     </tr>
                                 </thead>
                                 <tbody id="permissionSyncLogsTableBody"></tbody>

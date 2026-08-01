@@ -34,6 +34,7 @@ function printTemplateLabel(id) {
 
 const query = { search: '', status: '' };
 let currentItems = [];
+let sort = 'created_at:desc';
 
 const pager = createPaginatedList({
   defaultPageSize: 20,
@@ -50,7 +51,7 @@ const pager = createPaginatedList({
       const filter = query.status ? [`is_active||$eq||${query.status}`] : [];
 
       const [{ items, pagination }] = await Promise.all([
-        reportGet('/document-types', { page, limit: pageSize, sort: 'created_at:desc', or, filter }),
+        reportGet('/document-types', { page, limit: pageSize, sort, or, filter }),
         ensurePrintTemplatesLoaded(),
       ]);
       currentItems = items;
@@ -75,6 +76,11 @@ export function setDocumentTypesFilter({ search, status }) {
 
 export function setDocumentTypesPageSize(size) {
   pager.setPageSize(size);
+}
+
+export function setDocumentTypesSort(newSort) {
+  sort = newSort;
+  pager.load(1);
 }
 
 export function goToDocumentTypesPage(direction) {

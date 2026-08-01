@@ -12,14 +12,14 @@
                             </select>
                         </div>
                         <div class="um-table-scroll-area">
-                            <table class="p-table">
+                            <table class="p-table" id="auditLogTable">
                                 <thead>
                                     <tr>
-                                        <th>ผู้ใช้งาน</th>
-                                        <th>IP Address</th>
-                                        <th>User Agent</th>
-                                        <th>ผลลัพธ์</th>
-                                        <th>เวลาเข้าใช้งาน</th>
+                                        <th data-sort="username">ผู้ใช้งาน</th>
+                                        <th data-sort="ip_address">IP Address</th>
+                                        <th data-sort="user_agent">User Agent</th>
+                                        <th data-sort="is_success">ผลลัพธ์</th>
+                                        <th data-sort="logged_in_at">เวลาเข้าใช้งาน</th>
                                     </tr>
                                 </thead>
                                 <tbody id="auditLogTableBody"></tbody>

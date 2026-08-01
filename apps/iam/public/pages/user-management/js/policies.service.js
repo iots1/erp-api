@@ -50,6 +50,7 @@ export async function ensurePoliciesLoaded(force = false) {
 
 const query = { search: '', status: '' };
 let currentItems = [];
+let sort = 'name_th:asc';
 
 const pager = createPaginatedList({
   defaultPageSize: 20,
@@ -75,7 +76,7 @@ const pager = createPaginatedList({
       const { items, pagination } = await iamGet('/policies', {
         page,
         limit: pageSize,
-        sort: 'name_th:asc',
+        sort,
         filter,
         or,
       });
@@ -101,6 +102,11 @@ export function setPoliciesFilter({ search, status }) {
 
 export function setPoliciesPageSize(size) {
   pager.setPageSize(size);
+}
+
+export function setPoliciesSort(newSort) {
+  sort = newSort;
+  pager.load(1);
 }
 
 export function goToPoliciesPage(direction) {

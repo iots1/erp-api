@@ -17,6 +17,7 @@ const SERVICE_PATTERN = /^[a-z][a-z0-9-]*$/;
 const query = { search: '', service: '', plane: '', source: '' };
 let currentItems = [];
 let serviceOptionsLoaded = false;
+let sort = 'service:asc,permission:asc';
 
 const pager = createPaginatedList({
   defaultPageSize: 50,
@@ -45,7 +46,7 @@ const pager = createPaginatedList({
       const { items, pagination } = await iamGet('/permissions', {
         page,
         limit: pageSize,
-        sort: 'service:asc,permission:asc',
+        sort,
         filter,
         or,
       });
@@ -69,6 +70,11 @@ export function setPermissionsFilter({ search, service, plane, source }) {
 
 export function setPermissionsPageSize(size) {
   pager.setPageSize(size);
+}
+
+export function setPermissionsSort(newSort) {
+  sort = newSort;
+  pager.load(1);
 }
 
 /** Populates the service filter <select> from the distinct services already

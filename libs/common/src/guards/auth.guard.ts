@@ -1,6 +1,7 @@
 import {
   CanActivate,
   ExecutionContext,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -10,6 +11,7 @@ import { Reflector } from '@nestjs/core';
 import type { FastifyRequest } from 'fastify';
 
 import { IS_PUBLIC_KEY } from '@lib/common/decorators/public.decorator';
+import { SKIP_PASSWORD_CHANGE_CHECK_KEY } from '@lib/common/decorators/skip-password-change-check.decorator';
 import { IS_ACCESS_KEY_ROUTE_KEY } from '@lib/common/decorators/use-access-key.decorator';
 import { IUserSession } from '@lib/common/interfaces/auth.interface';
 import { SessionStoreService } from '@lib/common/services/session-store.service';
@@ -94,6 +96,19 @@ export class AuthGuard implements CanActivate {
       );
     }
 
+    if (session.must_change_password) {
+      const skipCheck = this.reflector.getAllAndOverride<boolean>(
+        SKIP_PASSWORD_CHANGE_CHECK_KEY,
+        [context.getHandler(), context.getClass()],
+      );
+      if (!skipCheck) {
+        throw new ForbiddenException({
+          code: 'MUST_CHANGE_PASSWORD',
+          message: 'Password change is required before continuing.',
+        });
+      }
+    }
+
     request.user = {
       user_session: {
         id: payload.sub,
@@ -103,6 +118,7 @@ export class AuthGuard implements CanActivate {
         roles: session.roles,
         permissions: session.permissions,
         jti: payload.jti,
+        must_change_password: session.must_change_password,
       },
       conditional_permissions: session.conditional_permissions ?? [],
     };

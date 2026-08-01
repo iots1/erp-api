@@ -19,14 +19,14 @@ const topbarActions = [
                             </select>
                         </div>
                         <div class="um-table-scroll-area">
-                            <table class="p-table">
+                            <table class="p-table" id="accessKeysTable">
                                 <thead>
                                     <tr>
-                                        <th>Access Key</th>
+                                        <th data-sort="name">Access Key</th>
                                         <th>เจ้าของ</th>
-                                        <th>สถานะ</th>
-                                        <th>วันหมดอายุ</th>
-                                        <th>ใช้งานล่าสุด</th>
+                                        <th data-sort="status">สถานะ</th>
+                                        <th data-sort="expires_at">วันหมดอายุ</th>
+                                        <th data-sort="last_used_at">ใช้งานล่าสุด</th>
                                         <th class="um-th-right">จัดการ</th>
                                     </tr>
                                 </thead>

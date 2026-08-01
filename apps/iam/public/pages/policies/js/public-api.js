@@ -19,6 +19,7 @@ import {
   selectAllActions,
   setPoliciesFilter,
   setPoliciesPageSize,
+  setPoliciesSort,
   setStatementType,
   syncGroupSelectAll,
   toggleGroupActions,
@@ -32,6 +33,7 @@ import {
   handleInitialLoginSubmit,
   handleLogout,
 } from '../../user-management/js/shell.service.js';
+import { createSortableTable } from '../../user-management/js/sortable-table.js';
 import { debounce } from '../../user-management/js/utils.js';
 
 Object.assign(window, {
@@ -95,6 +97,14 @@ function wireFilters() {
   pageSizeSelect?.addEventListener('change', (e) => setPoliciesPageSize(e.target.value));
 }
 
+function wireSort() {
+  createSortableTable({
+    container: document.querySelector('#policiesTable thead'),
+    defaultSort: 'name_th:asc',
+    onChange: setPoliciesSort,
+  });
+}
+
 // This bundle serves both the policies list page (index.ejs) and the
 // create/edit policy-generator form page (form.ejs) — each render only their
 // own markup, so branch on which one is present rather than splitting into
@@ -121,5 +131,6 @@ if (isFormPage) {
   bootAdminPage({ pagePermission: 'page:view_policies', loader: () => initPolicyForm() });
 } else {
   wireFilters();
+  wireSort();
   bootAdminPage({ pagePermission: 'page:view_policies', loader: loadPolicies });
 }

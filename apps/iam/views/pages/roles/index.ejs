@@ -13,11 +13,11 @@ const topbarActions = [
                             <input type="text" id="roleSearchFilter" class="um-filter-input" placeholder="ค้นหา role code, ชื่อ...">
                         </div>
                         <div class="um-table-scroll-area">
-                            <table class="p-table">
+                            <table class="p-table" id="rolesTable">
                                 <thead>
                                     <tr>
-                                        <th>Role</th>
-                                        <th>คำอธิบาย</th>
+                                        <th data-sort="name_th">Role</th>
+                                        <th data-sort="description">คำอธิบาย</th>
                                         <th>Policies</th>
                                         <th class="um-th-right">จัดการ</th>
                                     </tr>

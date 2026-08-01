@@ -10,6 +10,7 @@ const GuestSession: IUserSession = {
   roles: [],
   permissions: [],
   jti: null,
+  must_change_password: false,
 };
 
 type RequestWithUserSession = {

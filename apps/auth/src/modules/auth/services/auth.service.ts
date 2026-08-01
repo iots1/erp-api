@@ -1,6 +1,7 @@
 import { createHash, randomBytes, randomUUID } from 'crypto';
 
 import {
+  BadRequestException,
   ForbiddenException,
   Inject,
   Injectable,
@@ -15,6 +16,7 @@ import { IsNull, MoreThan, Repository } from 'typeorm';
 
 import { AppMicroservice } from '@lib/common/enum/app-microservice.enum';
 import { ErpDatabases } from '@lib/common/enum/erp-databases.enum';
+import type { ICreateInitialCredentialPayload } from '@lib/common/constants/auth-message-patterns';
 import {
   IamMessagePatterns,
   IFindByIdPayload,
@@ -28,6 +30,7 @@ import { SessionStoreService } from '@lib/common/services/session-store.service'
 import { todayDateOnly } from '@lib/common/utils/date-only.util';
 import { ConfigService } from '@lib/config';
 
+import { ChangePasswordDTO } from '../dto/change-password.dto';
 import { SetCredentialDTO } from '../dto/set-credential.dto';
 import { BlockedUser } from '../entities/blocked-user.entity';
 import { Credential } from '../entities/credential.entity';
@@ -42,6 +45,9 @@ export interface ILoginResult {
   csrf_token: string;
   token_type: 'Bearer';
   expires_in: number;
+  /** True when this credential must be changed before the session is otherwise usable
+   * (e.g. still on an admin-generated initial password) — see AuthGuard enforcement. */
+  must_change_password: boolean;
 }
 
 const MAX_FAILED_ATTEMPTS = 5;
@@ -175,6 +181,7 @@ export class AuthService {
         permissions: [],
         conditional_permissions: [],
       },
+      credential.must_change_password,
     );
 
     await this.recordLoginAttempt(
@@ -255,6 +262,7 @@ export class AuthService {
         permissions: [],
         conditional_permissions: [],
       },
+      credential.must_change_password,
     );
   }
 
@@ -309,9 +317,71 @@ export class AuthService {
     );
   }
 
+  /** iam-bc → auth-bc microservice flow: creates the very first credential for a
+   * newly-created user with an admin-generated password, always flagged so the
+   * user must set their own password on first login. */
+  async createInitialCredential(
+    payload: ICreateInitialCredentialPayload,
+  ): Promise<void> {
+    const passwordHash = await bcrypt.hash(payload.password, 10);
+    const credential = this.credentialRepository.create({
+      user_id: payload.user_id,
+      username: payload.username,
+      password_hash: passwordHash,
+      is_active: true,
+      must_change_password: true,
+      created_by: payload.created_by,
+      updated_by: payload.created_by,
+    });
+    await this.credentialRepository.save(credential);
+    await this.writeSecurityLog(
+      'password_set',
+      payload.user_id,
+      null,
+      `initial password set by ${payload.created_by ?? 'system'}`,
+    );
+  }
+
+  /** Self-service password change — used both for the mandatory first-login flow
+   * (must_change_password) and voluntary changes. Requires the current password. */
+  async changePassword(
+    userId: string,
+    dto: ChangePasswordDTO,
+  ): Promise<void> {
+    if (dto.new_password !== dto.confirm_password) {
+      throw new BadRequestException(
+        'New password and confirmation do not match.',
+      );
+    }
+
+    const credential = await this.credentialRepository.findOne({
+      where: { user_id: userId, is_deleted: false },
+    });
+    if (!credential) {
+      throw new UnauthorizedException('Credential not found.');
+    }
+
+    const currentMatches = await bcrypt.compare(
+      dto.current_password,
+      credential.password_hash,
+    );
+    if (!currentMatches) {
+      throw new UnauthorizedException('Current password is incorrect.');
+    }
+
+    credential.password_hash = await bcrypt.hash(dto.new_password, 10);
+    credential.must_change_password = false;
+    credential.updated_by = userId;
+    await this.credentialRepository.save(credential);
+
+    await this.sessionStore.setMustChangePasswordForUser(userId, false);
+    await this.writeSecurityLog('password_changed', userId, null, null);
+  }
+
   private async issueTokens(
     iamUser: IIamUser,
     resolved: IResolvedPermissions,
+    mustChangePassword: boolean,
   ): Promise<ILoginResult> {
     const jti = randomUUID();
     const accessExpiresIn =
@@ -357,6 +427,7 @@ export class AuthService {
         permissions: resolved.permissions,
         conditional_permissions: resolved.conditional_permissions,
         expired_at: iamUser.expired_at,
+        must_change_password: mustChangePassword,
       },
       accessTtlSeconds,
     );
@@ -370,6 +441,7 @@ export class AuthService {
       csrf_token: randomBytes(32).toString('hex'),
       token_type: 'Bearer',
       expires_in: accessTtlSeconds,
+      must_change_password: mustChangePassword,
     };
   }
 

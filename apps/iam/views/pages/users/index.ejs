@@ -1,7 +1,7 @@
 <%- include('../../components/layout/page-head', { pageName: 'users' }) %>
 <%
 const topbarActions = [
-    { btnClass: 'p-btn p-btn-sky p-btn-sm', icon: 'plus', label: 'เพิ่มบุคลากร', onClick: 'openUserFormModal()', permission: 'component:btn_add_user' },
+    { btnClass: 'p-btn p-btn-sky p-btn-sm', icon: 'plus', label: 'เพิ่มบุคลากร', onClick: `location.href='/${prefix}/views/users/new'`, permission: 'component:btn_add_user' },
 ];
 %>
 <%- include('../../components/admin-shell/shell-open', { activeView: 'users', pageTitle: 'จัดการผู้ใช้งาน', topbarActions: topbarActions }) %>
@@ -19,14 +19,14 @@ const topbarActions = [
                             </select>
                         </div>
                         <div class="um-table-scroll-area">
-                            <table class="p-table">
+                            <table class="p-table" id="usersTable">
                                 <thead>
                                     <tr>
-                                        <th>ผู้ใช้งาน</th>
-                                        <th>รหัสพนักงาน</th>
-                                        <th>แผนก</th>
+                                        <th data-sort="full_name">ผู้ใช้งาน</th>
+                                        <th data-sort="employee_id">รหัสพนักงาน</th>
+                                        <th data-sort="department">แผนก</th>
                                         <th>บทบาท</th>
-                                        <th>สถานะ</th>
+                                        <th data-sort="status">สถานะ</th>
                                         <th class="um-th-right">จัดการ</th>
                                     </tr>
                                 </thead>
@@ -46,35 +46,6 @@ const topbarActions = [
                 </section>
 
 <%- include('../../components/admin-shell/shell-close') %>
-
-    <!-- Modal: Add / edit user -->
-    <dialog id="userFormModal">
-        <article>
-            <%- include('../../components/ui/modal-head', { titleId: 'userFormTitle', titleText: 'เพิ่มบุคลากร', onClose: 'closeUserFormModal()' }) %>
-            <form id="userForm" onsubmit="handleUserFormSubmit(event)">
-                <div class="um-form-grid">
-                    <%- include('../../components/ui/field', { id: 'frmUsername', label: 'ชื่อผู้ใช้งาน (Username)', required: true }) %>
-                    <%- include('../../components/ui/field', { id: 'frmEmployeeId', label: 'รหัสพนักงาน', required: true }) %>
-                    <%- include('../../components/ui/field', { id: 'frmFullName', label: 'ชื่อ-นามสกุล', required: true }) %>
-                    <%- include('../../components/ui/field', { id: 'frmEmail', label: 'อีเมล', type: 'email' }) %>
-                    <%- include('../../components/ui/field', { id: 'frmDepartment', label: 'แผนก/สังกัด' }) %>
-                    <div class="p-field">
-                        <label for="frmStatus">สถานะ</label>
-                        <select id="frmStatus">
-                            <option value="pending">Pending</option>
-                            <option value="active">Active</option>
-                            <option value="suspended">Suspended</option>
-                        </select>
-                    </div>
-                    <%- include('../../components/ui/field', { id: 'frmExpiredAt', label: 'วันหมดอายุบัญชี (เว้นว่าง = ไม่จำกัดเวลา)', type: 'date' }) %>
-                </div>
-                <footer>
-                    <button type="button" class="p-btn" onclick="closeUserFormModal()">ยกเลิก</button>
-                    <button type="submit" class="p-btn p-btn-sky">บันทึก</button>
-                </footer>
-            </form>
-        </article>
-    </dialog>
 
     <!-- Modal: Assign roles -->
     <dialog id="userRolesModal">

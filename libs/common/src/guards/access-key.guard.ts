@@ -135,6 +135,7 @@ export class AccessKeyGuard implements CanActivate {
         roles: [],
         permissions: result.context.permissions,
         jti: null,
+        must_change_password: false,
       },
       conditional_permissions: result.context.conditional_permissions,
     };

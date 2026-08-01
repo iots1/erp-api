@@ -10,6 +10,7 @@ export * from './decorators/current-user.decorator';
 export * from './decorators/resource-type.decorator';
 export * from './decorators/require-permission.decorator';
 export * from './decorators/skip-permission-check.decorator';
+export * from './decorators/skip-password-change-check.decorator';
 export * from './decorators/skip-csrf-check.decorator';
 export * from './decorators/validated-query.decorator';
 export * from './decorators/json-api-response.decorator';
@@ -24,6 +25,7 @@ export * from './dto/delete-bulk.dto';
 
 // Constants
 export * from './constants/iam-message-patterns';
+export * from './constants/auth-message-patterns';
 
 // Enums
 export * from './enum/app-microservice.enum';

@@ -13,6 +13,7 @@ export function createMockUserSession(
     roles: ['admin'],
     permissions: ['access-key:create', 'access-key:read'],
     jti: 'jti-0001',
+    must_change_password: false,
     ...overrides,
   };
 }

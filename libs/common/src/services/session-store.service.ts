@@ -22,6 +22,9 @@ export interface ISessionData {
    * session so AuthGuard can reject an already-issued token the moment the
    * account expires, without a DB round-trip on every request. */
   expired_at: string | null;
+  /** True when the owning credential must be changed before any other request is
+   * allowed — see AuthGuard's forced-password-change enforcement. */
+  must_change_password: boolean;
 }
 
 export interface IActiveSession {
@@ -190,6 +193,29 @@ export class SessionStoreService {
     const pipeline = this.redisClient.pipeline();
     for (const { jti, session, ttl_seconds } of active) {
       const merged: ISessionData = { ...session, ...perms };
+      pipeline.setex(this.buildKey(jti), ttl_seconds, JSON.stringify(merged));
+    }
+    await pipeline.exec();
+    return active.length;
+  }
+
+  /** Clears (or sets) `must_change_password` in place across every active session
+   * for this user, preserving each session's remaining TTL — called right after a
+   * successful password change so the very next request is unblocked without
+   * requiring a fresh login. Returns the number of sessions updated. */
+  async setMustChangePasswordForUser(
+    userId: string,
+    mustChangePassword: boolean,
+  ): Promise<number> {
+    const active = await this.listActiveSessions(userId);
+    if (active.length === 0) return 0;
+
+    const pipeline = this.redisClient.pipeline();
+    for (const { jti, session, ttl_seconds } of active) {
+      const merged: ISessionData = {
+        ...session,
+        must_change_password: mustChangePassword,
+      };
       pipeline.setex(this.buildKey(jti), ttl_seconds, JSON.stringify(merged));
     }
     await pipeline.exec();

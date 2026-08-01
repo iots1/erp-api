@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { CommonModule, ErpDatabases } from '@lib/common';
 
 import { AuthController } from './controllers/auth.controller';
+import { CredentialEventsController } from './controllers/credential-events.controller';
 import { LoginHistoriesController } from './controllers/login-histories.controller';
 import { SessionsController } from './controllers/sessions.controller';
 import { BlockedUser } from './entities/blocked-user.entity';
@@ -24,7 +25,12 @@ import { SessionsService } from './services/sessions.service';
       ErpDatabases.AUTH,
     ),
   ],
-  controllers: [AuthController, LoginHistoriesController, SessionsController],
+  controllers: [
+    AuthController,
+    CredentialEventsController,
+    LoginHistoriesController,
+    SessionsController,
+  ],
   providers: [AuthService, LoginHistoriesService, SessionsService],
 })
 export class AuthDomainModule {}

@@ -177,6 +177,32 @@
 .um-th-right {
   text-align: right;
 }
+
+/* ── Sortable headers (sortable-table.js) ─────────────────────────── */
+
+.p-th-sortable {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+.p-th-sortable:hover {
+  color: var(--text);
+}
+.p-sort-icon {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 0.2rem;
+  opacity: 0.4;
+}
+.p-th-sortable:hover .p-sort-icon {
+  opacity: 0.7;
+}
+.p-th-sortable.is-sorted .p-sort-icon {
+  opacity: 1;
+}
+.p-th-sortable.is-sorted {
+  color: var(--text);
+}
 .um-cell-actions {
   /* Was `display: flex` directly on the <td>, which takes the cell out of
      the table's row-height algorithm: its border-bottom then sits wherever

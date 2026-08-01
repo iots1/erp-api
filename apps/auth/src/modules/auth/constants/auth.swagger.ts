@@ -11,3 +11,5 @@ export const LOGOUT_SUMMARY =
 export const ME_SUMMARY = 'Get the current authenticated session';
 export const SET_CREDENTIAL_SUMMARY =
   'Create/reset a user credential (admin flow, after iam user creation)';
+export const CHANGE_PASSWORD_SUMMARY =
+  'Self-service password change — required before further access when must_change_password is set';

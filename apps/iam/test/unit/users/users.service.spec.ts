@@ -1,13 +1,16 @@
 import { NotFoundException } from '@nestjs/common';
 
+import { ClientProxy } from '@nestjs/microservices';
 import { Repository } from 'typeorm';
 
 import { UserRoleAuditLog } from '@apps/iam/src/modules/users/entities/user-role-audit-log.entity';
 import { User } from '@apps/iam/src/modules/users/entities/user.entity';
 import { UsersService } from '@apps/iam/src/modules/users/services/users.service';
 import { SessionSyncService } from '@apps/iam/src/modules/access/services/session-sync.service';
+import { AuthMessagePatterns } from '@lib/common/constants/auth-message-patterns';
 import { ConfigService } from '@lib/config';
 import { LogsService } from '@lib/common/modules/log/logs.service';
+import { MicroserviceClientService } from '@lib/common/services/microservice-client.service';
 
 import { createMockUser } from '../../mocks/mock-user';
 
@@ -89,6 +92,18 @@ function createMockSessionSyncService(): MockSessionSyncService {
   };
 }
 
+type MockMicroserviceClientService = {
+  sendWithContext: jest.Mock<Promise<unknown>, unknown[]>;
+};
+
+function createMockMicroserviceClientService(): MockMicroserviceClientService {
+  return {
+    sendWithContext: jest
+      .fn<Promise<unknown>, unknown[]>()
+      .mockResolvedValue({ success: true }),
+  };
+}
+
 const ROLE_A = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const ROLE_B = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 const ROLE_C = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
@@ -101,6 +116,7 @@ describe('UsersService (Unit)', () => {
   const mockSessionSync = createMockSessionSyncService();
   const mockLogger = createMockLogsService();
   const mockConfigService = createMockConfigService();
+  const mockMicroserviceClient = createMockMicroserviceClientService();
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -109,6 +125,9 @@ describe('UsersService (Unit)', () => {
       (input: Partial<UserRoleAuditLog>) => input as UserRoleAuditLog,
     );
     mockSessionSync.syncUser.mockResolvedValue(undefined);
+    mockMicroserviceClient.sendWithContext.mockResolvedValue({
+      success: true,
+    });
 
     service = new UsersService(
       mockLogger as unknown as LogsService,
@@ -116,7 +135,65 @@ describe('UsersService (Unit)', () => {
       mockUserRepository as unknown as Repository<User>,
       mockAuditLogRepository as unknown as Repository<UserRoleAuditLog>,
       mockSessionSync as unknown as SessionSyncService,
+      mockMicroserviceClient as unknown as MicroserviceClientService,
+      {} as unknown as ClientProxy,
     );
+  });
+
+  describe('create', () => {
+    it('generates a temp password, asks auth-bc to create the initial credential, and attaches temp_password to the response', async () => {
+      const user = createMockUser();
+      mockUserRepository.create.mockReturnValue(user);
+      mockUserRepository.save.mockResolvedValue(user);
+
+      const result = await service.create(
+        {
+          username: user.username,
+          employee_id: user.employee_id,
+          full_name: user.full_name,
+          email: user.email,
+          department: user.department,
+          status: user.status,
+          expired_at: null,
+        },
+        CURRENT_USER_ID,
+      );
+
+      expect(result.temp_password).toEqual(expect.any(String));
+      expect(result.temp_password?.length).toBeGreaterThanOrEqual(12);
+      expect(mockMicroserviceClient.sendWithContext).toHaveBeenCalledWith(
+        mockLogger,
+        expect.anything(),
+        { cmd: AuthMessagePatterns.CreateInitialCredential },
+        expect.objectContaining({
+          user_id: user.id,
+          username: user.username,
+          password: result.temp_password,
+          created_by: CURRENT_USER_ID,
+        }),
+      );
+    });
+
+    it('still returns the created user (with a temp_password) when the auth-bc call fails', async () => {
+      const user = createMockUser();
+      mockUserRepository.create.mockReturnValue(user);
+      mockUserRepository.save.mockResolvedValue(user);
+      mockMicroserviceClient.sendWithContext.mockResolvedValue(null);
+
+      const result = await service.create({
+        username: user.username,
+        employee_id: user.employee_id,
+        full_name: user.full_name,
+        email: user.email,
+        department: user.department,
+        status: user.status,
+        expired_at: null,
+      });
+
+      expect(result.id).toBe(user.id);
+      expect(result.temp_password).toEqual(expect.any(String));
+      expect(mockLogger.error).toHaveBeenCalled();
+    });
   });
 
   describe('assignRoles', () => {

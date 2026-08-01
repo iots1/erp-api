@@ -11,4 +11,6 @@ export interface IUserSession {
   permissions: string[];
   /** JWT id (token identifier) */
   jti: string | null;
+  /** True when the credential must be changed before other requests are allowed. */
+  must_change_password: boolean;
 }

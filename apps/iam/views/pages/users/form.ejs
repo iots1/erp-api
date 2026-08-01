@@ -1,0 +1,81 @@
+<%- include('../../components/layout/page-head', { pageName: 'users' }) %>
+<%
+const isEdit = !!userId;
+const parentCrumb = { label: 'จัดการผู้ใช้งาน', href: `/${prefix}/views/users` };
+const topbarActions = [
+    { btnClass: 'p-btn p-btn-sky p-btn-sm', icon: 'save', label: 'บันทึก', onClick: "document.getElementById('userForm').requestSubmit()" },
+];
+%>
+<%- include('../../components/admin-shell/shell-open', { activeView: 'users', pageTitle: isEdit ? 'แก้ไขบุคลากร' : 'เพิ่มบุคลากรใหม่', parentCrumb: parentCrumb, topbarActions: topbarActions }) %>
+
+                <!-- VIEW: User form -->
+                <section id="view-user-form" class="um-view active" data-user-id="<%= userId ?? '' %>">
+                    <%- include('../../components/ui/form-header', {
+                        backHref: `/${prefix}/views/users`,
+                        titleId: 'userFormTitle',
+                        titleText: isEdit ? 'แก้ไขบุคลากร' : 'เพิ่มบุคลากรใหม่',
+                        subtitleText: 'กำหนดข้อมูลบัญชีผู้ใช้งาน',
+                    }) %>
+
+                    <form id="userForm" onsubmit="handleUserFormSubmit(event)">
+                        <article class="um-form-section">
+                            <div class="um-form-grid">
+                                <%- include('../../components/ui/field', { id: 'frmUsername', label: 'ชื่อผู้ใช้งาน (Username)', required: true }) %>
+                                <%- include('../../components/ui/field', { id: 'frmEmployeeId', label: 'รหัสพนักงาน', required: true }) %>
+                                <%- include('../../components/ui/field', { id: 'frmFullName', label: 'ชื่อ-นามสกุล', required: true }) %>
+                                <%- include('../../components/ui/field', { id: 'frmEmail', label: 'อีเมล', type: 'email' }) %>
+                                <%- include('../../components/ui/field', { id: 'frmDepartment', label: 'แผนก/สังกัด' }) %>
+                                <div class="p-field">
+                                    <label for="frmStatus">สถานะ</label>
+                                    <select id="frmStatus">
+                                        <option value="pending">Pending</option>
+                                        <option value="active">Active</option>
+                                        <option value="suspended">Suspended</option>
+                                    </select>
+                                </div>
+                                <%- include('../../components/ui/field', { id: 'frmExpiredAt', label: 'วันหมดอายุบัญชี (เว้นว่าง = ไม่จำกัดเวลา)', type: 'date' }) %>
+                            </div>
+                        </article>
+                    </form>
+                </section>
+
+<%- include('../../components/admin-shell/shell-close') %>
+
+    <!-- Modal: Reveal temp password — shown exactly once, right after
+         creating a user. The password is only ever returned in that one API
+         response and is never stored/retrievable again afterwards. Closing it
+         sends the user back to the list (see closeUserTempPasswordModal). -->
+    <dialog id="userTempPasswordModal" data-persistent>
+        <article>
+            <header>
+                <h3>เพิ่มบุคลากรสำเร็จ</h3>
+            </header>
+            <p class="um-muted-note">
+                กรุณาคัดลอก Username และรหัสผ่านชั่วคราว แล้วส่งให้ผู้ใช้งานอย่างปลอดภัยทันที — ระบบจะแสดงรหัสผ่านนี้เพียงครั้งเดียวเท่านั้น
+                และไม่สามารถเรียกดูซ้ำได้อีกหลังจากปิดหน้าต่างนี้ ผู้ใช้งานจะต้องตั้งรหัสผ่านใหม่ในการเข้าสู่ระบบครั้งแรก
+            </p>
+            <div class="p-field">
+                <label for="tempPasswordModalUsername">Username</label>
+                <div class="um-copy-row">
+                    <input type="text" id="tempPasswordModalUsername" class="um-mono-input-natural" readonly>
+                    <button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="copyFieldToClipboard('tempPasswordModalUsername', 'Username')">
+                        <i data-lucide="copy" class="um-icon-sm"></i> คัดลอก
+                    </button>
+                </div>
+            </div>
+            <div class="p-field">
+                <label for="tempPasswordModalPassword">รหัสผ่านชั่วคราว</label>
+                <div class="um-copy-row">
+                    <input type="text" id="tempPasswordModalPassword" class="um-mono-input-natural" readonly>
+                    <button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="copyFieldToClipboard('tempPasswordModalPassword', 'รหัสผ่านชั่วคราว')">
+                        <i data-lucide="copy" class="um-icon-sm"></i> คัดลอก
+                    </button>
+                </div>
+            </div>
+            <footer>
+                <button type="button" class="p-btn p-btn-sky" onclick="closeUserTempPasswordModal()">ฉันได้บันทึกข้อมูลนี้แล้ว</button>
+            </footer>
+        </article>
+    </dialog>
+
+<%- include('../../components/layout/page-foot', { pageName: 'users' }) %>

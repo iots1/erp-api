@@ -1,4 +1,5 @@
 import { handleAuthLogin } from '../../../js/auth-guard.service.js';
+import { handleChangePasswordSubmit } from '../../../js/change-password.service.js';
 import { toggleTheme } from '../../../js/theme.service.js';
 import {
   closeAccessKeySecretModal,
@@ -11,6 +12,7 @@ import {
   loadAccessKeys,
   setAccessKeysFilter,
   setAccessKeysPageSize,
+  setAccessKeysSort,
   toggleAccessKeyOwnerType,
 } from '../../user-management/js/access-keys.service.js';
 import {
@@ -18,10 +20,12 @@ import {
   handleInitialLoginSubmit,
   handleLogout,
 } from '../../user-management/js/shell.service.js';
+import { createSortableTable } from '../../user-management/js/sortable-table.js';
 import { debounce } from '../../user-management/js/utils.js';
 
 Object.assign(window, {
   handleAuthLogin,
+  handleChangePasswordSubmit,
   handleInitialLoginSubmit,
   handleLogout,
   toggleTheme,
@@ -48,6 +52,14 @@ function wireFilters() {
   pageSizeSelect?.addEventListener('change', (e) => setAccessKeysPageSize(e.target.value));
 }
 
+function wireSort() {
+  createSortableTable({
+    container: document.querySelector('#accessKeysTable thead'),
+    defaultSort: 'created_at:desc',
+    onChange: setAccessKeysSort,
+  });
+}
+
 // This bundle serves both the access-keys list page (index.ejs) and the
 // create/edit form page (form.ejs) — each render only their own markup, so
 // branch on which one is present rather than splitting into two bundles.
@@ -57,5 +69,6 @@ if (isFormPage) {
   bootAdminPage({ pagePermission: 'page:view_access_keys', loader: () => initAccessKeyForm() });
 } else {
   wireFilters();
+  wireSort();
   bootAdminPage({ pagePermission: 'page:view_access_keys', loader: () => loadAccessKeys(1) });
 }

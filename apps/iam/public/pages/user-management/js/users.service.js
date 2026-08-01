@@ -1,6 +1,7 @@
 import { showConfirmDialog } from '../../../js/confirm-dialog.service.js';
 import { hasPermission } from '../../../js/login.service.js';
 import { closeModal, openModal } from '../../../js/modal.service.js';
+import { copyFieldToClipboard } from './access-keys.service.js';
 import { iamDelete, iamGet, iamPost, iamPut } from './api.js';
 import { createPaginatedList } from './paginated-list.js';
 import { ensureRolesLoaded } from './roles.service.js';
@@ -8,7 +9,11 @@ import { state } from './state.js';
 import { showApiError, showToast } from './toast.service.js';
 import { escapeHtml, refreshIcons } from './utils.js';
 
+export { copyFieldToClipboard };
+
 const STATUS_LABEL = { active: 'Active', pending: 'Pending', suspended: 'Suspended' };
+
+let sort = 'created_at:desc';
 
 const pager = createPaginatedList({
   defaultPageSize: 10,
@@ -37,7 +42,7 @@ const pager = createPaginatedList({
       const { items, pagination } = await iamGet('/users', {
         page,
         limit: pageSize,
-        sort: 'created_at:desc',
+        sort,
         filter,
         or,
       });
@@ -64,6 +69,11 @@ export function setUsersFilter({ search, department, status }) {
 
 export function setUsersPageSize(size) {
   pager.setPageSize(size);
+}
+
+export function setUsersSort(newSort) {
+  sort = newSort;
+  pager.load(1);
 }
 
 export function goToUsersPage(direction) {
@@ -102,7 +112,7 @@ function renderUsersTable() {
         </td>
         <td><span class="status-pill ${statusClass}">${STATUS_LABEL[user.status] ?? user.status}</span></td>
         <td class="um-cell-actions">
-          ${canEdit ? `<button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="openUserFormModal('${user.id}')"><i data-lucide="edit-3" class="um-icon-sm"></i></button>` : ''}
+          ${canEdit ? `<a href="${window.__IAM_VIEWS_BASE__}/users/${user.id}/edit" class="p-btn p-btn-ghost p-btn-sm"><i data-lucide="edit-3" class="um-icon-sm"></i></a>` : ''}
           ${canEdit ? `<button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="confirmDeleteUser('${user.id}', '${escapeHtml(user.full_name).replace(/'/g, "\\'")}')"><i data-lucide="trash-2" class="um-icon-sm"></i></button>` : ''}
         </td>
       </tr>
@@ -112,7 +122,7 @@ function renderUsersTable() {
   refreshIcons();
 }
 
-// ── Add / edit user modal ───────────────────────────────────────
+// ── Create / edit user form page (apps/iam/views/pages/users/form.ejs) ──
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -120,41 +130,30 @@ function isValidUuid(uuid) {
   return typeof uuid === 'string' && UUID_REGEX.test(uuid);
 }
 
-export async function openUserFormModal(userId) {
-  const modal = document.getElementById('userFormModal');
+export async function initUserForm() {
   const form = document.getElementById('userForm');
-  form.reset();
-  form.dataset.editingId = userId ?? '';
-  document.getElementById('userFormTitle').textContent = userId
-    ? 'แก้ไขบุคลากร'
-    : 'เพิ่มบุคลากร';
+  if (!form) return;
 
-  if (userId && isValidUuid(userId)) {
-    try {
-      const user = await iamGet(`/users/${userId}`);
-      document.getElementById('frmUsername').value = user.username;
-      document.getElementById('frmEmployeeId').value = user.employee_id;
-      document.getElementById('frmFullName').value = user.full_name;
-      document.getElementById('frmEmail').value = user.email ?? '';
-      document.getElementById('frmDepartment').value = user.department ?? '';
-      document.getElementById('frmStatus').value = user.status;
-      document.getElementById('frmExpiredAt').value = user.expired_at?.slice(0, 10) ?? '';
-    } catch (error) {
-      showApiError(error, 'โหลดข้อมูลผู้ใช้งานไม่สำเร็จ');
-      return;
-    }
-  } else if (userId && !isValidUuid(userId)) {
-    showToast(`Invalid user ID: ${userId}`, 'error');
-    return;
-  } else {
+  const userId = document.getElementById('view-user-form').dataset.userId || null;
+  form.dataset.editingId = userId ?? '';
+
+  if (!userId) {
     document.getElementById('frmStatus').value = 'pending';
+    return;
   }
 
-  openModal(modal);
-}
-
-export function closeUserFormModal() {
-  closeModal(document.getElementById('userFormModal'));
+  try {
+    const user = await iamGet(`/users/${userId}`);
+    document.getElementById('frmUsername').value = user.username;
+    document.getElementById('frmEmployeeId').value = user.employee_id;
+    document.getElementById('frmFullName').value = user.full_name;
+    document.getElementById('frmEmail').value = user.email ?? '';
+    document.getElementById('frmDepartment').value = user.department ?? '';
+    document.getElementById('frmStatus').value = user.status;
+    document.getElementById('frmExpiredAt').value = user.expired_at?.slice(0, 10) ?? '';
+  } catch (error) {
+    showApiError(error, 'โหลดข้อมูลผู้ใช้งานไม่สำเร็จ');
+  }
 }
 
 export async function handleUserFormSubmit(event) {
@@ -176,15 +175,36 @@ export async function handleUserFormSubmit(event) {
     if (editingId) {
       await iamPut(`/users/${editingId}`, payload);
       showToast('บันทึกข้อมูลผู้ใช้งานสำเร็จ', 'success');
+      window.location.href = `${window.__IAM_VIEWS_BASE__}/users`;
     } else {
-      await iamPost('/users', payload);
-      showToast('เพิ่มบุคลากรสำเร็จ', 'success');
+      const created = await iamPost('/users', payload);
+      // Stay on this page — the temp password only ever appears in this one
+      // create response, so the reveal modal opens here rather than after
+      // navigating back to the list. Closing the modal is what actually
+      // returns the user to the list (see closeUserTempPasswordModal).
+      openUserTempPasswordModal(created.username, created.temp_password);
     }
-    closeUserFormModal();
-    loadUsers(pager.getCurrentPage());
   } catch (error) {
     showApiError(error, 'บันทึกข้อมูลผู้ใช้งานไม่สำเร็จ');
   }
+}
+
+// ── Temp password reveal modal — shown exactly once, right after creation ──
+
+export function openUserTempPasswordModal(username, tempPassword) {
+  document.getElementById('tempPasswordModalUsername').value = username;
+  document.getElementById('tempPasswordModalPassword').value = tempPassword;
+  openModal(document.getElementById('userTempPasswordModal'));
+}
+
+export function closeUserTempPasswordModal() {
+  const modal = document.getElementById('userTempPasswordModal');
+  closeModal(modal);
+  // The password only ever lives in this modal's inputs for as long as it's
+  // open — clear it immediately on close so it doesn't linger in the DOM.
+  document.getElementById('tempPasswordModalUsername').value = '';
+  document.getElementById('tempPasswordModalPassword').value = '';
+  window.location.href = `${window.__IAM_VIEWS_BASE__}/users`;
 }
 
 export async function confirmDeleteUser(userId, fullName) {

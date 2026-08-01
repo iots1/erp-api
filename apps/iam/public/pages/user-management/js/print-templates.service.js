@@ -15,6 +15,7 @@ import { debounce, escapeHtml, refreshIcons } from './utils.js';
 
 const query = { search: '', status: '' };
 let currentItems = [];
+let sort = 'created_at:desc';
 
 const pager = createPaginatedList({
   defaultPageSize: 20,
@@ -33,7 +34,7 @@ const pager = createPaginatedList({
       const { items, pagination } = await reportGet('/print-templates', {
         page,
         limit: pageSize,
-        sort: 'created_at:desc',
+        sort,
         or,
         filter,
       });
@@ -59,6 +60,11 @@ export function setPrintTemplatesFilter({ search, status }) {
 
 export function setPrintTemplatesPageSize(size) {
   pager.setPageSize(size);
+}
+
+export function setPrintTemplatesSort(newSort) {
+  sort = newSort;
+  pager.load(1);
 }
 
 export function goToPrintTemplatesPage(direction) {
