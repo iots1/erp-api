@@ -41,41 +41,6 @@ const topbarActions = [
 
 <%- include('../../components/admin-shell/shell-close') %>
 
-    <!-- Modal: Reveal temp password — shown exactly once, right after
-         creating a user. The password is only ever returned in that one API
-         response and is never stored/retrievable again afterwards. Closing it
-         sends the user back to the list (see closeUserTempPasswordModal). -->
-    <dialog id="userTempPasswordModal" data-persistent>
-        <article>
-            <header>
-                <h3>เพิ่มบุคลากรสำเร็จ</h3>
-            </header>
-            <p class="um-muted-note">
-                กรุณาคัดลอก Username และรหัสผ่านชั่วคราว แล้วส่งให้ผู้ใช้งานอย่างปลอดภัยทันที — ระบบจะแสดงรหัสผ่านนี้เพียงครั้งเดียวเท่านั้น
-                และไม่สามารถเรียกดูซ้ำได้อีกหลังจากปิดหน้าต่างนี้ ผู้ใช้งานจะต้องตั้งรหัสผ่านใหม่ในการเข้าสู่ระบบครั้งแรก
-            </p>
-            <div class="p-field">
-                <label for="tempPasswordModalUsername">Username</label>
-                <div class="um-copy-row">
-                    <input type="text" id="tempPasswordModalUsername" class="um-mono-input-natural" readonly>
-                    <button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="copyFieldToClipboard('tempPasswordModalUsername', 'Username')">
-                        <i data-lucide="copy" class="um-icon-sm"></i> คัดลอก
-                    </button>
-                </div>
-            </div>
-            <div class="p-field">
-                <label for="tempPasswordModalPassword">รหัสผ่านชั่วคราว</label>
-                <div class="um-copy-row">
-                    <input type="text" id="tempPasswordModalPassword" class="um-mono-input-natural" readonly>
-                    <button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="copyFieldToClipboard('tempPasswordModalPassword', 'รหัสผ่านชั่วคราว')">
-                        <i data-lucide="copy" class="um-icon-sm"></i> คัดลอก
-                    </button>
-                </div>
-            </div>
-            <footer>
-                <button type="button" class="p-btn p-btn-sky" onclick="closeUserTempPasswordModal()">ฉันได้บันทึกข้อมูลนี้แล้ว</button>
-            </footer>
-        </article>
-    </dialog>
+    <%- include('../../components/ui/temp-password-modal') %>
 
 <%- include('../../components/layout/page-foot', { pageName: 'users' }) %>

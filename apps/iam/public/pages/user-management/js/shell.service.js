@@ -69,6 +69,16 @@ function showLogin() {
   document.getElementById('appShell').classList.add('hidden');
 }
 
+function showNoAccessMessage() {
+  const main = document.querySelector('.um-view.active') ?? document.getElementById('appShell');
+  if (!main) return;
+  main.innerHTML = `
+    <article class="um-table-card">
+      <p class="um-muted-note">บัญชีนี้ยังไม่ได้รับสิทธิ์การเข้าถึงเมนูใดๆ กรุณาติดต่อผู้ดูแลระบบให้กำหนดบทบาท (role) ให้กับบัญชีนี้</p>
+    </article>
+  `;
+}
+
 /**
  * Boots a page: shows the login gate or the app shell, wires the shared
  * header/sidebar controls, and — once authenticated — redirects to the
@@ -86,24 +96,42 @@ export function bootAdminPage({ pagePermission, loader } = {}) {
     return;
   }
 
-  if (pagePermission && !hasPermission(pagePermission)) {
-    window.location.href = `${window.__IAM_VIEWS_BASE__}/dashboard`;
-    return;
-  }
-
   document.getElementById('loginScreen').classList.add('hidden');
   document.getElementById('appShell').classList.remove('hidden');
   renderCurrentUser();
-  applyPermissionVisibility();
-  refreshIcons();
 
-  // Server-side (AuthGuard) already blocks every other endpoint while this is
-  // true — this just gets the user straight to the only thing they can
-  // actually do, instead of a page that loads and then fails every request.
+  // Must-change-password is an authentication-level gate, not an
+  // authorization one — it has to be checked (and win) before the
+  // pagePermission check below. A freshly-created user has no role yet, so
+  // they hold zero permissions (not even page:view_dashboard); checking
+  // pagePermission first would redirect them to /dashboard, which redirects
+  // right back to itself for the same reason, forever — and the mandatory
+  // password-change screen would never get a chance to show. Mirrors
+  // AuthGuard's server-side ordering (must_change_password blocks everything
+  // before PermissionGuard even runs).
   if (getCurrentUser()?.must_change_password) {
+    applyPermissionVisibility();
+    refreshIcons();
     showChangePasswordModal();
     return;
   }
 
+  if (pagePermission && !hasPermission(pagePermission)) {
+    const dashboardPath = `${window.__IAM_VIEWS_BASE__}/dashboard`;
+    if (window.location.pathname === dashboardPath) {
+      // Already on the fallback target and still lack access — redirecting
+      // again would loop forever (e.g. a user with no role assigned at all).
+      // Show an explicit "no access" state instead of bouncing.
+      applyPermissionVisibility();
+      refreshIcons();
+      showNoAccessMessage();
+      return;
+    }
+    window.location.href = dashboardPath;
+    return;
+  }
+
+  applyPermissionVisibility();
+  refreshIcons();
   loader?.();
 }

@@ -97,6 +97,7 @@ function renderUsersTable() {
       }
       const statusClass = `status-${user.status}`;
       const canEdit = hasPermission('user_account:create');
+      const canResetPassword = hasPermission('user_account:reset_password');
       return `
       <tr>
         <td>
@@ -113,6 +114,7 @@ function renderUsersTable() {
         <td><span class="status-pill ${statusClass}">${STATUS_LABEL[user.status] ?? user.status}</span></td>
         <td class="um-cell-actions">
           ${canEdit ? `<a href="${window.__IAM_VIEWS_BASE__}/users/${user.id}/edit" class="p-btn p-btn-ghost p-btn-sm"><i data-lucide="edit-3" class="um-icon-sm"></i></a>` : ''}
+          ${canResetPassword ? `<button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="confirmResetPassword('${user.id}', '${escapeHtml(user.full_name).replace(/'/g, "\\'")}')" title="รีเซ็ตรหัสผ่าน"><i data-lucide="key-round" class="um-icon-sm"></i></button>` : ''}
           ${canEdit ? `<button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="confirmDeleteUser('${user.id}', '${escapeHtml(user.full_name).replace(/'/g, "\\'")}')"><i data-lucide="trash-2" class="um-icon-sm"></i></button>` : ''}
         </td>
       </tr>
@@ -189,9 +191,12 @@ export async function handleUserFormSubmit(event) {
   }
 }
 
-// ── Temp password reveal modal — shown exactly once, right after creation ──
+// ── Temp password reveal modal — shown exactly once, right after creation
+// or an admin password reset ──
 
-export function openUserTempPasswordModal(username, tempPassword) {
+export function openUserTempPasswordModal(username, tempPassword, titleText) {
+  document.getElementById('userTempPasswordModalTitle').textContent =
+    titleText ?? 'เพิ่มบุคลากรสำเร็จ';
   document.getElementById('tempPasswordModalUsername').value = username;
   document.getElementById('tempPasswordModalPassword').value = tempPassword;
   openModal(document.getElementById('userTempPasswordModal'));
@@ -205,6 +210,26 @@ export function closeUserTempPasswordModal() {
   document.getElementById('tempPasswordModalUsername').value = '';
   document.getElementById('tempPasswordModalPassword').value = '';
   window.location.href = `${window.__IAM_VIEWS_BASE__}/users`;
+}
+
+export async function confirmResetPassword(userId, fullName) {
+  if (!isValidUuid(userId)) {
+    showToast(`Invalid user ID: ${userId}`, 'error');
+    return;
+  }
+  const confirmed = await showConfirmDialog({
+    title: 'รีเซ็ตรหัสผ่าน',
+    message: `ยืนยันการรีเซ็ตรหัสผ่านของ "${fullName}"? ระบบจะสุ่มรหัสผ่านใหม่ให้ และผู้ใช้งานจะต้องตั้งรหัสผ่านใหม่ในการเข้าสู่ระบบครั้งถัดไป`,
+    confirmText: 'รีเซ็ตรหัสผ่าน',
+  });
+  if (!confirmed) return;
+  try {
+    const result = await iamPost(`/users/${userId}/reset-password`);
+    const username = state.users.find((u) => u.id === userId)?.username ?? '';
+    openUserTempPasswordModal(username, result.temp_password, 'รีเซ็ตรหัสผ่านสำเร็จ');
+  } catch (error) {
+    showApiError(error, 'รีเซ็ตรหัสผ่านไม่สำเร็จ');
+  }
 }
 
 export async function confirmDeleteUser(userId, fullName) {

@@ -36,11 +36,13 @@ import {
   GET_USER_ROLES_SUMMARY,
   GET_USER_SUMMARY,
   GET_USERS_SUMMARY,
+  RESET_PASSWORD_SUMMARY,
   UPDATE_USER_SUMMARY,
   USER_ID_PARAM_DESCRIPTION,
 } from '../constants/users.swagger';
 import { AssignRoleDTO } from '../dto/assign-role.dto';
 import { CreateUserDTO } from '../dto/create-user.dto';
+import { ResetPasswordResponseDTO } from '../dto/reset-password-response.dto';
 import { UpdateUserDTO } from '../dto/update-user.dto';
 import { UserResponseDTO } from '../dto/user-response.dto';
 import { User } from '../entities/user.entity';
@@ -165,6 +167,23 @@ export class UsersController extends BaseControllerOperations<
       dto.role_ids,
       currentUser.id ?? undefined,
     );
+  }
+
+  @Post(':id/reset-password')
+  @RequirePermission('user_account:reset_password', {
+    th: 'รีเซ็ตรหัสผ่านผู้ใช้งาน',
+    en: 'Reset user password',
+  })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: RESET_PASSWORD_SUMMARY })
+  @ApiParam({ name: 'id', description: USER_ID_PARAM_DESCRIPTION })
+  @ApiJsonApiResponse('users', HttpStatus.OK, ResetPasswordResponseDTO)
+  async resetPassword(
+    @Param('id', ParseUuidParamPipe) id: string,
+    @CurrentUser() currentUser: IUserSession,
+  ): Promise<ResetPasswordResponseDTO> {
+    const temp_password = await this.service.resetPassword(id, currentUser);
+    return { id, temp_password };
   }
 
   @Delete(':id')

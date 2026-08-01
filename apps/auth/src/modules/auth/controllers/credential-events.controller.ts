@@ -5,6 +5,8 @@ import {
   AuthMessagePatterns,
   ICreateInitialCredentialPayload,
   ICreateInitialCredentialResponse,
+  IResetPasswordPayload,
+  IResetPasswordResponse,
 } from '@lib/common/constants/auth-message-patterns';
 import type { IMicroservicePayload } from '@lib/common/interfaces/microservice.interface';
 import { RmqAckInterceptor } from '@lib/common/utils/rmq-ack-interceptor.util';
@@ -21,6 +23,14 @@ export class CredentialEventsController {
     @Payload() message: IMicroservicePayload<ICreateInitialCredentialPayload>,
   ): Promise<ICreateInitialCredentialResponse> {
     await this.authService.createInitialCredential(message.payload);
+    return { success: true };
+  }
+
+  @MessagePattern({ cmd: AuthMessagePatterns.ResetPassword })
+  async resetPassword(
+    @Payload() message: IMicroservicePayload<IResetPasswordPayload>,
+  ): Promise<IResetPasswordResponse> {
+    await this.authService.resetPassword(message.payload);
     return { success: true };
   }
 }

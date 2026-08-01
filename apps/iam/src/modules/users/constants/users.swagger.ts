@@ -11,5 +11,7 @@ export const ASSIGN_ROLES_SUMMARY =
 export const GET_USER_ROLES_SUMMARY =
   'Get role ids currently assigned to a user';
 export const DELETE_USER_SUMMARY = 'Soft delete user account';
+export const RESET_PASSWORD_SUMMARY =
+  'Reset a user password to a freshly generated one (must_change_password on next login)';
 
 export const USER_ID_PARAM_DESCRIPTION = 'User id';

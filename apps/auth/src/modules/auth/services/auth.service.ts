@@ -16,7 +16,10 @@ import { IsNull, MoreThan, Repository } from 'typeorm';
 
 import { AppMicroservice } from '@lib/common/enum/app-microservice.enum';
 import { ErpDatabases } from '@lib/common/enum/erp-databases.enum';
-import type { ICreateInitialCredentialPayload } from '@lib/common/constants/auth-message-patterns';
+import type {
+  ICreateInitialCredentialPayload,
+  IResetPasswordPayload,
+} from '@lib/common/constants/auth-message-patterns';
 import {
   IamMessagePatterns,
   IFindByIdPayload,
@@ -339,6 +342,45 @@ export class AuthService {
       payload.user_id,
       null,
       `initial password set by ${payload.created_by ?? 'system'}`,
+    );
+  }
+
+  /** iam-bc → auth-bc microservice flow: admin "reset password" action. Overwrites
+   * an existing (or, degenerately, creates a missing) credential with a freshly
+   * generated password, always flagged so the user must set their own password on
+   * next login — and forces that on any already-active session immediately, since
+   * a reset should invalidate whatever the user currently knows. */
+  async resetPassword(payload: IResetPasswordPayload): Promise<void> {
+    const passwordHash = await bcrypt.hash(payload.password, 10);
+    let credential = await this.credentialRepository.findOne({
+      where: { user_id: payload.user_id },
+    });
+
+    if (credential) {
+      credential.username = payload.username;
+      credential.password_hash = passwordHash;
+      credential.is_active = true;
+      credential.must_change_password = true;
+      credential.updated_by = payload.reset_by ?? null;
+    } else {
+      credential = this.credentialRepository.create({
+        user_id: payload.user_id,
+        username: payload.username,
+        password_hash: passwordHash,
+        is_active: true,
+        must_change_password: true,
+        created_by: payload.reset_by,
+        updated_by: payload.reset_by,
+      });
+    }
+    await this.credentialRepository.save(credential);
+
+    await this.sessionStore.setMustChangePasswordForUser(payload.user_id, true);
+    await this.writeSecurityLog(
+      'password_set',
+      payload.user_id,
+      null,
+      `password reset by ${payload.reset_by ?? 'system'}`,
     );
   }
 

@@ -1,10 +1,18 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import { ClientProxy } from '@nestjs/microservices';
 import { Repository } from 'typeorm';
 
-import type { ICreateInitialCredentialResponse } from '@lib/common/constants/auth-message-patterns';
+import type {
+  ICreateInitialCredentialResponse,
+  IResetPasswordResponse,
+} from '@lib/common/constants/auth-message-patterns';
 import { AuthMessagePatterns } from '@lib/common/constants/auth-message-patterns';
 import { AppMicroservice } from '@lib/common/enum/app-microservice.enum';
 import { ErpDatabases } from '@lib/common/enum/erp-databases.enum';
@@ -94,6 +102,51 @@ export class UsersService extends BaseServiceOperations<
     }
 
     return Object.assign(user, { temp_password: tempPassword });
+  }
+
+  /**
+   * Admin "reset password" flow: generates a new random password for an existing
+   * user and asks auth-bc to overwrite (or, degenerately, create) their credential
+   * with it, flagged `must_change_password`. Returns the plaintext password once —
+   * never persisted here, never retrievable again after this response.
+   */
+  async resetPassword(
+    userId: string,
+    currentUser?: IUserSession | string,
+  ): Promise<string> {
+    const user = await this.findById(userId);
+
+    const tempPassword = generateTempPassword();
+    const resetBy =
+      typeof currentUser === 'string' ? currentUser : currentUser?.id;
+
+    const result = await this.microserviceClient.sendWithContext<
+      IResetPasswordResponse,
+      {
+        user_id: string;
+        username: string;
+        password: string;
+        reset_by?: string;
+      }
+    >(
+      this.logger,
+      this.authClient,
+      { cmd: AuthMessagePatterns.ResetPassword },
+      {
+        user_id: user.id,
+        username: user.username,
+        password: tempPassword,
+        reset_by: resetBy ?? undefined,
+      },
+    );
+
+    if (!result?.success) {
+      throw new InternalServerErrorException(
+        'Failed to reset password — please try again.',
+      );
+    }
+
+    return tempPassword;
   }
 
   /** Replaces the full set of roles assigned to a user (users_roles join table). */
