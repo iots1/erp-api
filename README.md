@@ -121,17 +121,53 @@ stop showing up in Loki after a logging-path change.
 - **Auth flow**: `POST /auth/login` verifies credentials (bcrypt) against `erp_auth`, calls
   `iam` over TCP to resolve the user's profile + net permission set (RBAC → Policy → Statement,
   deny-override), issues a short-lived JWT access token + rotating refresh token, and tracks the
-  session in Redis (`session:<jti>`) so logout/role-change can revoke it immediately.
+  session in Redis (`session:<jti>`) so logout/role-change can revoke it immediately. Roles/
+  permissions live only in the Redis session blob, never in the JWT itself, so a revoked
+  session or a changed role takes effect on the very next request.
 - **Authorization**: RBAC (roles) + PBAC (policies made of allow/deny statements) + ABAC
   (per-statement conditions evaluated against request context — owner, department, time, IP).
-  `AuthGuard` verifies the JWT + Redis session; `PermissionGuard` checks the JWT's flat
-  `permissions` list first, falling back to a live condition-evaluation call to `iam` for
-  permissions flagged `conditional_permissions` at login.
-- **Permission catalog**: never hand-maintained. `npm run permissions:sync` scans every
-  `@RequirePermission('resource:action', { th, en })` call across all BCs and syncs iam's
-  `permissions` table (soft-delete on removal, full sync history in `permission_sync_logs`).
 
-Full spec: [`docs/plan-erp/srs-p1.html`](docs/plan-erp/srs-p1.html).
+### Auth middleware — guard chain (`APP_GUARD`, runs in this order on every BC)
+
+Registered once in `libs/common/src/common.module.ts`, so every non-`@Public()` endpoint in
+every BC gets all four with no per-app wiring:
+
+| # | Guard | What it does |
+|---|---|---|
+| 1 | `AuthGuard` | Skips `@Public()`/`@UseAccessKey()` routes. Reads `Authorization: Bearer` (priority) or falls back to the `access_token` cookie, verifies the JWT, then re-checks the Redis session key so a revoked/logged-out session is rejected even before the JWT expires. |
+| 2 | `AccessKeyGuard` | No-ops unless the route is `@UseAccessKey()` — a system-to-system/webhook auth path using an HMAC signature (`X-Access-Key-Id` + `X-Timestamp` + `X-Signature`, verified against `iam`), with Redis-backed lockout after repeated failures. Populates `request.user` itself in place of `AuthGuard` for these routes. |
+| 3 | `CsrfGuard` | Double-submit cookie check for the httpOnly-cookie flow (used by the iam admin console — see below): any mutating request carrying a `csrf_token` cookie must echo it back as an `x-csrf-token` header. Bearer-only API clients never receive this cookie and are exempt. |
+| 4 | `PermissionGuard` | Requires `@RequirePermission('resource:action')` on every non-`@Public()` handler — **default-deny**. Checks the JWT/session's flat `permissions` list first, falling back to a live ABAC condition-evaluation call to `iam` for permissions flagged `conditional_permissions` at login. |
+
+- **Permission catalog**: never hand-maintained. `npm run permissions:sync` (or the **Sync
+  Permissions** button on the iam admin Permissions page) scans two planes — `api`
+  (`@RequirePermission('resource:action', { th, en })` calls across all BCs) and `ui`
+  (`data-permission="page:*"/"component:*"` attributes in EJS views, *plus* any
+  `apps/<service>/ui-permissions.manifest.json`, which wins on a key collision since it always
+  carries an explicit `{ th, en }` name) — and syncs iam's `permissions` table (soft-delete on
+  removal, full sync history in `permission_sync_logs`). See
+  [`apps/frontend-web/ui-permissions.manifest.json`](apps/frontend-web/ui-permissions.manifest.json)
+  for the manifest shape: it's a placeholder directory holding only that one file, standing in
+  for a future JSX-based frontend whose compiled output leaves no literal `data-permission`
+  string for the regex scan to find — a component nested under a page in the manifest inherits
+  that page's derived `resource` so the Policy Generator groups them together.
+
+### iam admin console — a separate superadmin-only web UI
+
+`apps/iam/views` (NestJS-rendered EJS, no client framework) serves a standalone admin console at
+`/iam/v1/views/*` — distinct from the JSON:API every other client consumes — intended for
+Security Admins/Superadmins to manage the security core directly: `dashboard`, `users`, `roles`,
+`policies`, `permissions`, `permission-sync-logs`, `access-keys`, `sessions`, `audit-logs`,
+`print-templates`, `document-types`, `system-setting`. Every view controller is `@Public()` (the
+HTML shell itself carries no protected data); the page's client-side JS checks the session and
+hides/redirects based on `page:*`/`component:*` permissions, while every actual read/write it
+performs is a normal JSON:API call that still goes through the full guard chain above via the
+httpOnly cookie — so authorization is enforced the same way regardless of which UI is calling it.
+It's also the repo's reference implementation for any other BC that wants its own admin UI (see
+`apps/iam/views/pages/permissions/index.ejs` as the canonical list-page pattern).
+
+Full spec: [`docs/plan-erp/srs-p1.html`](docs/plan-erp/srs-p1.html) (see §07 for the guard chain,
+§08–09 for permission sync/manifest detail, §10 for session sync, §11 for CSRF/cookie auth).
 
 ## i18n (TH/EN)
 
@@ -215,19 +251,26 @@ npm run migration:run:iam
 
 ### Permissions catalog
 
-`permissions:sync` scans every `@RequirePermission('resource:action', { th, en })` call across
-all BCs and syncs the result into iam's `permissions` table — run it after adding, renaming, or
-removing any `@RequirePermission()` call, before wiring a policy statement to it in the Policy
-Generator:
+`permissions:sync` scans both planes and syncs the result into iam's `permissions` table — run
+it after adding, renaming, or removing any `@RequirePermission()` call or any `page:*`/
+`component:*` usage, before wiring a policy statement to it in the Policy Generator:
+
+- **`api` plane** — every `@RequirePermission('resource:action', { th, en })` call across all BCs.
+- **`ui` plane** — `data-permission="page:*"/"component:*"` attributes in `apps/<service>/views/**`
+  + `apps/<service>/public/**`, plus any `apps/<service>/ui-permissions.manifest.json` (see
+  [`apps/frontend-web/ui-permissions.manifest.json`](apps/frontend-web/ui-permissions.manifest.json)
+  for the shape) — the manifest is the only source for a frontend whose compiled output leaves no
+  literal `data-permission` string to scan, and it wins on a key collision with the attribute scan.
 
 ```bash
 npm run permissions:sync
 ```
 
 Safe to re-run any time: unchanged permissions are left alone, permissions no longer found in
-code are soft-deleted (never hard-deleted), and every run is logged to `permission_sync_logs`
-for a full add/remove history. It only touches `plane = 'api'` rows — `ui` permissions
-(`page:*`, `component:*`) are managed manually and are never touched by this command.
+either source are soft-deleted (never hard-deleted), manually-added rows
+(`permissions.is_manual = true`, added via the iam Permissions admin page) are never touched by
+either plane's diff, and every run is logged to `permission_sync_logs` for a full add/remove
+history.
 
 ### Tests & linting
 
