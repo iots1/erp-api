@@ -299,7 +299,19 @@ export function closeAccessKeySecretModal() {
 export async function copyFieldToClipboard(fieldId, label) {
   const field = document.getElementById(fieldId);
   try {
-    await navigator.clipboard.writeText(field.value);
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(field.value);
+    } else {
+      // navigator.clipboard is only defined in a secure context (HTTPS or
+      // localhost) — fall back to the legacy selection-based copy so this
+      // still works when the admin UI is served over plain HTTP.
+      field.removeAttribute('readonly');
+      field.select();
+      field.setSelectionRange(0, field.value.length);
+      const copied = document.execCommand('copy');
+      field.setAttribute('readonly', '');
+      if (!copied) throw new Error('execCommand copy failed');
+    }
     showToast(`คัดลอก${label}แล้ว`, 'success');
   } catch (error) {
     showApiError(error, `คัดลอก${label}ไม่สำเร็จ — กรุณาคัดลอกด้วยตนเอง`);
