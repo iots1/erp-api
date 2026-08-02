@@ -155,6 +155,17 @@ async function updatePreview() {
 
   const rawHtml = htmlEditor.getValue();
   if (!rawHtml.trim()) {
+    // Bump previewRequestId even though nothing is fetched here — otherwise
+    // an older still-in-flight request (started before the editor was
+    // cleared) would find its requestId still matches on resolve and
+    // overwrite the frame we're about to clear right back with a stale
+    // preview.
+    ++previewRequestId;
+    // No request is (or will be) in flight for empty content — without
+    // this, the skeleton's `is-visible` starting state in the static markup
+    // (or a loading state left over from a prior non-empty edit) never gets
+    // cleared, so it sits there spinning forever with nothing behind it.
+    setPreviewLoading(false);
     if (previewBlobUrl) {
       URL.revokeObjectURL(previewBlobUrl);
       previewBlobUrl = null;
@@ -287,6 +298,22 @@ export function updatePrintTemplateTestValue(index, value) {
   if (!param) return;
   param._test_value = value;
   updatePreview();
+}
+
+// ── Page tabs (รายละเอียด / รายงาน) ──────────────────────────────────────
+
+/** Switches the page's top-level tab. Plain class toggles on the button
+ * (`.active`) and its panel (`.hidden`) — no animation, no state beyond
+ * what's already in the DOM, so there's nothing to keep in sync elsewhere. */
+export function switchPrintTemplateTab(tabName) {
+  document.querySelectorAll('.um-page-tab').forEach((btn) => {
+    const isActive = btn.dataset.tab === tabName;
+    btn.classList.toggle('active', isActive);
+    btn.setAttribute('aria-selected', String(isActive));
+  });
+  document.querySelectorAll('[data-tab-panel]').forEach((panel) => {
+    panel.classList.toggle('hidden', panel.dataset.tabPanel !== tabName);
+  });
 }
 
 // ── View mode (split / code / preview) — up to 3 columns: HTML | Paginator
@@ -636,6 +663,23 @@ export async function initPrintTemplateForm() {
   const templateId = document.getElementById('view-print-template-form').dataset.printTemplateId || null;
   form.dataset.editingId = templateId ?? '';
   document.getElementById('printTemplateGeneratePdfBtn')?.classList.toggle('hidden', !templateId);
+
+  // The "รายละเอียด" tab (which holds the required code/name fields) can be
+  // the *inactive*, `hidden`-classed one when editing (see form.ejs) — a
+  // required field inside a `display:none` panel can't be focused, and
+  // Chrome throws "An invalid form control is not focusable" when native
+  // validation tries to report on it, silently breaking the Save button.
+  // Switch to whichever tab actually holds the invalid field before that
+  // happens: the `invalid` event doesn't bubble but does reach a capturing
+  // listener on the form, and fires before the browser attempts to focus it.
+  form.addEventListener(
+    'invalid',
+    (event) => {
+      const panel = event.target.closest('[data-tab-panel]');
+      if (panel) switchPrintTemplateTab(panel.dataset.tabPanel);
+    },
+    true,
+  );
 
   htmlEditor = createHtmlEditor({
     mountEl: document.getElementById('templateHtmlEditorMount'),

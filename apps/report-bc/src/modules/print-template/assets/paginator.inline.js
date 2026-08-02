@@ -213,26 +213,27 @@
   // no special-casing needed beyond giving summary its own page when it
   // doesn't fit alongside the last page's rows.
   //
-  // `free` cannot be `box.clientHeight - box.scrollHeight`: as the header
-  // comment on `overflows()` explains, scrollHeight clamps to clientHeight
-  // whenever content is still shorter than the box (it never reports the
-  // shorter real content height) — so right after PASS 1 stops just before
-  // an overflow, that subtraction is always ~0 and the summary would
-  // *never* be judged to fit, no matter how much visible room is left.
-  // Measure the real used height the same way `fillerWouldOverflow` does
-  // (via getBoundingClientRect, which is never clamped) instead.
-  function usedBoxHeight(page) {
-    var lastRow = page.tbody.lastElementChild;
-    if (!lastRow) return 0;
-    return (
-      lastRow.getBoundingClientRect().bottom - page.box.getBoundingClientRect().top
-    );
-  }
+  // `.rp-box` has `overflow:hidden`, which per the flexbox spec makes its
+  // *automatic* minimum size 0 instead of its content's natural height —
+  // so the instant `.rp-sum` above it gets real summary content, the flex
+  // chain (`.rp-detail`, then `.rp-box` as its flex child) live-reflows
+  // smaller to make room, with no floor at the rows' own height. That
+  // means `box.clientHeight`, read right after populating `.rp-sum`,
+  // *already* reflects the true space left for rows once the summary is
+  // accounted for — the only remaining question is whether the *existing*
+  // rows now overflow that shrunk box, which is exactly what `overflows()`
+  // already checks everywhere else in this file. No separate "free space"
+  // arithmetic is needed (an earlier version of this check compared
+  // `sum.offsetHeight` against `box.clientHeight - box.scrollHeight`, but
+  // scrollHeight clamps to clientHeight whenever content doesn't overflow
+  // — see the comment on `overflows()` — so that subtraction was ~0 right
+  // after PASS 1 stops just short of an overflow, and the summary was
+  // judged "doesn't fit" almost unconditionally no matter how much visible
+  // room was left).
   if (bands['summary']) {
     var last = pages[pages.length - 1];
     last.sum.innerHTML = renderBand(bands['summary'], last.scope);
-    var free = last.box.clientHeight - usedBoxHeight(last);
-    if (last.sum.offsetHeight > free) {
+    if (overflows(last)) {
       last.sum.innerHTML = '';
       var summaryPage = newPage();
       summaryPage.sum.innerHTML = renderBand(bands['summary'], summaryPage.scope);
