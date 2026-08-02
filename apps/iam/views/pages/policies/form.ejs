@@ -13,8 +13,7 @@ const topbarActions = [
                     <%- include('../../components/ui/form-header', {
                         backHref: `/${prefix}/views/policies`,
                         titleId: 'policyFormTitle',
-                        titleText: isEdit ? 'แก้ไข Policy (Policy Generator)' : 'สร้าง Policy ใหม่ (Policy Generator)',
-                        subtitleText: 'ครอบคลุมทั้งฝั่ง Frontend (Page/Component) และ Backend (API Resource)',
+                        subtitleText: 'Policy Generator — ครอบคลุมทั้งฝั่ง Frontend (Page/Component) และ Backend (API Resource)',
                     }) %>
 
                     <form id="policyForm" onsubmit="handlePolicyFormSubmit(event)">

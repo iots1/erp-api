@@ -13,7 +13,6 @@ const topbarActions = [
                     <%- include('../../components/ui/form-header', {
                         backHref: `/${prefix}/views/roles`,
                         titleId: 'roleFormTitle',
-                        titleText: isEdit ? 'แก้ไขบทบาท (Edit Role)' : 'สร้างบทบาทใหม่ (Create Role)',
                         subtitleText: 'กำหนดรายละเอียดบทบาทและแนบนโยบายความปลอดภัย',
                     }) %>
 
@@ -30,8 +29,13 @@ const topbarActions = [
                         </article>
 
                         <article class="um-form-section">
-                            <h3 class="um-section-title">เลือกนโยบายความปลอดภัย (Attach Policies)</h3>
-                            <div id="rolePoliciesContainer" class="um-checkbox-grid um-checkbox-grid-compact"></div>
+                            <div class="um-section-header-row">
+                                <h3 class="um-section-title">เลือกนโยบายความปลอดภัย (Attach Policies)</h3>
+                                <input type="search" id="rolePoliciesSearch" class="um-search-input" placeholder="ค้นหา Policy...">
+                            </div>
+                            <div class="um-checkbox-grid-scroll">
+                                <div id="rolePoliciesContainer" class="um-checkbox-grid um-checkbox-grid-compact"></div>
+                            </div>
                         </article>
                     </form>
                 </section>

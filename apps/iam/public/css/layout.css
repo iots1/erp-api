@@ -37,6 +37,50 @@
   gap: 1.25rem;
 }
 
+.um-stat-card {
+  padding: 0.9rem;
+}
+.um-stat-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+}
+.um-stat-icon-sky {
+  background: var(--sky-lt);
+  color: var(--sky-dk);
+}
+.um-stat-icon-lavender {
+  background: var(--lavender-lt);
+  color: var(--lavender-dk);
+}
+.um-stat-icon-mint {
+  background: var(--mint-lt);
+  color: var(--mint-dk);
+}
+.um-stat-title {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+.um-stat-value {
+  margin: 0.15rem 0 0;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--slate-800);
+}
+.um-graph-placeholder {
+  margin-top: 0.9rem;
+  height: 12rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+
 /* ── Tags / status pills — no Pico equivalent ────────────────────── */
 
 .p-tag {
@@ -98,6 +142,54 @@
   margin-top: 0.35rem;
   font-size: 0.8rem;
   color: var(--pink-dk, #dc2626);
+}
+
+/* ── Login screen ─────────────────────────────────────────────────── */
+
+.um-login-screen {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Deliberately always a dark backdrop regardless of app theme (matches
+     the original design intent) — a literal, not the theme-relative
+     --slate-900 (which flips light in dark mode). */
+  background: #171717;
+  padding: 1rem;
+}
+.um-login-card {
+  width: 100%;
+  max-width: 24rem;
+  padding: 2rem;
+}
+.um-login-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--slate-800);
+  margin-bottom: 0.35rem;
+}
+.um-login-logo {
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 0.6rem;
+  background: var(--sky);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+.um-login-subtitle {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin: 0 0 1.5rem;
+}
+.um-login-submit {
+  width: 100%;
+  margin-top: 0.25rem;
 }
 
 /* ── App shell ────────────────────────────────────────────────────── */
@@ -294,12 +386,6 @@
 .um-view.active {
   display: block;
 }
-.um-view-title {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--slate-800);
-  margin: 0 0 0.25rem;
-}
 .um-view-subtitle {
   font-size: 0.85rem;
   color: var(--text-muted);
@@ -342,6 +428,26 @@
   padding: 0.9rem;
   margin-bottom: 0.85rem;
 }
+/* Caps a form to a comfortable reading width and centers it — for a form
+   meant to be filled top-to-bottom in one column (see .um-form-stack)
+   rather than laid out in the auto-fit multi-column grid below. Applied to
+   the <form> itself, so every .um-form-section card inside inherits the
+   same centered width without each needing its own max-width. */
+.um-form-narrow {
+  max-width: var(--page-max-width);
+  margin-left: auto;
+  margin-right: auto;
+}
+/* Single-column stack — every field its own full-width row, top to bottom.
+   A plain flex column rather than `.um-form-grid` with a single track,
+   since a 1-column grid still carries auto-fit's implicit sizing behavior
+   for no benefit here. */
+.um-form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-top: 0.3rem;
+}
 /* Auto-responsive columns (Vaadin form-layout style): as many ~220px
    columns fit the available width, instead of a fixed 2-up grid that
    wastes width on wide screens and forces extra scrolling on narrow ones. */
@@ -365,6 +471,40 @@
   font-weight: 700;
   color: var(--slate-800);
 }
+
+/* ── Page-level tabs (print-templates form: รายละเอียด / รายงาน) — clean
+   underline style (ERPNext-like), distinct from .um-view-toggle's boxed
+   segmented-button group below, which toggles a *sub-view* within one
+   section (Split/Code/Preview) rather than switching the page's own
+   top-level content. ─────────────────────────────────────────────────── */
+
+.um-page-tabs {
+  display: flex;
+  gap: 1.5rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1rem;
+}
+.um-page-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin: 0 0 -1px;
+  padding: 0.6rem 0.1rem;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.um-page-tab:hover {
+  color: var(--slate-800);
+}
+.um-page-tab.active {
+  color: var(--slate-800);
+  font-weight: 700;
+  border-bottom-color: var(--pico-primary, #3b82f6);
+}
+
 .um-form-actions {
   display: flex;
   justify-content: flex-end;
@@ -545,7 +685,12 @@
 }
 .um-html-editor-mount {
   width: 100%;
-  height: 520px;
+  /* vh-based, not a fixed px — on a 13" laptop a fixed 520px left almost no
+     room below it once the page-level cards above (basic info, parameters/
+     mock data) are accounted for, forcing scroll to see the whole editor on
+     every load. Caps at 640px so a very tall/external monitor doesn't blow
+     the editor out to an unreasonable height. */
+  height: min(70vh, 640px);
   border: 1px solid var(--slate-300);
   border-radius: var(--pico-border-radius, 0.5rem);
   overflow: hidden;
@@ -577,7 +722,12 @@
 .um-preview-viewport {
   position: relative;
   width: 100%;
-  height: 520px;
+  /* vh-based, not a fixed px — on a 13" laptop a fixed 520px left almost no
+     room below it once the page-level cards above (basic info, parameters/
+     mock data) are accounted for, forcing scroll to see the whole editor on
+     every load. Caps at 640px so a very tall/external monitor doesn't blow
+     the editor out to an unreasonable height. */
+  height: min(70vh, 640px);
 }
 .um-preview-frame {
   position: absolute;

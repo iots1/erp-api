@@ -2,10 +2,18 @@ import { showConfirmDialog } from '../../../js/confirm-dialog.service.js';
 import { hasPermission } from '../../../js/login.service.js';
 import { iamDelete, iamGet, iamPost, iamPut } from './api.js';
 import { createPaginatedList } from './paginated-list.js';
+import { createPolicyCheckboxPicker } from './policy-checkbox-picker.js';
 import { ensurePoliciesLoaded } from './policies.service.js';
 import { resetRoleFormDraft, state } from './state.js';
 import { showApiError, showToast } from './toast.service.js';
 import { escapeHtml, refreshIcons } from './utils.js';
+
+const rolePolicyPicker = createPolicyCheckboxPicker({
+  containerId: 'rolePoliciesContainer',
+  searchInputId: 'rolePoliciesSearch',
+  inputName: 'rolePolicyIds',
+  getSelectedIds: () => state.roleForm.selectedPolicyIds,
+});
 
 // Full, un-paginated list — cached for consumers that need every role at
 // once (the "assign roles" checkbox grid in users.service.js), independent
@@ -154,33 +162,10 @@ export async function initRoleForm() {
       state.roleForm.selectedPolicyIds = policy_ids;
     }
 
-    renderRolePolicyCheckboxes();
+    rolePolicyPicker.render();
   } catch (error) {
     showApiError(error, 'โหลดข้อมูลบทบาทไม่สำเร็จ');
   }
-}
-
-function renderRolePolicyCheckboxes() {
-  const container = document.getElementById('rolePoliciesContainer');
-  if (state.policies.length === 0) {
-    container.innerHTML = `<p class="um-muted-note">ยังไม่มี Policy ในระบบ — ไปสร้างที่หน้า "นโยบายความปลอดภัย" ก่อน</p>`;
-    return;
-  }
-
-  container.innerHTML = state.policies
-    .map(
-      (policy) => `
-    <label class="um-checkbox-card">
-      <input type="checkbox" name="rolePolicyIds" value="${policy.id}" ${state.roleForm.selectedPolicyIds.includes(policy.id) ? 'checked' : ''}>
-      <div>
-        <span class="um-checkbox-title">${escapeHtml(policy.name?.th)}</span>
-        <span class="um-checkbox-sub">${escapeHtml(policy.code)}</span>
-        <span class="p-tag ${policy.is_active ? 'p-tag-mint' : 'p-tag-pink'}">${policy.is_active ? 'Active' : 'Inactive'}</span>
-      </div>
-    </label>
-  `,
-    )
-    .join('');
 }
 
 export async function handleRoleFormSubmit(event) {
@@ -201,9 +186,12 @@ export async function handleRoleFormSubmit(event) {
     name_en: document.getElementById('frmRoleNameEn').value.trim(),
     description: document.getElementById('frmRoleDescription').value.trim() || null,
   };
-  const policyIds = Array.from(
-    form.querySelectorAll('input[name="rolePolicyIds"]:checked'),
-  ).map((input) => input.value);
+  // Not read from the DOM (`:checked`) — the policy search box replaces the
+  // grid's innerHTML on every keystroke, which would drop the checked state
+  // of anything currently filtered out of view. state.roleForm.selectedPolicyIds
+  // is kept in sync directly by the picker's own change handler instead —
+  // see policy-checkbox-picker.js.
+  const policyIds = state.roleForm.selectedPolicyIds;
 
   try {
     const role = editingId

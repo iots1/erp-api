@@ -3,10 +3,18 @@ import { hasPermission } from '../../../js/login.service.js';
 import { closeModal, openModal } from '../../../js/modal.service.js';
 import { iamDelete, iamGet, iamPost, iamPut } from './api.js';
 import { createPaginatedList } from './paginated-list.js';
+import { createPolicyCheckboxPicker } from './policy-checkbox-picker.js';
 import { ensurePoliciesLoaded } from './policies.service.js';
 import { resetAccessKeyFormDraft, state } from './state.js';
 import { showApiError, showToast } from './toast.service.js';
 import { escapeHtml, formatDateTime, refreshIcons } from './utils.js';
+
+const accessKeyPolicyPicker = createPolicyCheckboxPicker({
+  containerId: 'accessKeyPoliciesContainer',
+  searchInputId: 'accessKeyPoliciesSearch',
+  inputName: 'accessKeyPolicyIds',
+  getSelectedIds: () => state.accessKeyForm.selectedPolicyIds,
+});
 
 const STATUS_TAG_CLASS = {
   active: 'p-tag-mint',
@@ -176,7 +184,7 @@ export async function initAccessKeyForm() {
       state.accessKeyForm.selectedPolicyIds = policy_ids;
     }
 
-    renderAccessKeyPolicyCheckboxes();
+    accessKeyPolicyPicker.render();
   } catch (error) {
     showApiError(error, 'โหลดข้อมูล Access Key ไม่สำเร็จ');
   }
@@ -199,38 +207,17 @@ function renderOwnerUserOptions() {
   document.getElementById('frmAccessKeyOwnerServiceId').innerHTML = options;
 }
 
-function renderAccessKeyPolicyCheckboxes() {
-  const container = document.getElementById('accessKeyPoliciesContainer');
-  if (state.policies.length === 0) {
-    container.innerHTML = `<p class="um-muted-note">ยังไม่มี Policy ในระบบ — ไปสร้างที่หน้า "นโยบายความปลอดภัย" ก่อน</p>`;
-    return;
-  }
-
-  container.innerHTML = state.policies
-    .map(
-      (policy) => `
-    <label class="um-checkbox-card">
-      <input type="checkbox" name="accessKeyPolicyIds" value="${policy.id}" ${state.accessKeyForm.selectedPolicyIds.includes(policy.id) ? 'checked' : ''}>
-      <div>
-        <span class="um-checkbox-title">${escapeHtml(policy.name?.th)}</span>
-        <span class="um-checkbox-sub">${escapeHtml(policy.code)}</span>
-        <span class="p-tag ${policy.is_active ? 'p-tag-mint' : 'p-tag-pink'}">${policy.is_active ? 'Active' : 'Inactive'}</span>
-      </div>
-    </label>
-  `,
-    )
-    .join('');
-  refreshIcons();
-}
-
 export async function handleAccessKeyFormSubmit(event) {
   event.preventDefault();
   const form = event.target;
   const editingId = form.dataset.editingId || null;
 
-  const policyIds = Array.from(
-    form.querySelectorAll('input[name="accessKeyPolicyIds"]:checked'),
-  ).map((input) => input.value);
+  // Not read from the DOM (`:checked`) — the policy search box replaces the
+  // grid's innerHTML on every keystroke, which would drop the checked state
+  // of anything currently filtered out of view. state.accessKeyForm.selectedPolicyIds
+  // is kept in sync directly by the picker's own change handler instead —
+  // see policy-checkbox-picker.js.
+  const policyIds = state.accessKeyForm.selectedPolicyIds;
   const expiresAtRaw = document.getElementById('frmAccessKeyExpiresAt').value;
 
   try {

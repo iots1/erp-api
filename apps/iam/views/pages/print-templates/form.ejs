@@ -13,51 +13,66 @@ const topbarActions = [
                     <%- include('../../components/ui/form-header', {
                         backHref: `/${prefix}/views/print-templates`,
                         titleId: 'printTemplateFormTitle',
-                        titleText: isEdit ? 'แก้ไขเทมเพลต' : 'สร้างเทมเพลตใหม่',
                         subtitleText: 'กำหนดรหัสเทมเพลต ขนาดกระดาษ ตัวแปร และเนื้อหา HTML ที่จะส่งให้ Gotenberg แปลงเป็น PDF',
                     }) %>
 
                     <form id="printTemplateForm" onsubmit="handlePrintTemplateFormSubmit(event)">
-                        <article class="um-form-section">
-                            <div class="um-form-grid">
-                                <%- include('../../components/ui/field', { id: 'frmTemplateCode', label: 'รหัสเทมเพลต', required: true, extraClass: 'um-mono-input', placeholder: 'เช่น invoice' }) %>
-                                <%- include('../../components/ui/field', { id: 'frmTemplateNameTh', label: 'ชื่อเทมเพลต (ไทย)', required: true }) %>
-                                <%- include('../../components/ui/field', { id: 'frmTemplateNameEn', label: 'ชื่อเทมเพลต (English)', required: true }) %>
-                                <div class="p-field um-field-checkbox">
-                                    <label><input type="checkbox" id="frmTemplateActive" checked> เปิดใช้งาน (Active)</label>
-                                </div>
-                            </div>
-                            <div class="um-form-grid">
-                                <div class="p-field">
-                                    <label for="frmTemplatePaperSize">ขนาดกระดาษ</label>
-                                    <select id="frmTemplatePaperSize">
-                                        <option value="A4">A4</option>
-                                        <option value="A5">A5</option>
-                                        <option value="Letter">Letter</option>
-                                        <option value="Legal">Legal</option>
-                                    </select>
-                                </div>
-                                <div class="p-field">
-                                    <label for="frmTemplateOrientation">แนวกระดาษ</label>
-                                    <select id="frmTemplateOrientation">
-                                        <option value="portrait">แนวตั้ง (Portrait)</option>
-                                        <option value="landscape">แนวนอน (Landscape)</option>
-                                    </select>
-                                </div>
-                                <div class="p-field">
-                                    <label for="frmTemplateEngine">เอนจิน</label>
-                                    <select id="frmTemplateEngine">
-                                        <option value="simple">Simple — แทนที่ {{key}} ตรงๆ</option>
-                                        <option value="banded">Banded — แบ่งหน้าอัตโนมัติ</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="um-form-grid um-form-grid-half">
-                                <%- include('../../components/ui/field', { id: 'frmTemplateDescriptionTh', label: 'คำอธิบาย (ไทย)', rows: 2 }) %>
-                                <%- include('../../components/ui/field', { id: 'frmTemplateDescriptionEn', label: 'คำอธิบาย (English)', rows: 2 }) %>
-                            </div>
-                        </article>
+                        <!-- Two tabs, not one long scroll: "รายละเอียด" (identity/render
+                             config — filled once, rarely revisited) vs. "รายงาน" (the
+                             actual template design workspace — parameters/mock data +
+                             HTML/JS/Preview editor, where an admin editing an existing
+                             template spends nearly all their time). Defaults to whichever
+                             tab is actually relevant: "รายละเอียด" when creating new (every
+                             field there still needs filling in), "รายงาน" when editing
+                             (skip straight to the editor). -->
+                        <div class="um-page-tabs" role="tablist">
+                            <button type="button" id="printTemplateTab-details" class="um-page-tab<% if (!isEdit) { %> active<% } %>" data-tab="details" role="tab" aria-selected="<%= isEdit ? 'false' : 'true' %>" aria-controls="printTemplatePanel-details" onclick="switchPrintTemplateTab('details')">รายละเอียด</button>
+                            <button type="button" id="printTemplateTab-report" class="um-page-tab<% if (isEdit) { %> active<% } %>" data-tab="report" role="tab" aria-selected="<%= isEdit ? 'true' : 'false' %>" aria-controls="printTemplatePanel-report" onclick="switchPrintTemplateTab('report')">รายงาน</button>
+                        </div>
 
+                        <div id="printTemplatePanel-details" class="um-tab-panel<% if (isEdit) { %> hidden<% } %>" data-tab-panel="details" role="tabpanel" aria-labelledby="printTemplateTab-details">
+                            <article class="um-form-section">
+                                <div class="um-form-grid">
+                                    <%- include('../../components/ui/field', { id: 'frmTemplateCode', label: 'รหัสเทมเพลต', required: true, extraClass: 'um-mono-input', placeholder: 'เช่น invoice' }) %>
+                                    <%- include('../../components/ui/field', { id: 'frmTemplateNameTh', label: 'ชื่อเทมเพลต (ไทย)', required: true }) %>
+                                    <%- include('../../components/ui/field', { id: 'frmTemplateNameEn', label: 'ชื่อเทมเพลต (English)', required: true }) %>
+                                    <div class="p-field um-field-checkbox">
+                                        <label><input type="checkbox" id="frmTemplateActive" checked> เปิดใช้งาน (Active)</label>
+                                    </div>
+                                </div>
+                                <div class="um-form-grid">
+                                    <div class="p-field">
+                                        <label for="frmTemplatePaperSize">ขนาดกระดาษ</label>
+                                        <select id="frmTemplatePaperSize">
+                                            <option value="A4">A4</option>
+                                            <option value="A5">A5</option>
+                                            <option value="Letter">Letter</option>
+                                            <option value="Legal">Legal</option>
+                                        </select>
+                                    </div>
+                                    <div class="p-field">
+                                        <label for="frmTemplateOrientation">แนวกระดาษ</label>
+                                        <select id="frmTemplateOrientation">
+                                            <option value="portrait">แนวตั้ง (Portrait)</option>
+                                            <option value="landscape">แนวนอน (Landscape)</option>
+                                        </select>
+                                    </div>
+                                    <div class="p-field">
+                                        <label for="frmTemplateEngine">เอนจิน</label>
+                                        <select id="frmTemplateEngine">
+                                            <option value="simple">Simple — แทนที่ {{key}} ตรงๆ</option>
+                                            <option value="banded">Banded — แบ่งหน้าอัตโนมัติ</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="um-form-grid um-form-grid-half">
+                                    <%- include('../../components/ui/field', { id: 'frmTemplateDescriptionTh', label: 'คำอธิบาย (ไทย)', rows: 2 }) %>
+                                    <%- include('../../components/ui/field', { id: 'frmTemplateDescriptionEn', label: 'คำอธิบาย (English)', rows: 2 }) %>
+                                </div>
+                            </article>
+                        </div>
+
+                        <div id="printTemplatePanel-report" class="um-tab-panel<% if (!isEdit) { %> hidden<% } %>" data-tab-panel="report" role="tabpanel" aria-labelledby="printTemplateTab-report">
                         <article class="um-form-section">
                             <div id="templateParametersSection">
                                 <div class="um-section-header-row">
@@ -156,6 +171,7 @@ const topbarActions = [
                                 </div>
                             </div>
                         </article>
+                        </div>
                     </form>
                 </section>
 

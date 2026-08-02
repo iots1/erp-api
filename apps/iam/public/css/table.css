@@ -148,7 +148,12 @@
   border-top-left-radius: var(--pico-border-radius);
   border-top-right-radius: var(--pico-border-radius);
 }
-.um-table-toolbar > input,
+/* `:not([type="checkbox"]):not([type="radio"])` on the input arm matches
+   theme.css's global input rule's own selector shape — needed to actually
+   beat its specificity (0,2,1 there vs a plain `.um-table-toolbar > input`'s
+   0,1,1), otherwise this background override loses the cascade silently
+   despite loading after it in file order. */
+.um-table-toolbar > input:not([type="checkbox"]):not([type="radio"]),
 .um-table-toolbar > select {
   /* Pico's inputs/selects default to width:100% (block-level), which fights
      a flex row — every field would claim the full line and wrap below the
@@ -162,6 +167,10 @@
   flex: 0 1 auto;
   height: 30px;
   padding: 0 0.6rem;
+  /* Global input/select background (theme.css) is --slate-50 — same as this
+     toolbar's own background, so the field's edge disappeared entirely.
+     --surface gives it a visible boundary against the toolbar again. */
+  background: var(--surface);
 }
 .um-table-toolbar > select {
   /* width:auto sizes the <select> to its widest option's text plus this

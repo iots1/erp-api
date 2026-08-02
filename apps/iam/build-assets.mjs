@@ -21,23 +21,17 @@ const isLocal = process.env.NODE_ENV === 'local';
 
 /**
  * Every admin-shell page (dashboard/users/roles/policies/audit-logs/sessions/
- * system-setting) shares one stylesheet — the `user-management` directory name
- * is legacy (that used to be the single monolithic page) but now doubles as the
- * shared JS/CSS library location the per-page controllers import from, so the
- * css `entry` below intentionally points there for every page.
+ * system-setting) shares its styling entirely through the SHARED_CSS files
+ * below (theme/layout/button/form/table/modal.css) — no page under
+ * public/pages/*\/css exists anymore, so there's nothing left to bundle
+ * per-page; only the JS entry is page-specific.
  */
-const ADMIN_SHELL_CSS_ENTRY = join(SRC_DIR, 'pages/user-management/css/user-management.css');
-
 function adminShellPage(name) {
   return {
     name,
     js: {
       entry: join(SRC_DIR, `pages/${name}/js/entry.js`),
       out: join(OUT_DIR, `pages/${name}/js/bundle.js`),
-    },
-    css: {
-      entry: ADMIN_SHELL_CSS_ENTRY,
-      out: join(OUT_DIR, `pages/${name}/css/bundle.css`),
     },
   };
 }

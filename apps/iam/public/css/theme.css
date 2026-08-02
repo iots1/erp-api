@@ -36,6 +36,10 @@
   --pico-block-spacing-vertical: 0.85rem;
   --pico-block-spacing-horizontal: 1rem;
   --pico-switch-color: #fff;
+  /* Caps a narrow, single-column form's width so its fields don't stretch
+     edge-to-edge on a wide screen (see .um-form-narrow in layout.css) —
+     same idea as Frappe/ERPNext's --page-max-width on .std-form-layout. */
+  --page-max-width: 900px;
 }
 
 /* Pico itself scopes its light/dark palettes to `:root:not([data-theme=dark])`
@@ -129,7 +133,7 @@
     /* Frappe's own dark gray scale keeps low numbers light (for text) and
        high numbers dark — literally the same ramp direction as light mode,
        just relabeled "the dark theme's ramp". But every other component
-       file here (button/form/table/user-management.css) reuses --slate-N
+       file here (button/form/table/layout.css) reuses --slate-N
        as "distance from the surface" (50 = subtle tint next to bg, 900 =
        strongest text) in BOTH themes — that's what makes e.g.
        `.um-type-toggle{background:var(--slate-100)}` or a muted label at
@@ -294,6 +298,54 @@ input,
 select,
 textarea {
   font-size: 0.85rem;
+}
+
+/* ── Form controls — flat, minimal single-line style (ERPNext's own
+   .form-control spec: 28px height, 14px text, 8px radius, no border) —
+   applies globally so every form across the admin follows one pattern
+   instead of Pico's bordered default. Border removed with nothing to
+   replace it would hurt usability, so a light fill + explicit focus ring
+   take over as the "this is editable" cue instead. `min-height` (not
+   `height`) + `line-height: 28px` — a hard `height` clips Thai below-base
+   vowel marks (ุ ู) whose glyphs need more vertical room than plain Latin
+   text at the same font-size. `margin: 0` — Pico gives every form element
+   a default bottom margin; layout containers (.um-form-stack/.p-field)
+   already space fields via `gap`, so this doubled up. ────────────────── */
+input:not([type="checkbox"]):not([type="radio"]),
+select {
+  height: 28px;
+  line-height: 28px;
+  margin: 0;
+  padding: 0 8px;
+  border: none;
+  border-radius: 8px;
+  background: var(--slate-50);
+  font-size: 14px;
+  position: relative;
+  box-sizing: border-box;
+}
+input:not([type="checkbox"]):not([type="radio"]):focus,
+select:focus {
+  background: var(--surface);
+  /* Thin + pastel, not Pico's default heavy focus ring — color-mix() off
+     the existing --sky token instead of a new hardcoded hex, so this stays
+     in step if the brand blue ever changes. */
+  outline: 1px solid color-mix(in srgb, var(--sky) 55%, white);
+  outline-offset: -1px;
+}
+input[type="date"] {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.5;
+  margin-top: -1px;
+  margin-right: -4px;
+}
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
 }
 
 /* Pico gives <article> a bottom margin by default (for stacked prose); our

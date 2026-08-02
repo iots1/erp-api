@@ -40,7 +40,7 @@
   margin-bottom: 0;
 }
 .um-filter-input {
-  width: 16rem;
+  width: 20rem;
 }
 .um-search-input {
   width: 18rem;
@@ -224,6 +224,180 @@
   max-width: 320px;
 }
 
+/* Bounds a policy/permission checkbox picker's height so the page doesn't
+   grow without limit as the catalog grows (role/access-key forms render
+   every policy at once, no pagination) — scrolls independently instead of
+   pushing the Save button further down the page on every new policy added
+   system-wide. Search box above it (see policy-checkbox-picker.js) narrows
+   the working set instead of relying on scroll alone. */
+.um-checkbox-grid-scroll {
+  max-height: 22rem;
+  overflow-y: auto;
+  /* Room for the scrollbar so a card's right edge/border doesn't get
+     clipped by it in a scrolling browser (Windows/Firefox default). */
+  padding-right: 0.25rem;
+}
+/* Pico gives every <input> a bottom margin (its default form-element
+   spacing) — same issue .um-topbar-right .p-btn works around in layout.css.
+   Without this the search box sits low relative to the section title next
+   to it in this flex row. */
+.um-section-header-row .um-search-input {
+  margin: 0;
+}
+
+/* ── Policy generator: step 2 layout ─────────────────────────────── */
+
+.um-step2 {
+  position: relative;
+}
+.um-step2-top {
+  grid-template-columns: 1fr 2fr;
+  align-items: end;
+}
+.um-step2-dropdowns {
+  grid-template-columns: repeat(2, 1fr);
+  position: relative;
+  z-index: 20;
+}
+
+/* ── Policy generator: actions / conditions ──────────────────────── */
+
+.um-actions-box {
+  margin-top: 1.25rem;
+  padding: 1rem;
+  background: var(--slate-50);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+}
+.um-actions-box-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.75rem;
+}
+.um-actions-box-head label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--slate-700);
+}
+.um-action-group {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.um-action-group:last-child {
+  margin-bottom: 0;
+}
+.um-action-group-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 0.6rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--sky-dk);
+}
+.um-action-group-title-text {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 1;
+}
+.um-action-group-select-all {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.um-action-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+.um-action-grid .um-checkbox-card {
+  flex: 0 1 auto;
+  width: auto;
+  min-width: 220px;
+  max-width: 320px;
+}
+.um-conditions-box {
+  margin-top: 1.25rem;
+}
+.um-conditions-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.6rem;
+}
+.um-conditions-head label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--slate-700);
+}
+.um-conditions-rows {
+  border: 1px dashed var(--slate-300);
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  min-height: 4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  justify-content: center;
+}
+.um-condition-row {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+}
+.um-condition-spacer {
+  width: 30px;
+}
+.um-condition-empty {
+  text-align: center;
+  padding: 0.5rem;
+}
+.um-condition-preview {
+  margin: 0;
+  padding: 0.5rem;
+  background: #171717;
+  color: #86efac;
+  border-radius: 0.4rem;
+  font-size: 0.7rem;
+  max-width: 20rem;
+  overflow-x: auto;
+}
+.um-add-statement-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+.um-chip {
+  margin: 0 0.25rem 0.25rem 0;
+}
+
+@media (max-width: 900px) {
+  .um-step2-dropdowns {
+    grid-template-columns: 1fr;
+  }
+  .um-condition-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ── Tighter vertical rhythm — overrides layout.css's section/field spacing
    (this file loads after layout.css, see page-head.ejs's <link> order, so
    same-specificity rules here win without needing extra selector weight).
@@ -260,4 +434,25 @@
 }
 .um-editor-split {
   margin-top: 0.5rem;
+}
+
+/* ── Users form: flat white page ──────────────────────────────────
+   No gray page canvas around the form — .um-content's own background
+   (--bg, a light gray) would otherwise show through the padding around
+   this white card, reading as "a white card floating on gray" instead of
+   one flat white page. Negative-margin bleed: extend into .um-content's
+   own padding, then re-add the same amount inside so nothing shifts. ── */
+#view-user-form {
+  background: var(--surface);
+  min-height: 100%;
+  margin: -1.25rem;
+  padding: 1.25rem;
+}
+/* The .um-form-section "card" doesn't need its own border/shadow once its
+   background matches the page around it — Pico's default <article> chrome
+   would otherwise still outline it, undermining the flat look. */
+#view-user-form .um-form-section {
+  border: none;
+  box-shadow: none;
+  padding: 0;
 }

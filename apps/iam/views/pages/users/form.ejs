@@ -10,33 +10,33 @@ const topbarActions = [
 
                 <!-- VIEW: User form -->
                 <section id="view-user-form" class="um-view active" data-user-id="<%= userId ?? '' %>">
-                    <%- include('../../components/ui/form-header', {
-                        backHref: `/${prefix}/views/users`,
-                        titleId: 'userFormTitle',
-                        titleText: isEdit ? 'แก้ไขบุคลากร' : 'เพิ่มบุคลากรใหม่',
-                        subtitleText: 'กำหนดข้อมูลบัญชีผู้ใช้งาน',
-                    }) %>
-
-                    <form id="userForm" onsubmit="handleUserFormSubmit(event)">
-                        <article class="um-form-section">
-                            <div class="um-form-grid">
-                                <%- include('../../components/ui/field', { id: 'frmUsername', label: 'ชื่อผู้ใช้งาน (Username)', required: true }) %>
-                                <%- include('../../components/ui/field', { id: 'frmEmployeeId', label: 'รหัสพนักงาน', required: true }) %>
-                                <%- include('../../components/ui/field', { id: 'frmFullName', label: 'ชื่อ-นามสกุล', required: true }) %>
-                                <%- include('../../components/ui/field', { id: 'frmEmail', label: 'อีเมล', type: 'email' }) %>
-                                <%- include('../../components/ui/field', { id: 'frmDepartment', label: 'แผนก/สังกัด' }) %>
-                                <div class="p-field">
-                                    <label for="frmStatus">สถานะ</label>
-                                    <select id="frmStatus">
-                                        <option value="pending">Pending</option>
-                                        <option value="active">Active</option>
-                                        <option value="suspended">Suspended</option>
-                                    </select>
+                    <!-- No form-header here — the topbar breadcrumb already shows the
+                         page name and doubles as the "back" affordance (its parent
+                         crumb links to the list). Capped-width column (see
+                         --page-max-width in theme.css), same idea as Frappe/ERPNext's
+                         .std-form-layout, fields stack one per row (.um-form-stack). -->
+                    <div class="um-form-narrow">
+                        <form id="userForm" onsubmit="handleUserFormSubmit(event)">
+                            <article class="um-form-section">
+                                <div class="um-form-stack">
+                                    <%- include('../../components/ui/field', { id: 'frmUsername', label: 'ชื่อผู้ใช้งาน (Username)', required: true }) %>
+                                    <%- include('../../components/ui/field', { id: 'frmEmployeeId', label: 'รหัสพนักงาน', required: true }) %>
+                                    <%- include('../../components/ui/field', { id: 'frmFullName', label: 'ชื่อ-นามสกุล', required: true }) %>
+                                    <%- include('../../components/ui/field', { id: 'frmEmail', label: 'อีเมล', type: 'email' }) %>
+                                    <%- include('../../components/ui/field', { id: 'frmDepartment', label: 'แผนก/สังกัด' }) %>
+                                    <div class="p-field">
+                                        <label for="frmStatus">สถานะ</label>
+                                        <select id="frmStatus">
+                                            <option value="pending">Pending</option>
+                                            <option value="active">Active</option>
+                                            <option value="suspended">Suspended</option>
+                                        </select>
+                                    </div>
+                                    <%- include('../../components/ui/field', { id: 'frmExpiredAt', label: 'วันหมดอายุบัญชี (เว้นว่าง = ไม่จำกัดเวลา)', type: 'date' }) %>
                                 </div>
-                                <%- include('../../components/ui/field', { id: 'frmExpiredAt', label: 'วันหมดอายุบัญชี (เว้นว่าง = ไม่จำกัดเวลา)', type: 'date' }) %>
-                            </div>
-                        </article>
-                    </form>
+                            </article>
+                        </form>
+                    </div>
                 </section>
 
 <%- include('../../components/admin-shell/shell-close') %>
