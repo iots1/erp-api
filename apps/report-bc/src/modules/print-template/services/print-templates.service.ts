@@ -39,12 +39,12 @@ const STORAGE_KEY_PREFIX = 'reports/print-templates';
 const RENDER_STORAGE_KEY_PREFIX = 'reports/print-template-renders';
 
 /**
- * Owns print-template CRUD. `html_content` never touches Postgres: create/
- * update upload it to the storage BC (MinIO/S3) and persist only the
- * resulting `html_bucket`/`html_path`; `findById` fetches it back from
- * storage for the single-record read the admin edit form needs. List/
- * paginated reads go through the base class untouched and never carry
- * `html_content`.
+ * Owns print-template CRUD. `html_content`/`js_content` never touch
+ * Postgres: create/update upload them to the storage BC (MinIO/S3) and
+ * persist only the resulting `*_bucket`/`*_path`; `findById` fetches both
+ * back from storage for the single-record read the admin edit form needs.
+ * List/paginated reads go through the base class untouched and never carry
+ * either content field.
  */
 @Injectable()
 export class PrintTemplatesService extends BaseServiceOperations<
@@ -74,24 +74,39 @@ export class PrintTemplatesService extends BaseServiceOperations<
     });
   }
 
-  /** SHA-256 of the HTML body — lets create/update skip a no-op re-upload. */
-  private hashHtml(htmlContent: string): string {
-    return createHash('sha256').update(htmlContent, 'utf-8').digest('hex');
+  /** SHA-256 of a content string — lets create/update skip a no-op re-upload. */
+  private hashContent(content: string): string {
+    return createHash('sha256').update(content, 'utf-8').digest('hex');
   }
 
-  /** Uploads HTML content to storage; throws if the storage service is unreachable. */
-  private async uploadHtml(
-    code: string,
-    htmlContent: string,
+  /**
+   * Every object belonging to one template — its HTML, its optional JS
+   * paginator override, and any future per-template asset — lives under
+   * the same `reports/print-templates/<id>/` folder, so an admin (or a
+   * future export/backup job) can find everything for one template in one
+   * place instead of a flat bucket keyed only by a random suffix.
+   */
+  private templateStorageKey(id: string): string {
+    return `${STORAGE_KEY_PREFIX}/${id}`;
+  }
+
+  /** Uploads one template asset (HTML or JS) to storage; throws if the
+   * storage service is unreachable. `label` only flavors the error/log text. */
+  private async uploadTemplateAsset(
+    id: string,
+    filename: string,
+    mimetype: string,
+    content: string,
+    label: 'HTML' | 'JavaScript',
   ): Promise<{ bucket: string; path: string }> {
     const bucket = this.configService.get<string>(
       'STORAGE_S3_BUCKET',
       'erp-storage',
     );
     const file: IPrintTemplateFilePayload = {
-      originalname: `${code}.html`,
-      mimetype: 'text/html',
-      buffer: Buffer.from(htmlContent, 'utf-8'),
+      originalname: filename,
+      mimetype,
+      buffer: Buffer.from(content, 'utf-8'),
     };
 
     const result = await this.microserviceClient.sendWithContext<
@@ -101,13 +116,13 @@ export class PrintTemplatesService extends BaseServiceOperations<
       this.logger,
       this.storageClient,
       { cmd: AppMicroservice.Storage.cmd.UploadWithMeta },
-      { bucket, key: STORAGE_KEY_PREFIX, file },
+      { bucket, key: this.templateStorageKey(id), file },
       null,
     );
 
     if (!result) {
       throw new ServiceUnavailableException(
-        'Failed to store the template HTML — the storage service is unavailable.',
+        `Failed to store the template ${label} — the storage service is unavailable.`,
       );
     }
 
@@ -115,7 +130,7 @@ export class PrintTemplatesService extends BaseServiceOperations<
   }
 
   /** Best-effort removal of a stale object after an update replaces it. Never throws. */
-  private removeHtml(bucket: string, key: string): void {
+  private removeStorageObject(bucket: string, key: string): void {
     void this.microserviceClient
       .sendWithContext<{ message: string }, { bucket: string; key: string }>(
         this.logger,
@@ -126,15 +141,20 @@ export class PrintTemplatesService extends BaseServiceOperations<
       )
       .catch((error: unknown) => {
         this.logger.error(
-          'Failed to remove superseded print template HTML object',
+          'Failed to remove superseded print template asset',
           error instanceof Error ? error : undefined,
           { bucket, key },
         );
       });
   }
 
-  /** Fetches the HTML body back from storage via a short-lived signed URL. */
-  private async fetchHtml(bucket: string, key: string): Promise<string> {
+  /** Fetches one template asset (HTML or JS) back from storage via a
+   * short-lived signed URL. `label` only flavors the error/log text. */
+  private async fetchTemplateAsset(
+    bucket: string,
+    key: string,
+    label: 'HTML' | 'JavaScript',
+  ): Promise<string> {
     const urls = await this.microserviceClient.sendWithContext<
       string[],
       { paths: string[] }
@@ -148,7 +168,7 @@ export class PrintTemplatesService extends BaseServiceOperations<
     const url = urls?.[0];
     if (!url) {
       throw new ServiceUnavailableException(
-        'Failed to load the template HTML — the storage service is unavailable.',
+        `Failed to load the template ${label} — the storage service is unavailable.`,
       );
     }
 
@@ -190,12 +210,12 @@ export class PrintTemplatesService extends BaseServiceOperations<
         ? String(lastError.cause)
         : undefined;
     this.logger.error(
-      'Failed to fetch print template HTML from storage',
+      `Failed to fetch print template ${label} from storage`,
       lastError instanceof Error ? lastError : undefined,
       { bucket, key, attempts: maxAttempts, cause },
     );
     throw new ServiceUnavailableException(
-      'Failed to load the template HTML — the storage service is unavailable.',
+      `Failed to load the template ${label} — the storage service is unavailable.`,
     );
   }
 
@@ -203,15 +223,39 @@ export class PrintTemplatesService extends BaseServiceOperations<
     dto: CreatePrintTemplateDTO,
     currentUser?: IUserSession | string,
   ): Promise<PrintTemplate> {
-    const { html_content, ...rest } = dto;
-    const uploaded = await this.uploadHtml(rest.code, html_content);
+    const { html_content, js_content, ...rest } = dto;
+    // Generated up front (rather than left to Postgres's column default) so
+    // both storage uploads below can key their object path off the same id
+    // the row will be saved with — see templateStorageKey().
+    const id = randomUUID();
+
+    const uploadedHtml = await this.uploadTemplateAsset(
+      id,
+      `${rest.code}.html`,
+      'text/html',
+      html_content,
+      'HTML',
+    );
+    const uploadedJs = js_content
+      ? await this.uploadTemplateAsset(
+          id,
+          `${rest.code}.js`,
+          'text/javascript',
+          js_content,
+          'JavaScript',
+        )
+      : null;
 
     return this.executeDbOperation(() => {
       const entity = this.typeOrmRepository.create({
+        id,
         ...rest,
-        html_bucket: uploaded.bucket,
-        html_path: uploaded.path,
-        html_hash: this.hashHtml(html_content),
+        html_bucket: uploadedHtml.bucket,
+        html_path: uploadedHtml.path,
+        html_hash: this.hashContent(html_content),
+        js_bucket: uploadedJs?.bucket ?? null,
+        js_path: uploadedJs?.path ?? null,
+        js_hash: uploadedJs ? this.hashContent(js_content as string) : null,
       } as DeepPartial<PrintTemplate>);
 
       if (currentUser !== undefined) {
@@ -230,30 +274,33 @@ export class PrintTemplatesService extends BaseServiceOperations<
     dto: UpdatePrintTemplateDTO,
     currentUser?: IUserSession | string,
   ): Promise<PrintTemplate> {
-    const { html_content, ...rest } = dto;
+    const { html_content, js_content, ...rest } = dto;
 
     return this.executeDbOperation(async () => {
       // `super.findById` — the raw lookup, not this class's override — so a
       // plain field update never pays for an unneeded storage round-trip to
-      // hydrate `html_content`.
+      // hydrate `html_content`/`js_content`.
       const existing = await super.findById(id);
 
       let html_bucket = existing.html_bucket;
       let html_path = existing.html_path;
       let html_hash = existing.html_hash;
-      let superseded: { bucket: string; path: string } | null = null;
+      let supersededHtml: { bucket: string; path: string } | null = null;
 
       // `existing.html_hash` is null for rows written before this column
       // existed — always re-upload in that case, since there's nothing to
       // compare against yet (it self-heals: the row gets a hash here).
       if (html_content !== undefined) {
-        const newHash = this.hashHtml(html_content);
+        const newHash = this.hashContent(html_content);
         if (newHash !== existing.html_hash) {
-          const uploaded = await this.uploadHtml(
-            rest.code ?? existing.code,
+          const uploaded = await this.uploadTemplateAsset(
+            id,
+            `${rest.code ?? existing.code}.html`,
+            'text/html',
             html_content,
+            'HTML',
           );
-          superseded = {
+          supersededHtml = {
             bucket: existing.html_bucket,
             path: existing.html_path,
           };
@@ -263,12 +310,58 @@ export class PrintTemplatesService extends BaseServiceOperations<
         }
       }
 
+      let js_bucket = existing.js_bucket;
+      let js_path = existing.js_path;
+      let js_hash = existing.js_hash;
+      let supersededJs: { bucket: string; path: string } | null = null;
+
+      // `js_content === null` (an explicit clear, distinct from `undefined` =
+      // "unchanged") drops the override back to the shared paginator; a
+      // non-null string re-uploads only when its hash actually changed, same
+      // as html_content above.
+      if (js_content !== undefined) {
+        if (js_content === null) {
+          if (existing.js_bucket && existing.js_path) {
+            supersededJs = {
+              bucket: existing.js_bucket,
+              path: existing.js_path,
+            };
+          }
+          js_bucket = null;
+          js_path = null;
+          js_hash = null;
+        } else {
+          const newHash = this.hashContent(js_content);
+          if (newHash !== existing.js_hash) {
+            const uploaded = await this.uploadTemplateAsset(
+              id,
+              `${rest.code ?? existing.code}.js`,
+              'text/javascript',
+              js_content,
+              'JavaScript',
+            );
+            if (existing.js_bucket && existing.js_path) {
+              supersededJs = {
+                bucket: existing.js_bucket,
+                path: existing.js_path,
+              };
+            }
+            js_bucket = uploaded.bucket;
+            js_path = uploaded.path;
+            js_hash = newHash;
+          }
+        }
+      }
+
       const preloadData: Record<string, unknown> = {
         id,
         ...rest,
         html_bucket,
         html_path,
         html_hash,
+        js_bucket,
+        js_path,
+        js_hash,
       };
       if (currentUser !== undefined) {
         preloadData.updated_by =
@@ -283,8 +376,11 @@ export class PrintTemplatesService extends BaseServiceOperations<
       }
       const saved = await this.typeOrmRepository.save(entityToUpdate);
 
-      if (superseded) {
-        this.removeHtml(superseded.bucket, superseded.path);
+      if (supersededHtml) {
+        this.removeStorageObject(supersededHtml.bucket, supersededHtml.path);
+      }
+      if (supersededJs) {
+        this.removeStorageObject(supersededJs.bucket, supersededJs.path);
       }
 
       return saved;
@@ -292,19 +388,28 @@ export class PrintTemplatesService extends BaseServiceOperations<
   }
 
   /**
-   * Overrides the base lookup to hydrate `html_content` from storage — the
-   * only read path that needs it (single-record `GET /:id`, used by the
-   * admin edit form to populate its editor).
+   * Overrides the base lookup to hydrate `html_content`/`js_content` from
+   * storage — the only read path that needs them (single-record `GET /:id`,
+   * used by the admin edit form to populate its editors).
    */
   async findById(
     id: number | string,
     relations: string[] = [],
   ): Promise<PrintTemplate> {
     const entity = await super.findById(id, relations);
-    entity.html_content = await this.fetchHtml(
+    entity.html_content = await this.fetchTemplateAsset(
       entity.html_bucket,
       entity.html_path,
+      'HTML',
     );
+    entity.js_content =
+      entity.js_bucket && entity.js_path
+        ? await this.fetchTemplateAsset(
+            entity.js_bucket,
+            entity.js_path,
+            'JavaScript',
+          )
+        : null;
     return entity;
   }
 
@@ -315,7 +420,9 @@ export class PrintTemplatesService extends BaseServiceOperations<
    * instead of a browser-only approximation. `'banded'` HTML still carries
    * its raw `<template data-band>` blocks (the browser can't do band
    * substitution), so it goes through `BandedRenderService` first, exactly
-   * like a real `render()` call — see `render()` below.
+   * like a real `render()` call — see `render()` below. `jsContent` is the
+   * admin's not-yet-saved paginator override, so a preview mid-edit matches
+   * what saving would actually render.
    */
   async previewRender(
     html: string,
@@ -323,6 +430,7 @@ export class PrintTemplatesService extends BaseServiceOperations<
     orientation?: string,
     templateEngine?: string,
     params?: PrintTemplateRenderParams,
+    jsContent?: string,
   ): Promise<Buffer> {
     const dims = this.resolvePaperDimensions(
       paperSize ?? 'A4',
@@ -330,7 +438,7 @@ export class PrintTemplatesService extends BaseServiceOperations<
     );
     const isBanded = templateEngine === 'banded';
     const renderHtml = isBanded
-      ? this.bandedRenderService.render(html, params ?? {})
+      ? this.bandedRenderService.render(html, params ?? {}, jsContent)
       : html;
     return this.gotenbergService.convertHtmlToPdf(renderHtml, dims, {
       waitForExpression: isBanded
@@ -346,7 +454,11 @@ export class PrintTemplatesService extends BaseServiceOperations<
    * that parameter's `default_value`, then `''`); `'banded'` templates hand
    * `params` untouched to `BandedRenderService`, which lets the client-side
    * paginator do its own (dotted-path, array-aware) substitution — see
-   * reviews/print-template-pagination-2026-07-29.md.
+   * reviews/print-template-pagination-2026-07-29.md. If the template has its
+   * own `js_content` (a per-template paginator override — see
+   * `PrintTemplate.js_bucket`), that runs instead of the shared
+   * `assets/paginator.inline.js` for documents whose pagination rules
+   * genuinely differ from the default.
    */
   async render(
     id: string,
@@ -355,7 +467,11 @@ export class PrintTemplatesService extends BaseServiceOperations<
     const template = await this.findById(id);
     const isBanded = template.template_engine === 'banded';
     const html = isBanded
-      ? this.bandedRenderService.render(template.html_content ?? '', params)
+      ? this.bandedRenderService.render(
+          template.html_content ?? '',
+          params,
+          template.js_content,
+        )
       : this.substituteParameters(
           template.html_content ?? '',
           template.parameters,

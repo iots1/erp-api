@@ -212,10 +212,26 @@
   // item table on the summary page, not a collapsed/hidden one, so there's
   // no special-casing needed beyond giving summary its own page when it
   // doesn't fit alongside the last page's rows.
+  //
+  // `free` cannot be `box.clientHeight - box.scrollHeight`: as the header
+  // comment on `overflows()` explains, scrollHeight clamps to clientHeight
+  // whenever content is still shorter than the box (it never reports the
+  // shorter real content height) — so right after PASS 1 stops just before
+  // an overflow, that subtraction is always ~0 and the summary would
+  // *never* be judged to fit, no matter how much visible room is left.
+  // Measure the real used height the same way `fillerWouldOverflow` does
+  // (via getBoundingClientRect, which is never clamped) instead.
+  function usedBoxHeight(page) {
+    var lastRow = page.tbody.lastElementChild;
+    if (!lastRow) return 0;
+    return (
+      lastRow.getBoundingClientRect().bottom - page.box.getBoundingClientRect().top
+    );
+  }
   if (bands['summary']) {
     var last = pages[pages.length - 1];
     last.sum.innerHTML = renderBand(bands['summary'], last.scope);
-    var free = last.box.clientHeight - last.box.scrollHeight;
+    var free = last.box.clientHeight - usedBoxHeight(last);
     if (last.sum.offsetHeight > free) {
       last.sum.innerHTML = '';
       var summaryPage = newPage();

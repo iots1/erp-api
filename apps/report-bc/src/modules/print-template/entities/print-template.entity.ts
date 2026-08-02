@@ -45,13 +45,16 @@ export interface IPrintTemplateLayoutConfig {
 
 /**
  * Admin-managed HTML templates. The HTML body itself lives in MinIO/S3 (see
- * `PrintTemplatesService.uploadHtml`), not Postgres — only the object's
+ * `PrintTemplatesService.uploadTemplateAsset`), not Postgres — only the object's
  * `html_bucket`/`html_path` are persisted here, keeping this table free of
  * large text blobs. `html_content` mirrors the entity property TypeORM
  * would generate for a real column, but carries no `@Column()` — it is
  * populated only by `PrintTemplatesService.findById()`, which fetches the
  * object's content from storage on read; TypeORM ignores it entirely for
- * both queries and writes.
+ * both queries and writes. Both objects (and any future per-template asset)
+ * live under the same `reports/print-templates/<id>/` storage folder — see
+ * `PrintTemplatesService.templateStorageKey()`. `js_bucket`/`js_path` follow
+ * the identical pattern for an optional per-template paginator override.
  */
 @Entity({ name: 'print_templates', database: ErpDatabases.REPORT })
 @Unique('uq_print_templates_code', ['code'])
@@ -116,6 +119,41 @@ export class PrintTemplate extends BaseEntity {
       'SHA-256 ของ html_content ล่าสุดที่อัปโหลด (null = แถวเก่าก่อนมีคอลัมน์นี้ ยังไม่เคยคำนวณ) ใช้ข้ามการอัปโหลดซ้ำเมื่อเนื้อหาไม่เปลี่ยน / SHA-256 of the last-uploaded html_content (null = pre-existing row, not yet computed), used to skip re-uploading when content is unchanged',
   })
   html_hash: string | null;
+
+  /**
+   * Optional per-template paginator override for the `'banded'` engine —
+   * when set, `BandedRenderService` injects this instead of the shared
+   * `assets/paginator.inline.js`, so a document whose pagination rules
+   * differ (different page-break conditions, extra bands, etc.) isn't
+   * forced onto the one generic script every other template shares. Null
+   * for every template that has no override, which is the common case.
+   */
+  @Column({
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+    comment:
+      "บัคเก็ตที่เก็บไฟล์ JS ของเทมเพลตนี้โดยเฉพาะ (null = ไม่มี ใช้ paginator กลาง) / Object storage bucket holding this template's own paginator JS (null = none, falls back to the shared paginator)",
+  })
+  js_bucket: string | null;
+
+  @Column({
+    type: 'varchar',
+    length: 500,
+    nullable: true,
+    comment:
+      'พาธของไฟล์ JS ใน object storage / Object storage key/path of the JS file',
+  })
+  js_path: string | null;
+
+  @Column({
+    type: 'varchar',
+    length: 64,
+    nullable: true,
+    comment:
+      'SHA-256 ของ js_content ล่าสุดที่อัปโหลด ใช้ข้ามการอัปโหลดซ้ำเมื่อเนื้อหาไม่เปลี่ยน / SHA-256 of the last-uploaded js_content, used to skip re-uploading when content is unchanged',
+  })
+  js_hash: string | null;
 
   @Column({
     type: 'boolean',
@@ -207,4 +245,12 @@ export class PrintTemplate extends BaseEntity {
    * simply omits the key from the serialized JSON.
    */
   html_content?: string;
+
+  /**
+   * Not a DB column — mirrors `html_content`, populated from `js_bucket`/
+   * `js_path` when set. `null` (not `undefined`) once hydrated by
+   * `findById()` for a template with no override, so the admin form can
+   * tell "no custom JS" apart from "not loaded yet".
+   */
+  js_content?: string | null;
 }

@@ -474,24 +474,18 @@
 
 /* ── HTML editor + live preview split (print-templates form) ────── */
 
+/* Up to 3 columns — HTML | Paginator JavaScript (banded engine only) |
+   Preview. Which panes exist depends on two independent toggles (the
+   split/code/preview view mode AND the simple/banded engine), so pane/
+   resizer visibility and %-basis are computed entirely in JS
+   (layoutEditorPanes() in print-templates.service.js) rather than here —
+   a plain CSS mode class can't express "visible in code mode, but only
+   when banded". #templateEditorPane/#templateJsPane below are just the
+   pre-JS fallback so the row doesn't flash unstyled on first paint. */
 .um-editor-split {
   display: flex;
   align-items: stretch;
   margin-top: 0.75rem;
-}
-.um-editor-split.um-view-mode-code #templatePreviewPane,
-.um-editor-split.um-view-mode-code .um-editor-resizer,
-.um-editor-split.um-view-mode-preview #templateEditorPane,
-.um-editor-split.um-view-mode-preview .um-editor-resizer {
-  display: none;
-}
-/* Single-pane modes: the one remaining pane must grow to fill the row —
-   without this it keeps whatever %-basis the split was last dragged to
-   (JS also clears the inline basis on mode switch; this is the CSS-side
-   half of that fix, and covers the initial 50% default too). */
-.um-editor-split.um-view-mode-code #templateEditorPane,
-.um-editor-split.um-view-mode-preview #templatePreviewPane {
-  flex: 1 1 100%;
 }
 .um-editor-pane {
   display: flex;
@@ -500,12 +494,11 @@
   min-width: 0;
   min-height: 0;
 }
-/* Draggable split: the editor pane holds an explicit %-basis that
-   #templateEditorResizer's drag handler adjusts inline; the preview pane
-   always grows to fill whatever's left. Falls back to an even 50/50 split
-   until JS sets a basis. */
 #templateEditorPane {
-  flex: 0 0 50%;
+  flex: 0 0 40%;
+}
+#templateJsPane {
+  flex: 0 0 30%;
 }
 #templatePreviewPane {
   flex: 1 1 0%;

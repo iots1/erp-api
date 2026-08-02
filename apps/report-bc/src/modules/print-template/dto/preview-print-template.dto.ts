@@ -66,6 +66,15 @@ export class PreviewPrintTemplateDTO {
   template_engine?: string;
 
   @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({
+    description:
+      "สคริปต์ paginator เฉพาะของเทมเพลตนี้ (มีผลเฉพาะ template_engine='banded') ที่ยังไม่ได้บันทึก — " +
+      'ให้ server ใช้แทน paginator กลางตอน preview เพื่อให้ตรงกับที่จะ render จริง ไม่ระบุ = ใช้ paginator กลาง',
+  })
+  js_content?: string;
+
+  @IsOptional()
   @IsObject()
   @ApiPropertyOptional({
     description:

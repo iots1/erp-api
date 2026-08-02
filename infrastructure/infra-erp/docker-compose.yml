@@ -86,6 +86,18 @@ services:
   # HTML → PDF renderer (headless Chromium) used by report-bc to turn its
   # server-rendered EJS templates into PDFs before handing them to the
   # `storage` BC for persistence. See GOTENBERG_URL in the root .env.
+  #
+  # Print templates (and, per template, their own paginator script — see
+  # BandedRenderService) run as real JS inside this Chromium, so it's treated
+  # as executing untrusted admin-authored code, not just a static renderer:
+  #  - port bound to 127.0.0.1 only — report-bc (and every other caller) runs
+  #    on the same host and reaches it via localhost, so nothing legitimate
+  #    needs this reachable from the LAN/network.
+  #  - --chromium-deny-list blocks the page's own fetch()/XHR/img/script
+  #    requests from reaching loopback, RFC1918 private ranges, and
+  #    169.254.0.0/16 (covers cloud metadata endpoints) — closes off SSRF
+  #    from injected template JS into other containers on this compose
+  #    network (minio, rabbitmq mgmt UI, etc).
   erp-gotenberg:
     image: gotenberg/gotenberg:8
     restart: always
@@ -93,8 +105,9 @@ services:
       - "gotenberg"
       - "--chromium-disable-javascript=false"
       - "--api-timeout=30s"
+      - "--chromium-deny-list=^https?://(127\\.|10\\.|172\\.(1[6-9]|2[0-9]|3[0-1])\\.|192\\.168\\.|169\\.254\\.).*"
     ports:
-      - "${GOTENBERG_PORT:-3009}:3000"
+      - "127.0.0.1:${GOTENBERG_PORT:-3009}:3000"
     deploy:
       resources:
         limits:

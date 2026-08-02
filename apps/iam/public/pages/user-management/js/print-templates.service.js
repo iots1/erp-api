@@ -5,6 +5,7 @@
 import { showConfirmDialog } from '../../../js/confirm-dialog.service.js';
 import { hasPermission } from '../../../js/login.service.js';
 import { createHtmlEditor } from './codemirror-html-editor.js';
+import { createJavascriptEditor } from './codemirror-javascript-editor.js';
 import { createJsonEditor } from './codemirror-json-editor.js';
 import { createPaginatedList } from './paginated-list.js';
 import { reportDelete, reportGet, reportPost, reportPostBlob, reportPut } from './report-api.js';
@@ -108,6 +109,7 @@ function renderPrintTemplatesTable() {
 
 let htmlEditor = null;
 let mockDataEditor = null;
+let jsEditor = null;
 let currentParameters = []; // [{ key, label_th, label_en, default_value, _test_value }] — _test_value is UI-only, stripped before save
 let isFullscreen = false;
 let isMockDataFullscreen = false;
@@ -178,6 +180,7 @@ async function updatePreview() {
       orientation: document.getElementById('frmTemplateOrientation')?.value || 'portrait',
       template_engine: 'banded',
       params: parsed.value,
+      js_content: jsEditor?.getValue().trim() || undefined,
     };
   } else {
     requestBody = {
@@ -286,59 +289,97 @@ export function updatePrintTemplateTestValue(index, value) {
   updatePreview();
 }
 
-// ── View mode (split / code / preview) ──────────────────────────────────
+// ── View mode (split / code / preview) — up to 3 columns: HTML | Paginator
+// JavaScript (banded engine only) | Preview. Pane/resizer visibility and
+// sizing both live here rather than in CSS, because which panes exist
+// depends on two independent toggles at once — the view-mode buttons below
+// AND the engine select (see updateTemplateEngineSectionVisibility) — and a
+// plain CSS mode class can't express "visible in code mode, but only when
+// banded". ──────────────────────────────────────────────────────────────
+
+const PANE_MIN_PCT = 20;
+const PANE_MAX_PCT = 80;
+let currentViewMode = 'split';
+let lastHtmlPct = null;
+let lastJsPct = null;
 
 export function setPrintTemplateViewMode(mode) {
-  const split = document.getElementById('templateEditorSplit');
-  const editorPane = document.getElementById('templateEditorPane');
-  if (!split) return;
-  split.classList.remove('um-view-mode-code', 'um-view-mode-preview');
-  if (mode === 'code') split.classList.add('um-view-mode-code');
-  if (mode === 'preview') split.classList.add('um-view-mode-preview');
-
-  // code/preview are single-pane (CSS grows that pane to 100% — see
-  // .um-view-mode-code/.um-view-mode-preview in layout.css), so any %-basis
-  // left over from a drag would otherwise stick around and fight it once
-  // the admin switches back; restore the last dragged ratio for split mode,
-  // and go back to CSS's 50/50 default when neither has run yet.
-  if (editorPane) {
-    editorPane.style.flexBasis = mode === 'split' && lastSplitPct != null ? `${lastSplitPct}%` : '';
-  }
-
+  currentViewMode = mode;
   document.querySelectorAll('.um-view-toggle-btn').forEach((btn) => {
     btn.classList.toggle('active', btn.dataset.viewMode === mode);
   });
+  layoutEditorPanes();
 }
 
-// ── Resizable split — drag templateEditorResizer to reallocate width ────────
+/** Recomputes which of the (up to) 3 panes are visible for the current view
+ * mode + engine, and assigns flex so every visible pane but the last one
+ * keeps an explicit %-basis (last-dragged, or a sane default) while the
+ * last one grows to fill whatever's left — same shape as the original
+ * 2-column split, generalized to however many panes are visible right now. */
+function layoutEditorPanes() {
+  const htmlPane = document.getElementById('templateEditorPane');
+  const jsPane = document.getElementById('templateJsPane');
+  const previewPane = document.getElementById('templatePreviewPane');
+  const htmlJsResizer = document.getElementById('templateEditorResizer');
+  const jsPreviewResizer = document.getElementById('templateJsResizer');
+  if (!htmlPane || !jsPane || !previewPane) return;
 
-const SPLIT_MIN_PCT = 20;
-const SPLIT_MAX_PCT = 80;
-let lastSplitPct = null;
+  const isBanded = getTemplateEngine() === 'banded';
+  const showHtml = currentViewMode !== 'preview';
+  const showJs = isBanded && currentViewMode !== 'preview';
+  const showPreview = currentViewMode !== 'code';
 
-function initSplitResizer() {
-  const resizer = document.getElementById('templateEditorResizer');
+  htmlPane.classList.toggle('hidden', !showHtml);
+  jsPane.classList.toggle('hidden', !showJs);
+  previewPane.classList.toggle('hidden', !showPreview);
+  htmlJsResizer?.classList.toggle('hidden', !(showHtml && (showJs || showPreview)));
+  jsPreviewResizer?.classList.toggle('hidden', !(showJs && showPreview));
+
+  const visiblePanes = [
+    showHtml && { el: htmlPane, pct: lastHtmlPct ?? 40 },
+    showJs && { el: jsPane, pct: lastJsPct ?? 30 },
+    showPreview && { el: previewPane, pct: null },
+  ].filter(Boolean);
+
+  visiblePanes.forEach((pane, i) => {
+    const isLast = i === visiblePanes.length - 1;
+    pane.el.style.flex = isLast ? '1 1 0%' : `0 0 ${pane.pct}%`;
+  });
+}
+
+// ── Resizable split — drag a resizer to reallocate width between the pane
+// immediately to its left and whatever's left of the row. Both resizers
+// share the same drag mechanics via initPaneResizer(). ─────────────────
+
+/** @param {{ resizerId: string, paneId: string, onResize: (pct: number) => void }} config */
+function initPaneResizer({ resizerId, paneId, onResize }) {
+  const resizer = document.getElementById(resizerId);
   const split = document.getElementById('templateEditorSplit');
-  const editorPane = document.getElementById('templateEditorPane');
-  if (!resizer || !split || !editorPane) return;
+  const pane = document.getElementById(paneId);
+  if (!resizer || !split || !pane) return;
 
   let activePointerId = null;
   let rafId = null;
   let pendingClientX = null;
 
-  function setSplitPct(pct) {
-    const clamped = Math.min(SPLIT_MAX_PCT, Math.max(SPLIT_MIN_PCT, pct));
-    lastSplitPct = clamped;
-    editorPane.style.flexBasis = `${clamped}%`;
+  function setPanePct(pct) {
+    const clamped = Math.min(PANE_MAX_PCT, Math.max(PANE_MIN_PCT, pct));
+    onResize(clamped);
+    pane.style.flex = `0 0 ${clamped}%`;
   }
 
   function applyClientX(clientX) {
-    const rect = split.getBoundingClientRect();
-    setSplitPct(((clientX - rect.left) / rect.width) * 100);
+    // Measured from this pane's own left edge (not the split container's) —
+    // the boundary a resizer controls is always immediately to its own
+    // pane's right, so this math is correct regardless of how many panes
+    // come before it.
+    const paneRect = pane.getBoundingClientRect();
+    const splitRect = split.getBoundingClientRect();
+    setPanePct(((clientX - paneRect.left) / splitRect.width) * 100);
   }
 
   // rAF-throttled: CodeMirror re-lays-out its whole viewport on every resize
-  // of its mount, so applying the raw flex-basis on every single pointermove
+  // of its mount, so applying the raw flex on every single pointermove
   // (which can fire far faster than the browser can repaint/relayout) is
   // what made the drag feel laggy and stop tracking the cursor — collapsing
   // every move between frames down to the latest position keeps it in sync
@@ -407,12 +448,30 @@ function initSplitResizer() {
   resizer.addEventListener('pointerup', endDrag);
   resizer.addEventListener('pointercancel', endDrag);
   resizer.addEventListener('keydown', (event) => {
-    const rect = split.getBoundingClientRect();
-    const currentPct = (editorPane.getBoundingClientRect().width / rect.width) * 100;
-    if (event.key === 'ArrowLeft') setSplitPct(currentPct - 2);
-    else if (event.key === 'ArrowRight') setSplitPct(currentPct + 2);
+    const paneRect = pane.getBoundingClientRect();
+    const splitRect = split.getBoundingClientRect();
+    const currentPct = (paneRect.width / splitRect.width) * 100;
+    if (event.key === 'ArrowLeft') setPanePct(currentPct - 2);
+    else if (event.key === 'ArrowRight') setPanePct(currentPct + 2);
     else return;
     event.preventDefault();
+  });
+}
+
+function initSplitResizers() {
+  initPaneResizer({
+    resizerId: 'templateEditorResizer',
+    paneId: 'templateEditorPane',
+    onResize: (pct) => {
+      lastHtmlPct = pct;
+    },
+  });
+  initPaneResizer({
+    resizerId: 'templateJsResizer',
+    paneId: 'templateJsPane',
+    onResize: (pct) => {
+      lastJsPct = pct;
+    },
   });
 }
 
@@ -541,6 +600,11 @@ function buildPrintTemplatePayload() {
     paper_size: document.getElementById('frmTemplatePaperSize').value,
     orientation: document.getElementById('frmTemplateOrientation').value,
     template_engine: getTemplateEngine(),
+    // Only meaningful for 'banded' (see updateTemplateEngineSectionVisibility) —
+    // 'simple' always sends null, clearing any leftover override from before
+    // the admin switched engines. Empty editor content also means "use the
+    // shared paginator", same as never having set one.
+    js_content: getTemplateEngine() === 'banded' ? jsEditor.getValue().trim() || null : null,
     mock_data: parseMockDataOrThrow(),
     parameters: currentParameters
       .filter((p) => p.key.trim() !== '')
@@ -555,11 +619,14 @@ function buildPrintTemplatePayload() {
 
 /** 'banded' has no use for the flat parameters[] editor (its placeholders
  * are dotted paths into a nested object, not standalone {{key}}s) — swap
- * that section for the Mock Data JSON textarea instead. */
+ * that section for the Mock Data JSON textarea instead, and reveal the
+ * Paginator JavaScript column in the HTML editor split (see
+ * layoutEditorPanes()). */
 function updateTemplateEngineSectionVisibility() {
   const isBanded = getTemplateEngine() === 'banded';
   document.getElementById('templateParametersSection')?.classList.toggle('hidden', isBanded);
   document.getElementById('templateMockDataSection')?.classList.toggle('hidden', !isBanded);
+  layoutEditorPanes();
 }
 
 export async function initPrintTemplateForm() {
@@ -583,6 +650,11 @@ export async function initPrintTemplateForm() {
     initialDoc: '{}',
     onChange: debounce(updatePreview, 900),
   });
+  jsEditor = createJavascriptEditor({
+    mountEl: document.getElementById('templateJsEditorMount'),
+    initialDoc: '',
+    onChange: debounce(updatePreview, 900),
+  });
 
   document.getElementById('frmTemplatePaperSize')?.addEventListener('change', updatePreview);
   document.getElementById('frmTemplateOrientation')?.addEventListener('change', updatePreview);
@@ -590,7 +662,7 @@ export async function initPrintTemplateForm() {
     updateTemplateEngineSectionVisibility();
     updatePreview();
   });
-  initSplitResizer();
+  initSplitResizers();
 
   if (templateId) {
     try {
@@ -618,6 +690,7 @@ export async function initPrintTemplateForm() {
         _test_value: p.default_value ?? '',
       }));
       htmlEditor.setValue(template.html_content ?? '');
+      jsEditor.setValue(template.js_content ?? '');
     } catch (error) {
       showApiError(error, 'โหลดข้อมูลเทมเพลตไม่สำเร็จ');
     }

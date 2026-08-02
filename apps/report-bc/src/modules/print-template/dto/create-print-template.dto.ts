@@ -69,6 +69,17 @@ export class CreatePrintTemplateDTO {
   html_content: string;
 
   @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({
+    description:
+      "สคริปต์ paginator เฉพาะของเทมเพลตนี้ (มีผลเฉพาะ template_engine='banded') — ถ้าระบุ จะใช้แทน " +
+      'assets/paginator.inline.js กลาง สำหรับเอกสารที่ต้องการกฎการตัดขึ้นหน้าใหม่ไม่เหมือนเอกสารอื่น ' +
+      'เก็บไว้ใน object storage เท่านั้นเช่นเดียวกับ html_content — null/ไม่ระบุ = ใช้ paginator กลาง',
+    example: null,
+  })
+  js_content?: string | null;
+
+  @IsOptional()
   @IsBoolean()
   @ApiPropertyOptional({ description: 'สถานะใช้งาน', example: true })
   is_active: boolean;

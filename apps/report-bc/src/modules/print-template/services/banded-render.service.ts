@@ -41,7 +41,19 @@ export class BandedRenderService {
   static readonly WAIT_FOR_EXPRESSION =
     "window.__PAGINATION_DONE === true && document.fonts.status === 'loaded'";
 
-  render(htmlContent: string, params: PrintTemplateRenderParams): string {
+  /**
+   * `customPaginatorScript` is one template's own `js_content` (see
+   * `PrintTemplate.js_bucket`) — when present (non-empty), it runs instead
+   * of the shared `paginator.inline.js`, for a document whose page-break
+   * rules genuinely differ from the default (extra bands, different
+   * continuation logic, etc.). Falls back to the shared script whenever a
+   * template has no override, which is every template today.
+   */
+  render(
+    htmlContent: string,
+    params: PrintTemplateRenderParams,
+    customPaginatorScript?: string | null,
+  ): string {
     // A `</script>` inside any string value of `params` would otherwise
     // close this tag early and let the rest of the JSON parse as raw HTML.
     const safeJson = JSON.stringify(params ?? {}).replace(
@@ -49,7 +61,11 @@ export class BandedRenderService {
       '<\\/script',
     );
     const dataScript = `<script>window.__RP_DATA__ = ${safeJson};</script>`;
-    const paginatorScript = `<script>${this.paginatorScript}</script>`;
+    const paginatorSource =
+      customPaginatorScript && customPaginatorScript.trim()
+        ? customPaginatorScript
+        : this.paginatorScript;
+    const paginatorScript = `<script>${paginatorSource}</script>`;
     const injected = `${dataScript}\n${paginatorScript}`;
 
     return htmlContent.includes('</body>')

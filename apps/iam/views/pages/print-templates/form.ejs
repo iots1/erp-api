@@ -58,43 +58,42 @@ const topbarActions = [
                             </div>
                         </article>
 
-                        <article class="um-form-section" id="templateParametersSection">
-                            <div class="um-section-header-row">
-                                <div>
-                                    <h3 class="um-section-title">ตัวแปร (Parameters)</h3>
-                                    <p class="um-muted-note">
-                                        กำหนดตัวแปรที่ใช้ในเนื้อหา HTML ด้วย <code>&lbrace;&lbrace;key&rbrace;&rbrace;</code> —
-                                        ตอนสร้างรายงานจริงจะส่งค่ามาแทนที่ ถ้าไม่ส่งจะใช้ค่าเริ่มต้นแทน
-                                    </p>
+                        <article class="um-form-section">
+                            <div id="templateParametersSection">
+                                <div class="um-section-header-row">
+                                    <div>
+                                        <h3 class="um-section-title">ตัวแปร (Parameters)</h3>
+                                        <p class="um-muted-note">
+                                            ตัวแปรที่ใช้ในเนื้อหา HTML ด้วย <code>&lbrace;&lbrace;key&rbrace;&rbrace;</code> — ไม่ส่งค่ามาจะใช้ค่าเริ่มต้นแทน
+                                        </p>
+                                    </div>
+                                    <button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="addPrintTemplateParameterRow()">
+                                        <i data-lucide="plus" class="um-icon-sm"></i> เพิ่มตัวแปร
+                                    </button>
                                 </div>
-                                <button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="addPrintTemplateParameterRow()">
-                                    <i data-lucide="plus" class="um-icon-sm"></i> เพิ่มตัวแปร
-                                </button>
+                                <div id="templateParametersContainer" class="um-parameters-list"></div>
                             </div>
-                            <div id="templateParametersContainer" class="um-parameters-list"></div>
-                        </article>
 
-                        <article class="um-form-section hidden" id="templateMockDataSection">
-                            <div class="um-section-header-row">
-                                <div>
-                                    <h3 class="um-section-title">Mock Data (JSON)</h3>
-                                    <p class="um-muted-note">
-                                        เอนจิน Banded ต้องการโครงสร้างข้อมูลแบบซ้อน (nested object/array) ตามที่ band template ใช้ —
-                                        กรอกเป็น JSON ก้อนเดียวที่นี่ ใช้เป็น <code>params</code> ทั้ง Live Preview และ "Generate Test PDF"
-                                        (ไม่เกี่ยวกับ <code>params</code> ที่ผู้เรียก render จริงส่งมา)
-                                    </p>
+                            <div class="hidden" id="templateMockDataSection">
+                                <div class="um-section-header-row">
+                                    <div>
+                                        <h3 class="um-section-title">Mock Data (JSON)</h3>
+                                        <p class="um-muted-note">
+                                            ข้อมูลตัวอย่างแบบ nested object/array ตามที่ band template ใช้ — เป็น <code>params</code> ของ Live Preview และ "Generate Test PDF"
+                                        </p>
+                                    </div>
+                                    <div class="um-editor-toolbar">
+                                        <button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="formatPrintTemplateMockData()">
+                                            <i data-lucide="sparkles" class="um-icon-sm"></i> Format
+                                        </button>
+                                        <button type="button" class="p-btn p-btn-ghost p-btn-sm" id="templateMockDataFullscreenBtn" onclick="toggleMockDataFullscreen()">
+                                            <i data-lucide="maximize" class="um-icon-sm"></i> Fullscreen
+                                        </button>
+                                    </div>
                                 </div>
-                                <div class="um-editor-toolbar">
-                                    <button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="formatPrintTemplateMockData()">
-                                        <i data-lucide="sparkles" class="um-icon-sm"></i> Format
-                                    </button>
-                                    <button type="button" class="p-btn p-btn-ghost p-btn-sm" id="templateMockDataFullscreenBtn" onclick="toggleMockDataFullscreen()">
-                                        <i data-lucide="maximize" class="um-icon-sm"></i> Fullscreen
-                                    </button>
-                                </div>
+                                <div id="templateMockDataEditorMount" class="um-mockdata-editor-mount"></div>
+                                <span id="templateMockDataError" class="um-field-error hidden"></span>
                             </div>
-                            <div id="templateMockDataEditorMount" class="um-mockdata-editor-mount"></div>
-                            <span id="templateMockDataError" class="um-field-error hidden"></span>
                         </article>
 
                         <article class="um-form-section" id="templateHtmlSection">
@@ -103,7 +102,7 @@ const topbarActions = [
                                 <div class="um-editor-toolbar">
                                     <div class="um-view-toggle" role="group" aria-label="โหมดการแสดงผล">
                                         <button type="button" class="p-btn p-btn-ghost p-btn-sm um-view-toggle-btn active" data-view-mode="split" onclick="setPrintTemplateViewMode('split')">
-                                            <i data-lucide="columns-2" class="um-icon-sm"></i> Split
+                                            <i data-lucide="columns-3" class="um-icon-sm"></i> Split
                                         </button>
                                         <button type="button" class="p-btn p-btn-ghost p-btn-sm um-view-toggle-btn" data-view-mode="code" onclick="setPrintTemplateViewMode('code')">
                                             <i data-lucide="code" class="um-icon-sm"></i> Code
@@ -121,8 +120,8 @@ const topbarActions = [
                                 </div>
                             </div>
                             <p class="um-muted-note">
-                                แก้ไข HTML ในกล่องด้านซ้าย ผลลัพธ์จะแสดงตัวอย่างจริงจาก Gotenberg ทางด้านขวา (ทดสอบค่าตัวแปรได้ในแถบด้านล่าง)
-                                — เนื้อหานี้จะถูกอัปโหลดไปเก็บที่ object storage เมื่อบันทึก (ไม่ได้เก็บลงฐานข้อมูลโดยตรง) ลากเส้นแบ่งตรงกลางเพื่อปรับขนาดพื้นที่ได้
+                                ผลลัพธ์จริงจาก Gotenberg แสดงทางขวา — ลากเส้นแบ่งเพื่อปรับขนาดพื้นที่ได้ เอนจิน Banded จะมีคอลัมน์ JavaScript แทรกกลางไว้ override
+                                <code>paginator.inline.js</code> กลาง เฉพาะเทมเพลตที่ต้องการกฎการตัดหน้าต่างจากปกติ (ปล่อยว่างไว้เพื่อใช้ตัวกลาง)
                             </p>
                             <div id="templateTestParamsContainer" class="um-test-params-row hidden"></div>
                             <div id="templateEditorSplit" class="um-editor-split">
@@ -130,7 +129,12 @@ const topbarActions = [
                                     <label class="um-editor-pane-label" for="templateHtmlEditorMount">HTML Editor</label>
                                     <div id="templateHtmlEditorMount" class="um-html-editor-mount"></div>
                                 </div>
-                                <div id="templateEditorResizer" class="um-editor-resizer" role="separator" aria-orientation="vertical" aria-label="ปรับขนาดพื้นที่ระหว่าง Editor กับ Preview" tabindex="0"></div>
+                                <div id="templateEditorResizer" class="um-editor-resizer" role="separator" aria-orientation="vertical" aria-label="ปรับขนาดพื้นที่ระหว่าง HTML กับ JavaScript" tabindex="0"></div>
+                                <div class="um-editor-pane hidden" id="templateJsPane">
+                                    <label class="um-editor-pane-label" for="templateJsEditorMount">Paginator JavaScript (ขั้นสูง)</label>
+                                    <div id="templateJsEditorMount" class="um-html-editor-mount"></div>
+                                </div>
+                                <div id="templateJsResizer" class="um-editor-resizer hidden" role="separator" aria-orientation="vertical" aria-label="ปรับขนาดพื้นที่ระหว่าง JavaScript กับ Preview" tabindex="0"></div>
                                 <div class="um-editor-pane" id="templatePreviewPane">
                                     <span class="um-editor-pane-label">
                                         Live Preview
