@@ -331,18 +331,34 @@ textarea {
   margin: 0;
   border: none;
   border-radius: 8px;
-  /* `background-color`, not the `background` shorthand — the shorthand
-     resets every background sub-property to its initial value, including
-     `background-image`, which is how Pico paints a <select>'s dropdown
-     chevron. Using the shorthand here silently erased the arrow on every
-     select in the app. */
-  background-color: var(--slate-50);
   font-size: 14px;
   box-sizing: border-box;
 }
+/* The fill is split off from the shared rule above because inputs and
+   selects need *opposite* treatment of `background-image`:
+
+   - <select>: `background-color`, so Pico's dropdown chevron — which it
+     paints as a background-image — survives. The `background` shorthand
+     resets every sub-property to its initial value, so using it here
+     silently erased the arrow on every select in the app.
+   - <input>/<textarea>: the `background` shorthand, *deliberately*, to wipe
+     background-image. Pico also decorates [type=date]/[type=search]/
+     [type=time] etc. with its own icon that way, and this flat design
+     doesn't use them. On a date input in particular Pico's icon does not
+     replace Chrome's native ::-webkit-calendar-picker-indicator, it renders
+     next to it — two calendars in one field. */
+input:not([type="checkbox"]):not([type="radio"]),
+textarea {
+  background: var(--slate-50);
+}
+select {
+  background-color: var(--slate-50);
+}
 /* height + line-height only make sense for the single-line controls — a
    textarea is multi-line (its height comes from `rows`), so it gets normal
-   top/bottom padding instead of the line-height centering trick. */
+   top/bottom padding instead of the line-height centering trick. Date
+   inputs are included here like any other single-line control, so they line
+   up with the fields above and below them. */
 input:not([type="checkbox"]):not([type="radio"]),
 select {
   height: 28px;
@@ -366,10 +382,10 @@ textarea:focus {
 }
 /* No `display: flex` here — overriding a date input's own display mode
    breaks the browser's internal layout of its shadow-DOM parts (date
-   segments + calendar icon), which duplicates the calendar icon: one real
-   clickable copy inline, and one disconnected non-interactive copy pinned to
-   the far right. `line-height: 28px` from the shared rule above already
-   centers the single-line text, so flex centering isn't needed anyway. */
+   segments + calendar icon). The one icon this field should show is
+   Chrome's native, clickable ::-webkit-calendar-picker-indicator, styled
+   below; Pico's decorative background-image calendar is suppressed by the
+   `background` shorthand further up. */
 input[type="date"] {
   cursor: pointer;
 }
