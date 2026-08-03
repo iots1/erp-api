@@ -10,12 +10,6 @@ const topbarActions = [
 
                 <!-- VIEW: Access key form -->
                 <section id="view-access-key-form" class="um-view active" data-access-key-id="<%= accessKeyId ?? '' %>">
-                    <%- include('../../components/ui/form-header', {
-                        backHref: `/${prefix}/views/access-keys`,
-                        titleId: 'accessKeyFormTitle',
-                        subtitleText: 'กำหนดรายละเอียด Access Key และแนบนโยบายความปลอดภัย',
-                    }) %>
-
                     <form id="accessKeyForm" onsubmit="handleAccessKeyFormSubmit(event)">
                         <article class="um-form-section">
                             <div class="um-form-grid">

@@ -10,12 +10,6 @@ const topbarActions = [
 
                 <!-- VIEW: Print template form -->
                 <section id="view-print-template-form" class="um-view active" data-print-template-id="<%= printTemplateId ?? '' %>">
-                    <%- include('../../components/ui/form-header', {
-                        backHref: `/${prefix}/views/print-templates`,
-                        titleId: 'printTemplateFormTitle',
-                        subtitleText: 'กำหนดรหัสเทมเพลต ขนาดกระดาษ ตัวแปร และเนื้อหา HTML ที่จะส่งให้ Gotenberg แปลงเป็น PDF',
-                    }) %>
-
                     <form id="printTemplateForm" onsubmit="handlePrintTemplateFormSubmit(event)">
                         <!-- Two tabs, not one long scroll: "รายละเอียด" (identity/render
                              config — filled once, rarely revisited) vs. "รายงาน" (the

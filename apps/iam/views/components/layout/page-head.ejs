@@ -23,6 +23,24 @@
             } catch (e) {}
         })();
     </script>
+    <script>
+        (function () {
+            // Full page navigation (each sidebar item is a server route, not a
+            // client-side view switch) resets .um-sidebar-nav's own scroll — the
+            // element that actually scrolls when the list of nav items overflows
+            // the viewport height, not window/body. Persist it across the reload
+            // here; restored synchronously in sidebar.ejs (right after the nav
+            // renders) so it never flashes at scrollTop 0 first.
+            try {
+                document.addEventListener('click', function (e) {
+                    var link = e.target.closest('a.um-nav-item');
+                    if (!link) return;
+                    var nav = document.querySelector('.um-sidebar-nav');
+                    if (nav) sessionStorage.setItem('iam_sidebar_scroll', nav.scrollTop);
+                });
+            } catch (e) {}
+        })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>

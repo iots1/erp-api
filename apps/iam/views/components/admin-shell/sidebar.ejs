@@ -9,7 +9,12 @@
         <span>Admin Console</span>
     </div>
 
-    <nav class="um-sidebar-nav">
+    <!-- Starts invisible so the saved scroll position can be reapplied before
+         this nav is ever painted (page-foot.ejs restores it and clears this
+         inline style — it has to happen there, not here, because #appShell is
+         still `display:none` at this point in the parse and scrollTop can't be
+         set on an element with no layout box). -->
+    <nav class="um-sidebar-nav" style="visibility:hidden">
         <p class="um-nav-group-label">หน้าหลัก</p>
         <a href="/<%= prefix %>/views/dashboard" class="um-nav-item <%= activeView === 'dashboard' ? 'active' : '' %>" data-permission="page:view_dashboard">
             <i data-lucide="layout-dashboard"></i><span>แดชบอร์ด</span>

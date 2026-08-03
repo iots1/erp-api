@@ -293,6 +293,20 @@ body {
   background: var(--bg);
 }
 
+.um-content {
+  background: var(--surface);
+}
+
+.um-table-toolbar {
+  background: var(--surface);
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
 button,
 input,
 select,

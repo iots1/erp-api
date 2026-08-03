@@ -10,12 +10,6 @@ const topbarActions = [
 
                 <!-- VIEW: Role form -->
                 <section id="view-role-form" class="um-view active" data-role-id="<%= roleId ?? '' %>">
-                    <%- include('../../components/ui/form-header', {
-                        backHref: `/${prefix}/views/roles`,
-                        titleId: 'roleFormTitle',
-                        subtitleText: 'กำหนดรายละเอียดบทบาทและแนบนโยบายความปลอดภัย',
-                    }) %>
-
                     <form id="roleForm" onsubmit="handleRoleFormSubmit(event)">
                         <article class="um-form-section">
                             <div class="um-form-grid">

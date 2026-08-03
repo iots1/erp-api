@@ -18,6 +18,31 @@
             } catch (e) {}
         })();
     </script>
+    <!-- Sidebar scroll restore — sidebar.ejs renders .um-sidebar-nav with an
+         inline visibility:hidden, cleared here. Must run *after* the block
+         above un-hides #appShell: until then the whole shell is
+         `display: none`, so the nav has no layout box and assigning scrollTop
+         is silently discarded. Still synchronous and pre-paint (reading
+         scrollTop forces the pending layout), so the nav's first painted frame
+         is already at the saved offset instead of jumping from 0. The save
+         side (on nav-item click) lives in page-head.ejs. -->
+    <script>
+        (function () {
+            var nav = document.querySelector('.um-sidebar-nav');
+            if (!nav) return;
+            try {
+                var saved = sessionStorage.getItem('iam_sidebar_scroll');
+                if (saved !== null) nav.scrollTop = parseInt(saved, 10);
+            } catch (e) {
+                // Ignore — an unreadable sessionStorage just means no restore.
+            } finally {
+                // Always reveal, even when unauthenticated (the shell is hidden
+                // now, but login.service.js un-hides it in place later — a nav
+                // left visibility:hidden would stay invisible after login).
+                nav.style.visibility = '';
+            }
+        })();
+    </script>
     <div id="toastStack" class="p-toast-stack"></div>
     <div id="loadingOverlay" class="p-loading-overlay hidden">
         <div class="p-loading-spinner"></div>
