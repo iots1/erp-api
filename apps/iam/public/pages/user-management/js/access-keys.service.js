@@ -1,7 +1,7 @@
-import { showConfirmDialog } from '../../../js/confirm-dialog.service.js';
 import { hasPermission } from '../../../js/login.service.js';
 import { closeModal, openModal } from '../../../js/modal.service.js';
 import { iamDelete, iamGet, iamPost, iamPut } from './api.js';
+import { confirmAndRun } from './confirm-action.js';
 import { createPaginatedList } from './paginated-list.js';
 import { createPolicyCheckboxPicker } from './policy-checkbox-picker.js';
 import { ensurePoliciesLoaded } from './policies.service.js';
@@ -307,34 +307,25 @@ export async function copyFieldToClipboard(fieldId, label) {
 
 // ── Revoke / delete ──────────────────────────────────────────────────────
 
-export async function confirmRevokeAccessKey(accessKeyId, name) {
-  const confirmed = await showConfirmDialog({
+export function confirmRevokeAccessKey(accessKeyId, name) {
+  return confirmAndRun({
     title: 'เพิกถอน Access Key',
     message: `ยืนยันการเพิกถอน Access Key "${name}"? หลังเพิกถอนแล้วจะไม่สามารถใช้งาน key นี้ได้อีก และไม่สามารถย้อนกลับได้`,
     confirmText: 'เพิกถอน',
+    action: () => iamDelete(`/access-keys/${accessKeyId}/revoke`),
+    successMessage: 'เพิกถอน Access Key สำเร็จ',
+    errorMessage: 'เพิกถอน Access Key ไม่สำเร็จ',
+    onSuccess: () => loadAccessKeys(pager.getCurrentPage()),
   });
-  if (!confirmed) return;
-  try {
-    await iamDelete(`/access-keys/${accessKeyId}/revoke`);
-    showToast('เพิกถอน Access Key สำเร็จ', 'success');
-    loadAccessKeys(pager.getCurrentPage());
-  } catch (error) {
-    showApiError(error, 'เพิกถอน Access Key ไม่สำเร็จ');
-  }
 }
 
-export async function confirmDeleteAccessKey(accessKeyId, name) {
-  const confirmed = await showConfirmDialog({
+export function confirmDeleteAccessKey(accessKeyId, name) {
+  return confirmAndRun({
     title: 'ลบ Access Key',
     message: `ยืนยันการลบ Access Key "${name}"?`,
-    confirmText: 'ลบ',
+    action: () => iamDelete(`/access-keys/${accessKeyId}`),
+    successMessage: 'ลบ Access Key สำเร็จ',
+    errorMessage: 'ลบ Access Key ไม่สำเร็จ',
+    onSuccess: () => loadAccessKeys(pager.getCurrentPage()),
   });
-  if (!confirmed) return;
-  try {
-    await iamDelete(`/access-keys/${accessKeyId}`);
-    showToast('ลบ Access Key สำเร็จ', 'success');
-    loadAccessKeys(pager.getCurrentPage());
-  } catch (error) {
-    showApiError(error, 'ลบ Access Key ไม่สำเร็จ');
-  }
 }

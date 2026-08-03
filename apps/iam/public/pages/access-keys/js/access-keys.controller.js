@@ -1,6 +1,3 @@
-import { handleAuthLogin } from '../../../js/auth-guard.service.js';
-import { handleChangePasswordSubmit } from '../../../js/change-password.service.js';
-import { toggleTheme } from '../../../js/theme.service.js';
 import {
   closeAccessKeySecretModal,
   confirmDeleteAccessKey,
@@ -15,60 +12,29 @@ import {
   setAccessKeysSort,
   toggleAccessKeyOwnerType,
 } from '../../user-management/js/access-keys.service.js';
-import {
-  bootAdminPage,
-  handleInitialLoginSubmit,
-  handleLogout,
-} from '../../user-management/js/shell.service.js';
-import { createSortableTable } from '../../user-management/js/sortable-table.js';
-import { debounce } from '../../user-management/js/utils.js';
+import { createAdminPage } from '../../user-management/js/admin-page.js';
 
-Object.assign(window, {
-  handleAuthLogin,
-  handleChangePasswordSubmit,
-  handleInitialLoginSubmit,
-  handleLogout,
-  toggleTheme,
-  handleAccessKeyFormSubmit,
-  toggleAccessKeyOwnerType,
-  closeAccessKeySecretModal,
-  copyFieldToClipboard,
-  confirmRevokeAccessKey,
-  confirmDeleteAccessKey,
-  goToAccessKeysPage,
+createAdminPage({
+  pagePermission: 'page:view_access_keys',
+  globals: {
+    handleAccessKeyFormSubmit,
+    toggleAccessKeyOwnerType,
+    closeAccessKeySecretModal,
+    copyFieldToClipboard,
+    confirmRevokeAccessKey,
+    confirmDeleteAccessKey,
+    goToAccessKeysPage,
+  },
+  form: { detectId: 'accessKeyForm', init: initAccessKeyForm },
+  load: () => loadAccessKeys(1),
+  filters: [
+    { id: 'accessKeySearchFilter', onChange: (search) => setAccessKeysFilter({ search }) },
+    {
+      id: 'accessKeyStatusFilter',
+      event: 'change',
+      onChange: (status) => setAccessKeysFilter({ status }),
+    },
+  ],
+  pageSize: { id: 'accessKeyPageSize', set: setAccessKeysPageSize },
+  sort: { tableId: 'accessKeysTable', defaultSort: 'created_at:desc', set: setAccessKeysSort },
 });
-
-function wireFilters() {
-  const searchInput = document.getElementById('accessKeySearchFilter');
-  searchInput?.addEventListener(
-    'input',
-    debounce((e) => setAccessKeysFilter({ search: e.target.value }), 350),
-  );
-
-  const statusSelect = document.getElementById('accessKeyStatusFilter');
-  statusSelect?.addEventListener('change', (e) => setAccessKeysFilter({ status: e.target.value }));
-
-  const pageSizeSelect = document.getElementById('accessKeyPageSize');
-  pageSizeSelect?.addEventListener('change', (e) => setAccessKeysPageSize(e.target.value));
-}
-
-function wireSort() {
-  createSortableTable({
-    container: document.querySelector('#accessKeysTable thead'),
-    defaultSort: 'created_at:desc',
-    onChange: setAccessKeysSort,
-  });
-}
-
-// This bundle serves both the access-keys list page (index.ejs) and the
-// create/edit form page (form.ejs) — each render only their own markup, so
-// branch on which one is present rather than splitting into two bundles.
-const isFormPage = !!document.getElementById('accessKeyForm');
-
-if (isFormPage) {
-  bootAdminPage({ pagePermission: 'page:view_access_keys', loader: () => initAccessKeyForm() });
-} else {
-  wireFilters();
-  wireSort();
-  bootAdminPage({ pagePermission: 'page:view_access_keys', loader: () => loadAccessKeys(1) });
-}

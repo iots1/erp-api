@@ -1,19 +1,5 @@
-import { handleAuthLogin } from '../../../js/auth-guard.service.js';
-import { handleChangePasswordSubmit } from '../../../js/change-password.service.js';
-import { toggleTheme } from '../../../js/theme.service.js';
+import { createAdminPage } from '../../user-management/js/admin-page.js';
 import { loadDashboard } from '../../user-management/js/dashboard.service.js';
-import {
-  bootAdminPage,
-  handleInitialLoginSubmit,
-  handleLogout,
-} from '../../user-management/js/shell.service.js';
 
-Object.assign(window, {
-  handleAuthLogin,
-  handleChangePasswordSubmit,
-  handleInitialLoginSubmit,
-  handleLogout,
-  toggleTheme,
-});
-
-bootAdminPage({ pagePermission: 'page:view_dashboard', loader: loadDashboard });
+// Stat cards only — no table, so no filters/pageSize/sort.
+createAdminPage({ pagePermission: 'page:view_dashboard', load: loadDashboard });

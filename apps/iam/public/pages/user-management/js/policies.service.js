@@ -1,6 +1,6 @@
-import { showConfirmDialog } from '../../../js/confirm-dialog.service.js';
 import { hasPermission } from '../../../js/login.service.js';
 import { iamDelete, iamGet, iamPost, iamPut } from './api.js';
+import { confirmAndRun } from './confirm-action.js';
 import { createPaginatedList } from './paginated-list.js';
 import {
   ensurePermissionsCatalog,
@@ -144,20 +144,15 @@ function renderPoliciesList() {
   refreshIcons();
 }
 
-export async function confirmDeletePolicy(policyId, code) {
-  const confirmed = await showConfirmDialog({
+export function confirmDeletePolicy(policyId, code) {
+  return confirmAndRun({
     title: 'ลบ Policy',
     message: `ยืนยันการลบ Policy "${code}"?`,
-    confirmText: 'ลบ',
+    action: () => iamDelete(`/policies/${policyId}`),
+    successMessage: 'ลบ Policy สำเร็จ',
+    errorMessage: 'ลบ Policy ไม่สำเร็จ',
+    onSuccess: () => loadPolicies(pager.getCurrentPage()),
   });
-  if (!confirmed) return;
-  try {
-    await iamDelete(`/policies/${policyId}`);
-    showToast('ลบ Policy สำเร็จ', 'success');
-    loadPolicies(pager.getCurrentPage());
-  } catch (error) {
-    showApiError(error, 'ลบ Policy ไม่สำเร็จ');
-  }
 }
 
 // ── Policy generator form page (apps/iam/views/pages/policies/form.ejs) ──

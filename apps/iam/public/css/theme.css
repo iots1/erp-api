@@ -299,27 +299,6 @@ body {
   background: var(--bg);
 }
 
-/* Flat white content area on every admin page — cards inside it (table/form,
-   both via Pico's --pico-card-background-color) are still --surface too, so
-   depth comes only from a card's own border/box-shadow, not a gray canvas
-   behind it. Previously --bg (light gray) here, with users/form.ejs alone
-   opting into white via its own #view-user-form override + negative-margin
-   bleed trick (form.css) — generalized to every page instead of repeating
-   that hack per form. */
-.um-content {
-  background: var(--surface);
-}
-
-.um-table-toolbar {
-  background: var(--surface);
-  padding: 1rem;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
 button,
 input,
 select,

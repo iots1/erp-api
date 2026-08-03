@@ -1,6 +1,6 @@
-import { showConfirmDialog } from '../../../js/confirm-dialog.service.js';
 import { hasPermission } from '../../../js/login.service.js';
 import { iamDelete, iamGet, iamPost, iamPut } from './api.js';
+import { confirmAndRun } from './confirm-action.js';
 import { createPaginatedList } from './paginated-list.js';
 import { createPolicyCheckboxPicker } from './policy-checkbox-picker.js';
 import { ensurePoliciesLoaded } from './policies.service.js';
@@ -206,18 +206,13 @@ export async function handleRoleFormSubmit(event) {
   }
 }
 
-export async function confirmDeleteRole(roleId, code) {
-  const confirmed = await showConfirmDialog({
+export function confirmDeleteRole(roleId, code) {
+  return confirmAndRun({
     title: 'ลบบทบาท',
     message: `ยืนยันการลบบทบาท "${code}"?`,
-    confirmText: 'ลบ',
+    action: () => iamDelete(`/roles/${roleId}`),
+    successMessage: 'ลบบทบาทสำเร็จ',
+    errorMessage: 'ลบบทบาทไม่สำเร็จ',
+    onSuccess: () => loadRoles(pager.getCurrentPage()),
   });
-  if (!confirmed) return;
-  try {
-    await iamDelete(`/roles/${roleId}`);
-    showToast('ลบบทบาทสำเร็จ', 'success');
-    loadRoles(pager.getCurrentPage());
-  } catch (error) {
-    showApiError(error, 'ลบบทบาทไม่สำเร็จ');
-  }
 }

@@ -1,11 +1,4 @@
-import { handleAuthLogin } from '../../../js/auth-guard.service.js';
-import { handleChangePasswordSubmit } from '../../../js/change-password.service.js';
-import { toggleTheme } from '../../../js/theme.service.js';
-import {
-  bootAdminPage,
-  handleInitialLoginSubmit,
-  handleLogout,
-} from '../../user-management/js/shell.service.js';
+import { createAdminPage } from '../../user-management/js/admin-page.js';
 import {
   goToSessionsPage,
   loadSessions,
@@ -13,29 +6,12 @@ import {
   setSessionsPageSize,
   setSessionsUserIdFilter,
 } from '../../user-management/js/sessions-admin.service.js';
-import { debounce } from '../../user-management/js/utils.js';
 
-Object.assign(window, {
-  handleAuthLogin,
-  handleChangePasswordSubmit,
-  handleInitialLoginSubmit,
-  handleLogout,
-  toggleTheme,
-  loadSessions,
-  goToSessionsPage,
-  revokeSession,
+createAdminPage({
+  pagePermission: 'page:view_sessions',
+  globals: { loadSessions, goToSessionsPage, revokeSession },
+  load: () => loadSessions(1),
+  // No `sort` — sessions come from Redis keys, not a sortable query.
+  filters: [{ id: 'sessionUserIdFilter', onChange: setSessionsUserIdFilter }],
+  pageSize: { id: 'sessionsPageSize', set: setSessionsPageSize },
 });
-
-function wireFilters() {
-  const userIdInput = document.getElementById('sessionUserIdFilter');
-  userIdInput?.addEventListener(
-    'input',
-    debounce((e) => setSessionsUserIdFilter(e.target.value), 350),
-  );
-
-  const pageSizeSelect = document.getElementById('sessionsPageSize');
-  pageSizeSelect?.addEventListener('change', (e) => setSessionsPageSize(e.target.value));
-}
-
-wireFilters();
-bootAdminPage({ pagePermission: 'page:view_sessions', loader: () => loadSessions(1) });

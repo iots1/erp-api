@@ -6,8 +6,8 @@
 .p-field {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
-  margin-bottom: 0.6rem;
+  gap: 0.2rem;
+  margin-bottom: 0.4rem;
 }
 .p-field label {
   font-size: 0.85rem;
@@ -426,46 +426,8 @@
   }
 }
 
-/* ── Tighter vertical rhythm — overrides layout.css's section/field spacing
-   (this file loads after layout.css, see page-head.ejs's <link> order, so
-   same-specificity rules here win without needing extra selector weight).
-   Applies to every `.um-form-section` form across the admin, not just
-   print-templates — the original spacing read as too airy everywhere. ─── */
-
-.um-form-header {
-  margin-bottom: 0.7rem;
-}
-.um-form-section {
-  padding: 0.65rem 0.85rem;
-  margin-bottom: 0.55rem;
-}
-.p-field {
-  gap: 0.2rem;
-  margin-bottom: 0.4rem;
-}
-.um-form-grid {
-  margin-top: 0.5rem;
-  gap: 0.4rem 0.85rem;
-}
-.um-parameters-list {
-  margin-top: 0.5rem;
-  gap: 0.4rem;
-}
-/* `.um-muted-note` is a <p> in most call sites — its own default browser
-   paragraph margin (not reset by layout.css, which only sets color/size/
-   style) was the biggest single contributor to the "too much air" feel,
-   since it stacks on top of whatever gap the surrounding layout already
-   adds. */
-.um-muted-note {
-  margin: 0.25rem 0 0;
-  line-height: 1.4;
-}
-.um-editor-split {
-  margin-top: 0.5rem;
-}
-
 /* ── Users form: no card chrome at all ────────────────────────────
-   .um-content is flat white everywhere now (theme.css), so the
+   .um-content is flat white everywhere now (layout.css), so the
    negative-margin bleed this used to need is gone. What's left is specific
    to users/form.ejs's single-section identity form: its one
    .um-form-section doesn't need its own border/shadow once its background

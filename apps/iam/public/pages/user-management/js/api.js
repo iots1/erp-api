@@ -1,75 +1,11 @@
-// Thin JSON:API client for iam-bc. iam-bc controllers carry @ResourceType(),
-// so success bodies are {data: {...}} / {data: [...], meta: {pagination}}; the
-// error envelope ({status, errors}) is the same one auth-bc uses.
-import { fetchWithAuth } from '../../../js/auth-guard.service.js';
+// JSON:API client for iam-bc. All behaviour lives in the shared factory (see
+// json-api-client.js); this file only binds it to iam-bc's base URL and names
+// the verbs, so call sites read `iamGet(...)` rather than `client.get(...)`.
+import { createJsonApiClient } from './json-api-client.js';
 
-function flattenResource(resource) {
-  if (!resource || typeof resource !== 'object') return resource;
-  const { id, attributes } = resource;
-  return { id, ...(attributes ?? {}) };
-}
+const client = createJsonApiClient({ getBaseUrl: () => window.__IAM_API_BASE__ });
 
-function unwrapEnvelope(json) {
-  if (json && typeof json === 'object' && 'data' in json) {
-    if (Array.isArray(json.data)) {
-      return {
-        items: json.data.map(flattenResource),
-        pagination: json.meta?.pagination ?? null,
-      };
-    }
-    return flattenResource(json.data);
-  }
-  return json;
-}
-
-async function toApiError(response) {
-  try {
-    const json = await response.json();
-    const first = json.errors?.[0];
-    const error = new Error(first?.detail ?? first?.title ?? response.statusText);
-    error.status = response.status;
-    error.errors = json.errors ?? [];
-    return error;
-  } catch {
-    const error = new Error(response.statusText || 'Request failed');
-    error.status = response.status;
-    return error;
-  }
-}
-
-function buildUrl(path, query) {
-  const base = window.__IAM_API_BASE__;
-  let url = `${base}${path}`;
-  if (!query) return url;
-
-  const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(query)) {
-    if (value === undefined || value === null || value === '') continue;
-    if (Array.isArray(value)) {
-      for (const item of value) params.append(key, item);
-    } else {
-      params.append(key, String(value));
-    }
-  }
-  const qs = params.toString();
-  return qs ? `${url}?${qs}` : url;
-}
-
-async function request(path, { method = 'GET', body, query } = {}) {
-  const response = await fetchWithAuth(buildUrl(path, query), {
-    method,
-    headers: body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
-
-  if (response.status === 204) return null;
-  if (!response.ok) throw await toApiError(response);
-
-  const json = await response.json();
-  return unwrapEnvelope(json);
-}
-
-export const iamGet = (path, query) => request(path, { query });
-export const iamPost = (path, body) => request(path, { method: 'POST', body });
-export const iamPut = (path, body) => request(path, { method: 'PUT', body });
-export const iamDelete = (path) => request(path, { method: 'DELETE' });
+export const iamGet = client.get;
+export const iamPost = client.post;
+export const iamPut = client.put;
+export const iamDelete = client.del;

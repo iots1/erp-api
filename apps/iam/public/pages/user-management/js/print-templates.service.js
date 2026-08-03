@@ -2,11 +2,11 @@
 // lives in report-bc (see apps/report-bc/src/modules/print-template), not
 // iam — every API call here goes through report-api.js's reportGet/Post/
 // Put/Delete instead of api.js's iamGet/Post/Put/Delete.
-import { showConfirmDialog } from '../../../js/confirm-dialog.service.js';
 import { hasPermission } from '../../../js/login.service.js';
 import { createHtmlEditor } from './codemirror-html-editor.js';
 import { createJavascriptEditor } from './codemirror-javascript-editor.js';
 import { createJsonEditor } from './codemirror-json-editor.js';
+import { confirmAndRun } from './confirm-action.js';
 import { createPaginatedList } from './paginated-list.js';
 import { reportDelete, reportGet, reportPost, reportPostBlob, reportPut } from './report-api.js';
 import { showApiError, showToast } from './toast.service.js';
@@ -851,18 +851,13 @@ export async function generatePrintTemplateTestPdf() {
 
 // ── Delete ───────────────────────────────────────────────────────────────
 
-export async function confirmDeletePrintTemplate(templateId, code) {
-  const confirmed = await showConfirmDialog({
+export function confirmDeletePrintTemplate(templateId, code) {
+  return confirmAndRun({
     title: 'ลบเทมเพลต',
     message: `ยืนยันการลบเทมเพลต "${code}"?`,
-    confirmText: 'ลบ',
+    action: () => reportDelete(`/print-templates/${templateId}`),
+    successMessage: 'ลบเทมเพลตสำเร็จ',
+    errorMessage: 'ลบเทมเพลตไม่สำเร็จ',
+    onSuccess: () => loadPrintTemplates(pager.getCurrentPage()),
   });
-  if (!confirmed) return;
-  try {
-    await reportDelete(`/print-templates/${templateId}`);
-    showToast('ลบเทมเพลตสำเร็จ', 'success');
-    loadPrintTemplates(pager.getCurrentPage());
-  } catch (error) {
-    showApiError(error, 'ลบเทมเพลตไม่สำเร็จ');
-  }
 }

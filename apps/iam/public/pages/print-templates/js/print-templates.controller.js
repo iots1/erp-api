@@ -1,6 +1,4 @@
-import { handleAuthLogin } from '../../../js/auth-guard.service.js';
-import { handleChangePasswordSubmit } from '../../../js/change-password.service.js';
-import { toggleTheme } from '../../../js/theme.service.js';
+import { createAdminPage } from '../../user-management/js/admin-page.js';
 import {
   addPrintTemplateParameterRow,
   confirmDeletePrintTemplate,
@@ -16,73 +14,45 @@ import {
   setPrintTemplatesSort,
   setPrintTemplateViewMode,
   switchPrintTemplateTab,
-  togglePrintTemplateFullscreen,
   toggleMockDataCollapse,
   toggleMockDataFullscreen,
+  togglePrintTemplateFullscreen,
   updatePrintTemplateParameterField,
   updatePrintTemplateTestValue,
 } from '../../user-management/js/print-templates.service.js';
-import {
-  bootAdminPage,
-  handleInitialLoginSubmit,
-  handleLogout,
-} from '../../user-management/js/shell.service.js';
-import { createSortableTable } from '../../user-management/js/sortable-table.js';
-import { debounce } from '../../user-management/js/utils.js';
 
-Object.assign(window, {
-  handleAuthLogin,
-  handleChangePasswordSubmit,
-  handleInitialLoginSubmit,
-  handleLogout,
-  toggleTheme,
-  handlePrintTemplateFormSubmit,
-  confirmDeletePrintTemplate,
-  goToPrintTemplatesPage,
-  addPrintTemplateParameterRow,
-  removePrintTemplateParameterRow,
-  updatePrintTemplateParameterField,
-  updatePrintTemplateTestValue,
-  setPrintTemplateViewMode,
-  switchPrintTemplateTab,
-  togglePrintTemplateFullscreen,
-  toggleMockDataCollapse,
-  toggleMockDataFullscreen,
-  formatPrintTemplateMockData,
-  generatePrintTemplateTestPdf,
-});
-
-function wireFilters() {
-  const searchInput = document.getElementById('printTemplateSearchFilter');
-  searchInput?.addEventListener(
-    'input',
-    debounce((e) => setPrintTemplatesFilter({ search: e.target.value }), 350),
-  );
-
-  const statusSelect = document.getElementById('printTemplateStatusFilter');
-  statusSelect?.addEventListener('change', (e) => setPrintTemplatesFilter({ status: e.target.value }));
-
-  const pageSizeSelect = document.getElementById('printTemplatePageSize');
-  pageSizeSelect?.addEventListener('change', (e) => setPrintTemplatesPageSize(e.target.value));
-}
-
-function wireSort() {
-  createSortableTable({
-    container: document.querySelector('#printTemplatesTable thead'),
+createAdminPage({
+  pagePermission: 'page:view_print_templates',
+  globals: {
+    handlePrintTemplateFormSubmit,
+    confirmDeletePrintTemplate,
+    goToPrintTemplatesPage,
+    addPrintTemplateParameterRow,
+    removePrintTemplateParameterRow,
+    updatePrintTemplateParameterField,
+    updatePrintTemplateTestValue,
+    setPrintTemplateViewMode,
+    switchPrintTemplateTab,
+    togglePrintTemplateFullscreen,
+    toggleMockDataCollapse,
+    toggleMockDataFullscreen,
+    formatPrintTemplateMockData,
+    generatePrintTemplateTestPdf,
+  },
+  form: { detectId: 'printTemplateForm', init: initPrintTemplateForm },
+  load: () => loadPrintTemplates(1),
+  filters: [
+    { id: 'printTemplateSearchFilter', onChange: (search) => setPrintTemplatesFilter({ search }) },
+    {
+      id: 'printTemplateStatusFilter',
+      event: 'change',
+      onChange: (status) => setPrintTemplatesFilter({ status }),
+    },
+  ],
+  pageSize: { id: 'printTemplatePageSize', set: setPrintTemplatesPageSize },
+  sort: {
+    tableId: 'printTemplatesTable',
     defaultSort: 'created_at:desc',
-    onChange: setPrintTemplatesSort,
-  });
-}
-
-// This bundle serves both the print-templates list page (index.ejs) and the
-// create/edit form page (form.ejs) — branch on which markup is present
-// rather than splitting into two bundles.
-const isFormPage = !!document.getElementById('printTemplateForm');
-
-if (isFormPage) {
-  bootAdminPage({ pagePermission: 'page:view_print_templates', loader: () => initPrintTemplateForm() });
-} else {
-  wireFilters();
-  wireSort();
-  bootAdminPage({ pagePermission: 'page:view_print_templates', loader: () => loadPrintTemplates(1) });
-}
+    set: setPrintTemplatesSort,
+  },
+});

@@ -1,8 +1,8 @@
 // Business logic for the document-types admin page. Like print-templates,
 // this resource lives in report-bc, not iam — every API call goes through
 // report-api.js's reportGet/Post/Put/Delete.
-import { showConfirmDialog } from '../../../js/confirm-dialog.service.js';
 import { hasPermission } from '../../../js/login.service.js';
+import { confirmAndRun } from './confirm-action.js';
 import { createPaginatedList } from './paginated-list.js';
 import { reportDelete, reportGet, reportPost, reportPut } from './report-api.js';
 import { showApiError, showToast } from './toast.service.js';
@@ -260,18 +260,13 @@ export async function generateDocumentTypeTestNumber() {
 
 // ── Delete ───────────────────────────────────────────────────────────────
 
-export async function confirmDeleteDocumentType(documentTypeId, code) {
-  const confirmed = await showConfirmDialog({
+export function confirmDeleteDocumentType(documentTypeId, code) {
+  return confirmAndRun({
     title: 'ลบประเภทเอกสาร',
     message: `ยืนยันการลบประเภทเอกสาร "${code}"?`,
-    confirmText: 'ลบ',
+    action: () => reportDelete(`/document-types/${documentTypeId}`),
+    successMessage: 'ลบประเภทเอกสารสำเร็จ',
+    errorMessage: 'ลบประเภทเอกสารไม่สำเร็จ',
+    onSuccess: () => loadDocumentTypes(pager.getCurrentPage()),
   });
-  if (!confirmed) return;
-  try {
-    await reportDelete(`/document-types/${documentTypeId}`);
-    showToast('ลบประเภทเอกสารสำเร็จ', 'success');
-    loadDocumentTypes(pager.getCurrentPage());
-  } catch (error) {
-    showApiError(error, 'ลบประเภทเอกสารไม่สำเร็จ');
-  }
 }

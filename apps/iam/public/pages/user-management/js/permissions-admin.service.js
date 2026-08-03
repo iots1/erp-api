@@ -7,6 +7,7 @@ import { showConfirmDialog } from '../../../js/confirm-dialog.service.js';
 import { hasPermission } from '../../../js/login.service.js';
 import { closeModal, openModal } from '../../../js/modal.service.js';
 import { iamDelete, iamGet, iamPost, iamPut } from './api.js';
+import { confirmAndRun } from './confirm-action.js';
 import {
   hideLoadingOverlay,
   showLoadingOverlay,
@@ -269,18 +270,13 @@ export async function handleSyncPermissions() {
   }
 }
 
-export async function confirmDeletePermission(id, label) {
-  const confirmed = await showConfirmDialog({
+export function confirmDeletePermission(id, label) {
+  return confirmAndRun({
     title: 'ลบสิทธิ์',
     message: `ยืนยันการลบสิทธิ์ "${label}"?`,
-    confirmText: 'ลบ',
+    action: () => iamDelete(`/permissions/${id}`),
+    successMessage: 'ลบสิทธิ์สำเร็จ',
+    errorMessage: 'ลบสิทธิ์ไม่สำเร็จ',
+    onSuccess: () => loadPermissions(pager.getCurrentPage()),
   });
-  if (!confirmed) return;
-  try {
-    await iamDelete(`/permissions/${id}`);
-    showToast('ลบสิทธิ์สำเร็จ', 'success');
-    loadPermissions(pager.getCurrentPage());
-  } catch (error) {
-    showApiError(error, 'ลบสิทธิ์ไม่สำเร็จ');
-  }
 }

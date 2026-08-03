@@ -1,8 +1,8 @@
-import { showConfirmDialog } from '../../../js/confirm-dialog.service.js';
 import { hasPermission } from '../../../js/login.service.js';
 import { closeModal, openModal } from '../../../js/modal.service.js';
 import { copyFieldToClipboard } from './access-keys.service.js';
 import { iamDelete, iamGet, iamPost, iamPut } from './api.js';
+import { confirmAndRun } from './confirm-action.js';
 import { createPaginatedList } from './paginated-list.js';
 import { ensureRolesLoaded } from './roles.service.js';
 import { state } from './state.js';
@@ -212,44 +212,39 @@ export function closeUserTempPasswordModal() {
   window.location.href = `${window.__IAM_VIEWS_BASE__}/users`;
 }
 
-export async function confirmResetPassword(userId, fullName) {
+export function confirmResetPassword(userId, fullName) {
   if (!isValidUuid(userId)) {
     showToast(`Invalid user ID: ${userId}`, 'error');
     return;
   }
-  const confirmed = await showConfirmDialog({
+  // No `successMessage` — the temp-password modal below *is* the success UI,
+  // and a toast sliding in over it would only compete for attention.
+  return confirmAndRun({
     title: 'รีเซ็ตรหัสผ่าน',
     message: `ยืนยันการรีเซ็ตรหัสผ่านของ "${fullName}"? ระบบจะสุ่มรหัสผ่านใหม่ให้ และผู้ใช้งานจะต้องตั้งรหัสผ่านใหม่ในการเข้าสู่ระบบครั้งถัดไป`,
     confirmText: 'รีเซ็ตรหัสผ่าน',
+    action: () => iamPost(`/users/${userId}/reset-password`),
+    errorMessage: 'รีเซ็ตรหัสผ่านไม่สำเร็จ',
+    onSuccess: (result) => {
+      const username = state.users.find((u) => u.id === userId)?.username ?? '';
+      openUserTempPasswordModal(username, result.temp_password, 'รีเซ็ตรหัสผ่านสำเร็จ');
+    },
   });
-  if (!confirmed) return;
-  try {
-    const result = await iamPost(`/users/${userId}/reset-password`);
-    const username = state.users.find((u) => u.id === userId)?.username ?? '';
-    openUserTempPasswordModal(username, result.temp_password, 'รีเซ็ตรหัสผ่านสำเร็จ');
-  } catch (error) {
-    showApiError(error, 'รีเซ็ตรหัสผ่านไม่สำเร็จ');
-  }
 }
 
-export async function confirmDeleteUser(userId, fullName) {
+export function confirmDeleteUser(userId, fullName) {
   if (!isValidUuid(userId)) {
     showToast(`Invalid user ID: ${userId}`, 'error');
     return;
   }
-  const confirmed = await showConfirmDialog({
+  return confirmAndRun({
     title: 'ลบผู้ใช้งาน',
     message: `ยืนยันการลบผู้ใช้งาน "${fullName}"?`,
-    confirmText: 'ลบ',
+    action: () => iamDelete(`/users/${userId}`),
+    successMessage: 'ลบผู้ใช้งานสำเร็จ',
+    errorMessage: 'ลบผู้ใช้งานไม่สำเร็จ',
+    onSuccess: () => loadUsers(pager.getCurrentPage()),
   });
-  if (!confirmed) return;
-  try {
-    await iamDelete(`/users/${userId}`);
-    showToast('ลบผู้ใช้งานสำเร็จ', 'success');
-    loadUsers(pager.getCurrentPage());
-  } catch (error) {
-    showApiError(error, 'ลบผู้ใช้งานไม่สำเร็จ');
-  }
 }
 
 // ── Assign roles modal ──────────────────────────────────────────
