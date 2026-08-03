@@ -11,26 +11,33 @@ const topbarActions = [
                 <!-- VIEW: Role form -->
                 <section id="view-role-form" class="um-view active" data-role-id="<%= roleId ?? '' %>">
                     <form id="roleForm" onsubmit="handleRoleFormSubmit(event)">
-                        <article class="um-form-section">
-                            <div class="um-form-grid">
-                                <%- include('../../components/ui/field', { id: 'frmRoleCode', label: 'รหัสบทบาท (Role Code)', required: true, extraClass: 'um-mono-input', placeholder: 'เช่น ROLE_WAREHOUSE_MANAGER' }) %>
-                                <%- include('../../components/ui/field', { id: 'frmRoleNameTh', label: 'ชื่อบทบาท (ไทย)', required: true }) %>
-                                <%- include('../../components/ui/field', { id: 'frmRoleNameEn', label: 'ชื่อบทบาท (English)', required: true }) %>
-                            </div>
-                            <div class="um-form-grid um-form-grid-half">
-                                <%- include('../../components/ui/field', { id: 'frmRoleDescription', label: 'คำอธิบาย', rows: 2 }) %>
-                            </div>
-                        </article>
+                        <!-- Single-column stack (same shape as users/form.ejs) for the
+                             identity fields. The policy-attach card below is a different
+                             kind of content (a checkbox grid, not labeled fields) so it
+                             doesn't join .um-form-stack — but it shares the same
+                             .um-form-narrow column width so the whole form reads as one
+                             centered page instead of the identity card looking narrower
+                             than the card below it. -->
+                        <div class="um-form-narrow">
+                            <article class="um-form-section">
+                                <div class="um-form-stack">
+                                    <%- include('../../components/ui/field', { id: 'frmRoleCode', label: 'รหัสบทบาท (Role Code)', required: true, extraClass: 'um-mono-input', placeholder: 'เช่น ROLE_WAREHOUSE_MANAGER' }) %>
+                                    <%- include('../../components/ui/field', { id: 'frmRoleNameTh', label: 'ชื่อบทบาท (ไทย)', required: true }) %>
+                                    <%- include('../../components/ui/field', { id: 'frmRoleNameEn', label: 'ชื่อบทบาท (English)', required: true }) %>
+                                    <%- include('../../components/ui/field', { id: 'frmRoleDescription', label: 'คำอธิบาย', rows: 2 }) %>
+                                </div>
+                            </article>
 
-                        <article class="um-form-section">
-                            <div class="um-section-header-row">
-                                <h3 class="um-section-title">เลือกนโยบายความปลอดภัย (Attach Policies)</h3>
-                                <input type="search" id="rolePoliciesSearch" class="um-search-input" placeholder="ค้นหา Policy...">
-                            </div>
-                            <div class="um-checkbox-grid-scroll">
-                                <div id="rolePoliciesContainer" class="um-checkbox-grid um-checkbox-grid-compact"></div>
-                            </div>
-                        </article>
+                            <article class="um-form-section">
+                                <div class="um-section-header-row">
+                                    <h3 class="um-section-title">เลือกนโยบายความปลอดภัย (Attach Policies)</h3>
+                                    <input type="search" id="rolePoliciesSearch" class="um-search-input" placeholder="ค้นหา Policy...">
+                                </div>
+                                <div class="um-checkbox-grid-scroll">
+                                    <div id="rolePoliciesContainer" class="um-checkbox-grid um-checkbox-grid-compact"></div>
+                                </div>
+                            </article>
+                        </div>
                     </form>
                 </section>
 

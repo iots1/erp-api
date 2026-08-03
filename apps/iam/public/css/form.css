@@ -464,21 +464,16 @@
   margin-top: 0.5rem;
 }
 
-/* ── Users form: flat white page ──────────────────────────────────
-   No gray page canvas around the form — .um-content's own background
-   (--bg, a light gray) would otherwise show through the padding around
-   this white card, reading as "a white card floating on gray" instead of
-   one flat white page. Negative-margin bleed: extend into .um-content's
-   own padding, then re-add the same amount inside so nothing shifts. ── */
-#view-user-form {
-  background: var(--surface);
-  min-height: 100%;
-  margin: -1.25rem;
-  padding: 1.25rem;
-}
-/* The .um-form-section "card" doesn't need its own border/shadow once its
-   background matches the page around it — Pico's default <article> chrome
-   would otherwise still outline it, undermining the flat look. */
+/* ── Users form: no card chrome at all ────────────────────────────
+   .um-content is flat white everywhere now (theme.css), so the
+   negative-margin bleed this used to need is gone. What's left is specific
+   to users/form.ejs's single-section identity form: its one
+   .um-form-section doesn't need its own border/shadow once its background
+   already matches the page around it — Pico's default <article> chrome
+   would otherwise still outline it for no reason. Pages with more than one
+   .um-form-section (policies' 3 steps, print-templates' parameters/mock
+   data/HTML cards) keep normal card borders — those need the border to
+   stay visually distinct from each other. ── */
 #view-user-form .um-form-section {
   border: none;
   box-shadow: none;

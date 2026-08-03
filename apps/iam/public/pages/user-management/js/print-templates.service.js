@@ -572,6 +572,23 @@ export function toggleMockDataFullscreen() {
   }
 }
 
+/** Collapses/expands the Mock Data body (editor + inline error) under its
+ * section header — independent of `#templateMockDataSection`'s own
+ * `hidden` class, which instead tracks the simple/banded engine toggle
+ * (see updateTemplateEngineSectionVisibility). `aria-expanded` on the
+ * header button is both the a11y state and what layout.css keys the
+ * chevron-rotation CSS off of, so it's the only state kept — no separate
+ * boolean variable to drift out of sync with it. */
+export function toggleMockDataCollapse() {
+  const btn = document.getElementById('templateMockDataCollapseBtn');
+  const body = document.getElementById('templateMockDataBody');
+  if (!btn || !body) return;
+
+  const isExpanded = btn.getAttribute('aria-expanded') === 'true';
+  btn.setAttribute('aria-expanded', String(!isExpanded));
+  body.classList.toggle('hidden', isExpanded);
+}
+
 export function formatPrintTemplateMockData() {
   if (mockDataEditor?.format()) {
     document.getElementById('templateMockDataError')?.classList.add('hidden');

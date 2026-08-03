@@ -162,6 +162,26 @@ export async function confirmDeletePolicy(policyId, code) {
 
 // ── Policy generator form page (apps/iam/views/pages/policies/form.ejs) ──
 
+// ── Tabs (ข้อมูลพื้นฐาน / Statements) ────────────────────────────────────
+
+/** Switches the form's top-level tab — same plain active/hidden toggle as
+ * switchPrintTemplateTab (print-templates.service.js), no other state to
+ * keep in sync. Free navigation: nothing blocks jumping to the Statements
+ * tab before the basic-info tab is filled in (see the `invalid` listener in
+ * initPolicyForm for the one guard that exists, which runs at submit time
+ * instead). */
+export function switchPolicyFormStep(step) {
+  [1, 2].forEach((n) => {
+    const btn = document.getElementById(`policyStep-${n}`);
+    const panel = document.getElementById(`policyStepPanel-${n}`);
+    if (!btn || !panel) return;
+
+    btn.classList.toggle('active', n === step);
+    btn.setAttribute('aria-selected', String(n === step));
+    panel.classList.toggle('hidden', n !== step);
+  });
+}
+
 export async function initPolicyForm() {
   const form = document.getElementById('policyForm');
   if (!form) return;
@@ -170,6 +190,23 @@ export async function initPolicyForm() {
 
   resetPolicyFormDraft();
   state.policyForm.editingId = policyId;
+  switchPolicyFormStep(1);
+
+  // Step 1's required fields (frmPolCode/NameTh/NameEn) sit in a panel that
+  // can be `hidden` while step 2 is showing — a native HTML5 validation
+  // failure on a hidden field fires `invalid` but shows no visible message
+  // and never blocks submission from the user's point of view. Jump back to
+  // whichever step holds the failing field before the browser tries (and
+  // fails) to focus/report it. Same pattern as print-templates.service.js's
+  // form-tab handling.
+  form.addEventListener(
+    'invalid',
+    (event) => {
+      const panel = event.target.closest('[data-step-panel]');
+      if (panel) switchPolicyFormStep(Number(panel.dataset.stepPanel));
+    },
+    true,
+  );
 
   try {
     await ensurePermissionsCatalog();
@@ -585,11 +622,13 @@ export function removeStatementFromDraft(index) {
 
 function renderStatementsTable() {
   const tbody = document.getElementById('statementsTableBody');
-  document.getElementById('stmtCountBadge').textContent =
-    state.policyForm.statements.length;
+  // Two badges now show this count: the stepper's own step-2 label, and the
+  // "Statements added" heading inside step 2's panel (form.ejs).
+  document.getElementById('stmtCountBadge').textContent = state.policyForm.statements.length;
+  document.getElementById('stmtCountBadge2').textContent = state.policyForm.statements.length;
 
   if (state.policyForm.statements.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" class="um-empty-cell">ยังไม่มี Statement กรุณาเพิ่มจาก Step 2</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="um-empty-cell">ยังไม่มี Statement กรุณาเพิ่มจากแบบฟอร์มด้านบน</td></tr>`;
     return;
   }
 

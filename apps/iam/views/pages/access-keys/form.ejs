@@ -11,53 +11,55 @@ const topbarActions = [
                 <!-- VIEW: Access key form -->
                 <section id="view-access-key-form" class="um-view active" data-access-key-id="<%= accessKeyId ?? '' %>">
                     <form id="accessKeyForm" onsubmit="handleAccessKeyFormSubmit(event)">
-                        <article class="um-form-section">
-                            <div class="um-form-grid">
-                                <%- include('../../components/ui/field', { id: 'frmAccessKeyName', label: 'ชื่อ Access Key', required: true, placeholder: 'เช่น Warehouse-Integration' }) %>
-                                <div class="p-field hidden" id="accessKeyStatusField">
-                                    <label for="frmAccessKeyStatus">สถานะ</label>
-                                    <select id="frmAccessKeyStatus">
-                                        <option value="active">Active</option>
-                                        <option value="inactive">Inactive</option>
-                                        <option value="revoked">Revoked</option>
-                                    </select>
+                        <!-- Single-column stack (same shape as users/form.ejs) for the
+                             identity/owner fields — the policy-attach section below keeps
+                             its own full-width checkbox grid, a different kind of content
+                             that doesn't fit a narrow column. -->
+                        <div class="um-form-narrow">
+                            <article class="um-form-section">
+                                <div class="um-form-stack">
+                                    <%- include('../../components/ui/field', { id: 'frmAccessKeyName', label: 'ชื่อ Access Key', required: true, placeholder: 'เช่น Warehouse-Integration' }) %>
+                                    <div class="p-field hidden" id="accessKeyStatusField">
+                                        <label for="frmAccessKeyStatus">สถานะ</label>
+                                        <select id="frmAccessKeyStatus">
+                                            <option value="active">Active</option>
+                                            <option value="inactive">Inactive</option>
+                                            <option value="revoked">Revoked</option>
+                                        </select>
+                                    </div>
+                                    <div class="p-field">
+                                        <label for="frmAccessKeyOwnerType">ประเภทเจ้าของ</label>
+                                        <select id="frmAccessKeyOwnerType" onchange="toggleAccessKeyOwnerType()">
+                                            <option value="user">User</option>
+                                            <option value="service_account">Service Account</option>
+                                        </select>
+                                    </div>
+                                    <div class="p-field" id="accessKeyOwnerUserWrap">
+                                        <label for="frmAccessKeyOwnerUserId">เจ้าของ (User)</label>
+                                        <select id="frmAccessKeyOwnerUserId"></select>
+                                    </div>
+                                    <div class="p-field hidden" id="accessKeyOwnerServiceWrap">
+                                        <label for="frmAccessKeyOwnerServiceId">Service Account (เลือกจากผู้ใช้งาน)</label>
+                                        <select id="frmAccessKeyOwnerServiceId"></select>
+                                    </div>
+                                    <%- include('../../components/ui/field', { id: 'frmAccessKeyDescription', label: 'รายละเอียดการใช้งาน', rows: 2 }) %>
+                                    <div class="p-field">
+                                        <label for="frmAccessKeyExpiresAt">วันหมดอายุ (ไม่ระบุ = ไม่มีวันหมดอายุ)</label>
+                                        <input type="datetime-local" id="frmAccessKeyExpiresAt">
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="um-form-grid">
-                                <div class="p-field">
-                                    <label for="frmAccessKeyOwnerType">ประเภทเจ้าของ</label>
-                                    <select id="frmAccessKeyOwnerType" onchange="toggleAccessKeyOwnerType()">
-                                        <option value="user">User</option>
-                                        <option value="service_account">Service Account</option>
-                                    </select>
-                                </div>
-                                <div class="p-field" id="accessKeyOwnerUserWrap">
-                                    <label for="frmAccessKeyOwnerUserId">เจ้าของ (User)</label>
-                                    <select id="frmAccessKeyOwnerUserId"></select>
-                                </div>
-                                <div class="p-field hidden" id="accessKeyOwnerServiceWrap">
-                                    <label for="frmAccessKeyOwnerServiceId">Service Account (เลือกจากผู้ใช้งาน)</label>
-                                    <select id="frmAccessKeyOwnerServiceId"></select>
-                                </div>
-                            </div>
-                            <div class="um-form-grid um-form-grid-half">
-                                <%- include('../../components/ui/field', { id: 'frmAccessKeyDescription', label: 'รายละเอียดการใช้งาน', rows: 2 }) %>
-                                <div class="p-field">
-                                    <label for="frmAccessKeyExpiresAt">วันหมดอายุ (ไม่ระบุ = ไม่มีวันหมดอายุ)</label>
-                                    <input type="datetime-local" id="frmAccessKeyExpiresAt">
-                                </div>
-                            </div>
-                        </article>
+                            </article>
 
-                        <article class="um-form-section">
-                            <div class="um-section-header-row">
-                                <h3 class="um-section-title">เลือกนโยบายความปลอดภัย (Attach Policies)</h3>
-                                <input type="search" id="accessKeyPoliciesSearch" class="um-search-input" placeholder="ค้นหา Policy...">
-                            </div>
-                            <div class="um-checkbox-grid-scroll">
-                                <div id="accessKeyPoliciesContainer" class="um-checkbox-grid um-checkbox-grid-compact"></div>
-                            </div>
-                        </article>
+                            <article class="um-form-section">
+                                <div class="um-section-header-row">
+                                    <h3 class="um-section-title">เลือกนโยบายความปลอดภัย (Attach Policies)</h3>
+                                    <input type="search" id="accessKeyPoliciesSearch" class="um-search-input" placeholder="ค้นหา Policy...">
+                                </div>
+                                <div class="um-checkbox-grid-scroll">
+                                    <div id="accessKeyPoliciesContainer" class="um-checkbox-grid um-checkbox-grid-compact"></div>
+                                </div>
+                            </article>
+                        </div>
                     </form>
                 </section>
 

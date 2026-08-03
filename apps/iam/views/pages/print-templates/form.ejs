@@ -25,45 +25,46 @@ const topbarActions = [
                         </div>
 
                         <div id="printTemplatePanel-details" class="um-tab-panel<% if (isEdit) { %> hidden<% } %>" data-tab-panel="details" role="tabpanel" aria-labelledby="printTemplateTab-details">
-                            <article class="um-form-section">
-                                <div class="um-form-grid">
-                                    <%- include('../../components/ui/field', { id: 'frmTemplateCode', label: 'รหัสเทมเพลต', required: true, extraClass: 'um-mono-input', placeholder: 'เช่น invoice' }) %>
-                                    <%- include('../../components/ui/field', { id: 'frmTemplateNameTh', label: 'ชื่อเทมเพลต (ไทย)', required: true }) %>
-                                    <%- include('../../components/ui/field', { id: 'frmTemplateNameEn', label: 'ชื่อเทมเพลต (English)', required: true }) %>
-                                    <div class="p-field um-field-checkbox">
-                                        <label><input type="checkbox" id="frmTemplateActive" checked> เปิดใช้งาน (Active)</label>
+                            <!-- Single-column stack (same shape as users/form.ejs) — this tab
+                                 is a plain identity/render-config form, no reason for it to be
+                                 a multi-column grid unlike the "รายงาน" tab's workspace. -->
+                            <div class="um-form-narrow">
+                                <article class="um-form-section">
+                                    <div class="um-form-stack">
+                                        <%- include('../../components/ui/field', { id: 'frmTemplateCode', label: 'รหัสเทมเพลต', required: true, extraClass: 'um-mono-input', placeholder: 'เช่น invoice' }) %>
+                                        <%- include('../../components/ui/field', { id: 'frmTemplateNameTh', label: 'ชื่อเทมเพลต (ไทย)', required: true }) %>
+                                        <%- include('../../components/ui/field', { id: 'frmTemplateNameEn', label: 'ชื่อเทมเพลต (English)', required: true }) %>
+                                        <div class="p-field um-field-checkbox">
+                                            <label><input type="checkbox" id="frmTemplateActive" checked> เปิดใช้งาน (Active)</label>
+                                        </div>
+                                        <div class="p-field">
+                                            <label for="frmTemplatePaperSize">ขนาดกระดาษ</label>
+                                            <select id="frmTemplatePaperSize">
+                                                <option value="A4">A4</option>
+                                                <option value="A5">A5</option>
+                                                <option value="Letter">Letter</option>
+                                                <option value="Legal">Legal</option>
+                                            </select>
+                                        </div>
+                                        <div class="p-field">
+                                            <label for="frmTemplateOrientation">แนวกระดาษ</label>
+                                            <select id="frmTemplateOrientation">
+                                                <option value="portrait">แนวตั้ง (Portrait)</option>
+                                                <option value="landscape">แนวนอน (Landscape)</option>
+                                            </select>
+                                        </div>
+                                        <div class="p-field">
+                                            <label for="frmTemplateEngine">เอนจิน</label>
+                                            <select id="frmTemplateEngine">
+                                                <option value="simple">Simple — แทนที่ {{key}} </option>
+                                                <option value="banded">Banded — แบ่งหน้าอัตโนมัติ </option>
+                                            </select>
+                                        </div>
+                                        <%- include('../../components/ui/field', { id: 'frmTemplateDescriptionTh', label: 'คำอธิบาย (ไทย)', rows: 2 }) %>
+                                        <%- include('../../components/ui/field', { id: 'frmTemplateDescriptionEn', label: 'คำอธิบาย (English)', rows: 2 }) %>
                                     </div>
-                                </div>
-                                <div class="um-form-grid">
-                                    <div class="p-field">
-                                        <label for="frmTemplatePaperSize">ขนาดกระดาษ</label>
-                                        <select id="frmTemplatePaperSize">
-                                            <option value="A4">A4</option>
-                                            <option value="A5">A5</option>
-                                            <option value="Letter">Letter</option>
-                                            <option value="Legal">Legal</option>
-                                        </select>
-                                    </div>
-                                    <div class="p-field">
-                                        <label for="frmTemplateOrientation">แนวกระดาษ</label>
-                                        <select id="frmTemplateOrientation">
-                                            <option value="portrait">แนวตั้ง (Portrait)</option>
-                                            <option value="landscape">แนวนอน (Landscape)</option>
-                                        </select>
-                                    </div>
-                                    <div class="p-field">
-                                        <label for="frmTemplateEngine">เอนจิน</label>
-                                        <select id="frmTemplateEngine">
-                                            <option value="simple">Simple — แทนที่ {{key}} </option>
-                                            <option value="banded">Banded — แบ่งหน้าอัตโนมัติ </option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="um-form-grid um-form-grid-half">
-                                    <%- include('../../components/ui/field', { id: 'frmTemplateDescriptionTh', label: 'คำอธิบาย (ไทย)', rows: 2 }) %>
-                                    <%- include('../../components/ui/field', { id: 'frmTemplateDescriptionEn', label: 'คำอธิบาย (English)', rows: 2 }) %>
-                                </div>
-                            </article>
+                                </article>
+                            </div>
                         </div>
 
                         <div id="printTemplatePanel-report" class="um-tab-panel<% if (!isEdit) { %> hidden<% } %>" data-tab-panel="report" role="tabpanel" aria-labelledby="printTemplateTab-report">
@@ -85,12 +86,15 @@ const topbarActions = [
 
                             <div class="hidden" id="templateMockDataSection">
                                 <div class="um-section-header-row">
-                                    <div>
-                                        <h3 class="um-section-title">Mock Data (JSON)</h3>
-                                        <p class="um-muted-note">
-                                            ข้อมูลตัวอย่างแบบ nested object/array ตามที่ band template ใช้ — เป็น <code>params</code> ของ Live Preview และ "Generate Test PDF"
-                                        </p>
-                                    </div>
+                                    <button type="button" class="um-collapse-toggle" id="templateMockDataCollapseBtn" onclick="toggleMockDataCollapse()" aria-expanded="true" aria-controls="templateMockDataBody">
+                                        <i data-lucide="chevron-down" class="um-icon-sm um-collapse-chevron"></i>
+                                        <div>
+                                            <h3 class="um-section-title">Mock Data (JSON)</h3>
+                                            <p class="um-muted-note">
+                                                ข้อมูลตัวอย่างแบบ nested object/array ตามที่ band template ใช้ — เป็น <code>params</code> ของ Live Preview และ "Generate Test PDF"
+                                            </p>
+                                        </div>
+                                    </button>
                                     <div class="um-editor-toolbar">
                                         <button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="formatPrintTemplateMockData()">
                                             <i data-lucide="sparkles" class="um-icon-sm"></i> Format
@@ -100,8 +104,10 @@ const topbarActions = [
                                         </button>
                                     </div>
                                 </div>
-                                <div id="templateMockDataEditorMount" class="um-mockdata-editor-mount"></div>
-                                <span id="templateMockDataError" class="um-field-error hidden"></span>
+                                <div id="templateMockDataBody">
+                                    <div id="templateMockDataEditorMount" class="um-mockdata-editor-mount"></div>
+                                    <span id="templateMockDataError" class="um-field-error hidden"></span>
+                                </div>
                             </div>
                         </article>
 
