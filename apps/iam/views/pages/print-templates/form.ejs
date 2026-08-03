@@ -54,8 +54,8 @@ const topbarActions = [
                                     <div class="p-field">
                                         <label for="frmTemplateEngine">เอนจิน</label>
                                         <select id="frmTemplateEngine">
-                                            <option value="simple">Simple — แทนที่ {{key}} ตรงๆ</option>
-                                            <option value="banded">Banded — แบ่งหน้าอัตโนมัติ</option>
+                                            <option value="simple">Simple — แทนที่ {{key}} </option>
+                                            <option value="banded">Banded — แบ่งหน้าอัตโนมัติ </option>
                                         </select>
                                     </div>
                                 </div>
@@ -129,8 +129,9 @@ const topbarActions = [
                                 </div>
                             </div>
                             <p class="um-muted-note">
-                                ผลลัพธ์จริงจาก Gotenberg แสดงทางขวา — ลากเส้นแบ่งเพื่อปรับขนาดพื้นที่ได้ เอนจิน Banded จะมีคอลัมน์ JavaScript แทรกกลางไว้ override
-                                <code>paginator.inline.js</code> กลาง เฉพาะเทมเพลตที่ต้องการกฎการตัดหน้าต่างจากปกติ (ปล่อยว่างไว้เพื่อใช้ตัวกลาง)
+                                ผลลัพธ์จริงจาก Gotenberg แสดงทางขวา — ลากเส้นแบ่งเพื่อปรับขนาดพื้นที่ได้ คอลัมน์ JavaScript ไว้ override
+                                <code>paginator.inline.js</code> กลาง เฉพาะเทมเพลตที่ต้องการกฎการตัดหน้าต่างจากปกติ (ปล่อยว่างไว้เพื่อใช้ตัวกลาง) —
+                                มีผลเฉพาะเอนจิน Banded เท่านั้น เอนจิน Simple จะไม่ใช้งานส่วนนี้
                             </p>
                             <div id="templateTestParamsContainer" class="um-test-params-row hidden"></div>
                             <div id="templateEditorSplit" class="um-editor-split">

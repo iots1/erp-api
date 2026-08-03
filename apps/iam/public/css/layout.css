@@ -495,14 +495,19 @@
   font-weight: 500;
   color: var(--text-muted);
   cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
 }
 .um-page-tab:hover {
-  color: var(--slate-800);
+  color: var(--text);
 }
 .um-page-tab.active {
+  /* Plain underline indicator — bold near-black text plus a same-color
+     bottom border, no fill/background and no brand color. Border color is
+     `currentColor` so it always matches the text exactly instead of being a
+     separate token that could drift out of sync with it. */
   color: var(--slate-800);
   font-weight: 700;
-  border-bottom-color: var(--pico-primary, #3b82f6);
+  border-bottom-color: currentColor;
 }
 
 .um-form-actions {

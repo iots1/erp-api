@@ -326,11 +326,9 @@ textarea {
    a default bottom margin; layout containers (.um-form-stack/.p-field)
    already space fields via `gap`, so this doubled up. ────────────────── */
 input:not([type="checkbox"]):not([type="radio"]),
-select {
-  height: 28px;
-  line-height: 28px;
+select,
+textarea {
   margin: 0;
-  padding: 0 8px;
   border: none;
   border-radius: 8px;
   /* `background-color`, not the `background` shorthand — the shorthand
@@ -340,11 +338,25 @@ select {
      select in the app. */
   background-color: var(--slate-50);
   font-size: 14px;
-  position: relative;
   box-sizing: border-box;
 }
+/* height + line-height only make sense for the single-line controls — a
+   textarea is multi-line (its height comes from `rows`), so it gets normal
+   top/bottom padding instead of the line-height centering trick. */
+input:not([type="checkbox"]):not([type="radio"]),
+select {
+  height: 28px;
+  line-height: 28px;
+  padding: 0 8px;
+  position: relative;
+}
+textarea {
+  padding: 6px 8px;
+  resize: vertical;
+}
 input:not([type="checkbox"]):not([type="radio"]):focus,
-select:focus {
+select:focus,
+textarea:focus {
   background-color: var(--surface);
   /* Thin + pastel, not Pico's default heavy focus ring — color-mix() off
      the existing --sky token instead of a new hardcoded hex, so this stays
@@ -352,10 +364,14 @@ select:focus {
   outline: 1px solid color-mix(in srgb, var(--sky) 55%, white);
   outline-offset: -1px;
 }
+/* No `display: flex` here — overriding a date input's own display mode
+   breaks the browser's internal layout of its shadow-DOM parts (date
+   segments + calendar icon), which duplicates the calendar icon: one real
+   clickable copy inline, and one disconnected non-interactive copy pinned to
+   the far right. `line-height: 28px` from the shared rule above already
+   centers the single-line text, so flex centering isn't needed anyway. */
 input[type="date"] {
   cursor: pointer;
-  display: flex;
-  align-items: center;
 }
 input[type="date"]::-webkit-calendar-picker-indicator {
   cursor: pointer;

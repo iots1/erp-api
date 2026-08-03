@@ -7,10 +7,6 @@ const topbarActions = [
 <%- include('../../components/admin-shell/shell-open', { activeView: 'sessions', pageTitle: 'ผู้ใช้งานที่ออนไลน์', topbarActions: topbarActions }) %>
 
                 <section id="view-sessions" class="um-view active">
-                    <p class="um-view-subtitle">
-                        รายการนี้อ่านจาก session ที่ยังไม่หมดอายุใน Redis — กด "Revoke" เพื่อบังคับออกจากระบบทันที
-                    </p>
-
                     <article class="um-table-card">
                         <div class="um-table-toolbar">
                             <input type="text" id="sessionUserIdFilter" class="um-filter-input" placeholder="ค้นหาด้วย user_id (UUID)...">

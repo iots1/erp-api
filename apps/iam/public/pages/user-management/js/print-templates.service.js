@@ -302,9 +302,26 @@ export function updatePrintTemplateTestValue(index, value) {
 
 // ── Page tabs (รายละเอียด / รายงาน) ──────────────────────────────────────
 
+/** Slides `.um-page-tab-indicator` under whichever `.um-page-tab` is
+ * currently `.active` — reads real layout (offsetLeft/offsetWidth), so it
+ * has to run after the active class is already set, and again on resize
+ * since the tab row's width (and so each button's offsetLeft) changes with
+ * viewport width. No-ops quietly if the indicator/tabs aren't on the page
+ * (or a panel is still `hidden` and so has zero layout) rather than
+ * throwing — this is also called speculatively from initPrintTemplateForm
+ * before the first paint has necessarily settled. */
+export function positionPrintTemplateTabIndicator() {
+  const tabs = document.querySelector('.um-page-tabs');
+  const indicator = tabs?.querySelector('.um-page-tab-indicator');
+  const activeTab = tabs?.querySelector('.um-page-tab.active');
+  if (!tabs || !indicator || !activeTab) return;
+  indicator.style.width = `${activeTab.offsetWidth}px`;
+  indicator.style.transform = `translateX(${activeTab.offsetLeft}px)`;
+}
+
 /** Switches the page's top-level tab. Plain class toggles on the button
- * (`.active`) and its panel (`.hidden`) — no animation, no state beyond
- * what's already in the DOM, so there's nothing to keep in sync elsewhere. */
+ * (`.active`) and its panel (`.hidden`) — no other state to keep in sync,
+ * except sliding the shared indicator bar to match. */
 export function switchPrintTemplateTab(tabName) {
   document.querySelectorAll('.um-page-tab').forEach((btn) => {
     const isActive = btn.dataset.tab === tabName;
@@ -314,6 +331,7 @@ export function switchPrintTemplateTab(tabName) {
   document.querySelectorAll('[data-tab-panel]').forEach((panel) => {
     panel.classList.toggle('hidden', panel.dataset.tabPanel !== tabName);
   });
+  positionPrintTemplateTabIndicator();
 }
 
 // ── View mode (split / code / preview) — up to 3 columns: HTML | Paginator
@@ -744,6 +762,13 @@ export async function initPrintTemplateForm() {
 
   renderParametersRows();
   updatePreview();
+
+  // Initial indicator placement under whichever tab form.ejs pre-marked
+  // .active (details when creating, report when editing) — then keep it
+  // aligned if the tab row's width changes (each button's offsetLeft shifts
+  // with it). switchPrintTemplateTab already repositions it on every click.
+  positionPrintTemplateTabIndicator();
+  window.addEventListener('resize', positionPrintTemplateTabIndicator);
 }
 
 export async function handlePrintTemplateFormSubmit(event) {
