@@ -307,7 +307,7 @@ export function renderMultiSelect(ddKey) {
     options.length > 0 && options.every((opt) => selected.includes(opt.id));
 
   let html = `
-    <label class="um-dropdown-option um-dropdown-option-all w-full">
+    <label class="um-dropdown-option um-dropdown-option-all">
       <input type="checkbox" onchange="toggleSelectAllMulti('${ddKey}', this.checked)" ${allSelected ? 'checked' : ''}>
       <span>เลือกทั้งหมด (Select All)</span>
     </label>

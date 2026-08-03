@@ -162,11 +162,22 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  width: 100%;
   box-sizing: border-box;
   padding: 0.5rem 0.75rem;
   font-size: 0.82rem;
   cursor: pointer;
+}
+/* Pico ships `label:has([type=checkbox],[type=radio]) { width: fit-content }`,
+   and every option row is exactly that shape — a <label> wrapping a checkbox.
+   `:has()` takes the specificity of its most specific argument, so that rule
+   scores (0,1,1): it outranks a plain `.um-dropdown-option { width: 100% }`
+   (0,1,0) and shrank each row to its text, leaving the rest of the row
+   unhoverable and unclickable even though the dropdown is far wider. Two
+   classes take this to (0,2,0), which beats it outright — no !important, and
+   no reliance on load order. (The "Select All" row used to carry a `w-full`
+   !important patch for exactly this; it's gone now that the cause is fixed.) */
+.um-dropdown-list .um-dropdown-option {
+  width: 100%;
 }
 .um-dropdown-option span {
   flex: 1;
