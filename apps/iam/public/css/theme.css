@@ -333,14 +333,19 @@ select {
   padding: 0 8px;
   border: none;
   border-radius: 8px;
-  background: var(--slate-50);
+  /* `background-color`, not the `background` shorthand — the shorthand
+     resets every background sub-property to its initial value, including
+     `background-image`, which is how Pico paints a <select>'s dropdown
+     chevron. Using the shorthand here silently erased the arrow on every
+     select in the app. */
+  background-color: var(--slate-50);
   font-size: 14px;
   position: relative;
   box-sizing: border-box;
 }
 input:not([type="checkbox"]):not([type="radio"]):focus,
 select:focus {
-  background: var(--surface);
+  background-color: var(--surface);
   /* Thin + pastel, not Pico's default heavy focus ring — color-mix() off
      the existing --sky token instead of a new hardcoded hex, so this stays
      in step if the brand blue ever changes. */

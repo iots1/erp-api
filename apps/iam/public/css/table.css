@@ -167,10 +167,15 @@
   flex: 0 1 auto;
   height: 30px;
   padding: 0 0.6rem;
+  /* `background-color`, not the `background` shorthand — the shorthand
+     resets every other background sub-property to its initial value,
+     including `background-image`, which is how Pico paints the select's
+     dropdown chevron. Using the shorthand here silently erased the arrow. */
+  background-color: var(--surface);
   /* Global input/select background (theme.css) is --slate-50 — same as this
-     toolbar's own background, so the field's edge disappeared entirely.
-     --surface gives it a visible boundary against the toolbar again. */
-  background: var(--surface);
+     toolbar's own background, so with no border the field had no visible
+     edge at all against the toolbar behind it. */
+  border: 1px solid var(--border);
 }
 .um-table-toolbar > select {
   /* width:auto sizes the <select> to its widest option's text plus this

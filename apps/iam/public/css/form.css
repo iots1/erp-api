@@ -48,7 +48,19 @@
 .um-pager-size select {
   width: auto;
   min-width: 4.5rem;
-  padding: 0.3rem 1.75rem 0.3rem 0.6rem;
+  /* No vertical padding — theme.css's global rule already sets height:28px +
+     line-height:28px (border-box). Adding vertical padding here shrinks the
+     content box below that line-height, so the text overflows toward the
+     bottom of the box instead of centering. Horizontal-only padding matches
+     the pattern every other input/select in the app already uses. */
+  padding: 0 1.75rem 0 0.6rem;
+  /* Same visible-field treatment as a `.um-table-toolbar` select (table.css)
+     — border + surface background instead of the plain global default —
+     so the two selects read as the same control instead of two different
+     styles depending on which container they happen to sit in. */
+  height: 30px;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
 }
 
 .um-field-checkbox {
