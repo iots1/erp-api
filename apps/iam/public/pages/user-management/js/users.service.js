@@ -107,15 +107,15 @@ function renderUsersTable() {
         <td>${escapeHtml(user.employee_id)}</td>
         <td>${escapeHtml(user.department ?? '-')}</td>
         <td>
-          <button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="openUserRolesModal('${user.id}')">
+          <button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="openUserRolesModal('${user.id}')" title="จัดการบทบาท">
             <i data-lucide="shield" class="um-icon-sm"></i> จัดการบทบาท
           </button>
         </td>
         <td><span class="status-pill ${statusClass}">${STATUS_LABEL[user.status] ?? user.status}</span></td>
         <td class="um-cell-actions">
-          ${canEdit ? `<a href="${window.__IAM_VIEWS_BASE__}/users/${user.id}/edit" class="p-btn p-btn-ghost p-btn-sm"><i data-lucide="edit-3" class="um-icon-sm"></i></a>` : ''}
-          ${canResetPassword ? `<button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="confirmResetPassword('${user.id}', '${escapeHtml(user.full_name).replace(/'/g, "\\'")}')" title="รีเซ็ตรหัสผ่าน"><i data-lucide="key-round" class="um-icon-sm"></i></button>` : ''}
-          ${canEdit ? `<button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="confirmDeleteUser('${user.id}', '${escapeHtml(user.full_name).replace(/'/g, "\\'")}')"><i data-lucide="trash-2" class="um-icon-sm"></i></button>` : ''}
+          ${canEdit ? `<a href="${window.__IAM_VIEWS_BASE__}/users/${user.id}/edit" class="p-btn p-btn-ghost p-btn-ghost-primary p-btn-sm" title="แก้ไข"><i data-lucide="edit-3" class="um-icon-sm"></i></a>` : ''}
+          ${canResetPassword ? `<button type="button" class="p-btn p-btn-ghost p-btn-ghost-warning p-btn-sm" onclick="confirmResetPassword('${user.id}', '${escapeHtml(user.full_name).replace(/'/g, "\\'")}')" title="รีเซ็ตรหัสผ่าน"><i data-lucide="key-round" class="um-icon-sm"></i></button>` : ''}
+          ${canEdit ? `<button type="button" class="p-btn p-btn-ghost p-btn-ghost-danger p-btn-sm" onclick="confirmDeleteUser('${user.id}', '${escapeHtml(user.full_name).replace(/'/g, "\\'")}')" title="ลบ"><i data-lucide="trash-2" class="um-icon-sm"></i></button>` : ''}
         </td>
       </tr>
     `;

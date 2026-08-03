@@ -95,8 +95,8 @@ function renderPrintTemplatesTable() {
       </td>
       <td><span class="p-tag ${template.is_active ? 'p-tag-mint' : 'p-tag-pink'}">${template.is_active ? 'Active' : 'Inactive'}</span></td>
       <td class="um-cell-actions">
-        ${canManage ? `<a href="${window.__IAM_VIEWS_BASE__}/print-templates/${template.id}/edit" class="p-btn p-btn-ghost p-btn-sm"><i data-lucide="edit-3" class="um-icon-sm"></i> แก้ไข</a>` : ''}
-        ${canDelete ? `<button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="confirmDeletePrintTemplate('${template.id}', '${escapeHtml(template.code).replace(/'/g, "\\'")}')"><i data-lucide="trash-2" class="um-icon-sm"></i></button>` : ''}
+        ${canManage ? `<a href="${window.__IAM_VIEWS_BASE__}/print-templates/${template.id}/edit" class="p-btn p-btn-ghost p-btn-ghost-primary p-btn-sm" title="แก้ไข"><i data-lucide="edit-3" class="um-icon-sm"></i></a>` : ''}
+        ${canDelete ? `<button type="button" class="p-btn p-btn-ghost p-btn-ghost-danger p-btn-sm" onclick="confirmDeletePrintTemplate('${template.id}', '${escapeHtml(template.code).replace(/'/g, "\\'")}')" title="ลบ"><i data-lucide="trash-2" class="um-icon-sm"></i></button>` : ''}
       </td>
     </tr>
   `,
@@ -235,7 +235,7 @@ function renderParametersRows() {
         <input type="text" value="${escapeHtml(p.label_th)}" placeholder="ป้ายกำกับ (ไทย)" oninput="updatePrintTemplateParameterField(${i}, 'label_th', this.value)">
         <input type="text" value="${escapeHtml(p.label_en)}" placeholder="Label (English)" oninput="updatePrintTemplateParameterField(${i}, 'label_en', this.value)">
         <input type="text" value="${escapeHtml(p.default_value ?? '')}" placeholder="ค่าเริ่มต้น" oninput="updatePrintTemplateParameterField(${i}, 'default_value', this.value)">
-        <button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="removePrintTemplateParameterRow(${i})">
+        <button type="button" class="p-btn p-btn-ghost p-btn-ghost-danger p-btn-sm" onclick="removePrintTemplateParameterRow(${i})" title="ลบ">
           <i data-lucide="trash-2" class="um-icon-sm"></i>
         </button>
       </div>

@@ -130,9 +130,9 @@ function renderAccessKeysTable() {
       <td>${key.expires_at ? formatDateTime(key.expires_at) : '<span class="um-muted-note">ไม่มีวันหมดอายุ</span>'}</td>
       <td>${key.last_used_at ? formatDateTime(key.last_used_at) : '<span class="um-muted-note">ยังไม่เคยใช้งาน</span>'}</td>
       <td class="um-cell-actions">
-        ${canManage ? `<a href="${window.__IAM_VIEWS_BASE__}/access-keys/${key.id}/edit" class="p-btn p-btn-ghost p-btn-sm"><i data-lucide="edit-3" class="um-icon-sm"></i> แก้ไข</a>` : ''}
-        ${canRevoke && !revoked ? `<button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="confirmRevokeAccessKey('${key.id}', '${escapeHtml(key.name).replace(/'/g, "\\'")}')"><i data-lucide="shield-off" class="um-icon-sm"></i> เพิกถอน</button>` : ''}
-        ${canDelete ? `<button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="confirmDeleteAccessKey('${key.id}', '${escapeHtml(key.name).replace(/'/g, "\\'")}')"><i data-lucide="trash-2" class="um-icon-sm"></i></button>` : ''}
+        ${canManage ? `<a href="${window.__IAM_VIEWS_BASE__}/access-keys/${key.id}/edit" class="p-btn p-btn-ghost p-btn-ghost-primary p-btn-sm" title="แก้ไข"><i data-lucide="edit-3" class="um-icon-sm"></i></a>` : ''}
+        ${canRevoke && !revoked ? `<button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="confirmRevokeAccessKey('${key.id}', '${escapeHtml(key.name).replace(/'/g, "\\'")}')" title="เพิกถอน"><i data-lucide="shield-off" class="um-icon-sm"></i> เพิกถอน</button>` : ''}
+        ${canDelete ? `<button type="button" class="p-btn p-btn-ghost p-btn-ghost-danger p-btn-sm" onclick="confirmDeleteAccessKey('${key.id}', '${escapeHtml(key.name).replace(/'/g, "\\'")}')" title="ลบ"><i data-lucide="trash-2" class="um-icon-sm"></i></button>` : ''}
       </td>
     </tr>
   `;

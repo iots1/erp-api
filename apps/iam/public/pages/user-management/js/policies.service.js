@@ -134,8 +134,8 @@ function renderPoliciesList() {
       <td class="um-cell-mono">${escapeHtml(policy.code)}</td>
       <td><span class="p-tag ${policy.is_active ? 'p-tag-mint' : 'p-tag-pink'}">${policy.is_active ? 'Active' : 'Inactive'}</span></td>
       <td class="um-cell-actions">
-        ${canManage ? `<a href="${window.__IAM_VIEWS_BASE__}/policies/${policy.id}/edit" class="p-btn p-btn-ghost p-btn-sm"><i data-lucide="edit-3" class="um-icon-sm"></i> แก้ไข</a>` : ''}
-        ${canManage ? `<button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="confirmDeletePolicy('${policy.id}', '${escapeHtml(policy.code).replace(/'/g, "\\'")}')"><i data-lucide="trash-2" class="um-icon-sm"></i></button>` : ''}
+        ${canManage ? `<a href="${window.__IAM_VIEWS_BASE__}/policies/${policy.id}/edit" class="p-btn p-btn-ghost p-btn-ghost-primary p-btn-sm" title="แก้ไข"><i data-lucide="edit-3" class="um-icon-sm"></i></a>` : ''}
+        ${canManage ? `<button type="button" class="p-btn p-btn-ghost p-btn-ghost-danger p-btn-sm" onclick="confirmDeletePolicy('${policy.id}', '${escapeHtml(policy.code).replace(/'/g, "\\'")}')" title="ลบ"><i data-lucide="trash-2" class="um-icon-sm"></i></button>` : ''}
       </td>
     </tr>
   `,
@@ -489,7 +489,7 @@ function renderConditions() {
         <select onchange="updateConditionRow('${row.id}', 'operator', this.value)">${opOptions.replace(`value="${row.operator}"`, `value="${row.operator}" selected`)}</select>
         <input type="text" list="${keyListId}" value="${escapeHtml(row.condition_key)}" placeholder="condition key" onchange="updateConditionRow('${row.id}', 'condition_key', this.value)">
         <input type="text" value="${escapeHtml(row.condition_value)}" placeholder="value" onchange="updateConditionRow('${row.id}', 'condition_value', this.value)">
-        <button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="removeConditionRow('${row.id}')"><i data-lucide="trash-2" class="um-icon-sm"></i></button>
+        <button type="button" class="p-btn p-btn-ghost p-btn-ghost-danger p-btn-sm" onclick="removeConditionRow('${row.id}')" title="ลบ"><i data-lucide="trash-2" class="um-icon-sm"></i></button>
       </div>
     `,
       )
@@ -622,7 +622,7 @@ function renderStatementsTable() {
         <td>${renderChips(stmt.resource)}</td>
         <td>${actionsHtml}</td>
         <td>${conditionsHtml}</td>
-        <td class="um-cell-actions"><button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="removeStatementFromDraft(${index})"><i data-lucide="trash-2" class="um-icon-sm"></i></button></td>
+        <td class="um-cell-actions"><button type="button" class="p-btn p-btn-ghost p-btn-ghost-danger p-btn-sm" onclick="removeStatementFromDraft(${index})" title="ลบ"><i data-lucide="trash-2" class="um-icon-sm"></i></button></td>
       </tr>
     `;
     })

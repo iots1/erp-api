@@ -109,7 +109,7 @@ function renderTable(items) {
       <td class="um-cell-actions">
         ${
           canRevoke
-            ? `<button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="revokeSession('${session.jti}', '${escapeHtml(session.username ?? session.user_id).replace(/'/g, "\\'")}')">
+            ? `<button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="revokeSession('${session.jti}', '${escapeHtml(session.username ?? session.user_id).replace(/'/g, "\\'")}')" title="เพิกถอนเซสชัน">
                 <i data-lucide="log-out" class="um-icon-sm"></i> Revoke
               </button>`
             : ''

@@ -139,8 +139,8 @@ function renderTable() {
       <td><p class="um-cell-mono">${escapeHtml(p.service)}</p></td>
       <td><span class="p-tag ${sourceTag}">${sourceLabel}</span></td>
       <td class="um-cell-actions">
-        ${canUpdate ? `<button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="openPermissionModal('${p.id}')"><i data-lucide="edit-3" class="um-icon-sm"></i></button>` : ''}
-        ${canDelete && p.is_manual ? `<button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="confirmDeletePermission('${p.id}', '${escapeHtml(p.permission).replace(/'/g, "\\'")}')"><i data-lucide="trash-2" class="um-icon-sm"></i></button>` : ''}
+        ${canUpdate ? `<button type="button" class="p-btn p-btn-ghost p-btn-ghost-primary p-btn-sm" onclick="openPermissionModal('${p.id}')" title="แก้ไข"><i data-lucide="edit-3" class="um-icon-sm"></i></button>` : ''}
+        ${canDelete && p.is_manual ? `<button type="button" class="p-btn p-btn-ghost p-btn-ghost-danger p-btn-sm" onclick="confirmDeletePermission('${p.id}', '${escapeHtml(p.permission).replace(/'/g, "\\'")}')" title="ลบ"><i data-lucide="trash-2" class="um-icon-sm"></i></button>` : ''}
       </td>
     </tr>
   `;

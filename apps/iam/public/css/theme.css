@@ -40,6 +40,12 @@
      edge-to-edge on a wide screen (see .um-form-narrow in layout.css) —
      same idea as Frappe/ERPNext's --page-max-width on .std-form-layout. */
   --page-max-width: 900px;
+  /* Caps an individual form control (see .p-field in form.css). --page-max-width
+     above bounds the form *column*; this bounds each field inside it, so a
+     single-column form on a wide screen doesn't render 900px-wide inputs
+     holding a 10-character value. Controls still shrink below this on narrow
+     viewports — it's a max, not a fixed width. */
+  --field-max-width: 420px;
 }
 
 /* Pico itself scopes its light/dark palettes to `:root:not([data-theme=dark])`
@@ -293,8 +299,12 @@ body {
   background: var(--bg);
 }
 
+/* Subtle light-gray page background so a white card (table/form, both via
+   Pico's --pico-card-background-color) reads as elevated against it instead
+   of blending in — without this both were --surface (white-on-white) and
+   the card's shadow/border were the only depth cue. */
 .um-content {
-  background: var(--surface);
+  background: var(--bg);
 }
 
 .um-table-toolbar {

@@ -120,12 +120,12 @@ function renderRolesTable() {
       <td>${escapeHtml(role.description ?? '-')}</td>
       <td>${
         role.policyNames.length > 0
-          ? role.policyNames.map((code) => `<span class="p-tag p-tag-sky">${escapeHtml(code)}</span>`).join(' ')
+          ? role.policyNames.map((code) => `<span class="p-tag p-tag-neutral">${escapeHtml(code)}</span>`).join(' ')
           : '<span class="um-muted-note">-</span>'
       }</td>
       <td class="um-cell-actions">
-        ${canManage ? `<a href="${window.__IAM_VIEWS_BASE__}/roles/${role.id}/edit" class="p-btn p-btn-ghost p-btn-sm"><i data-lucide="edit-3" class="um-icon-sm"></i> แก้ไข</a>` : ''}
-        ${canManage ? `<button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="confirmDeleteRole('${role.id}', '${escapeHtml(role.code).replace(/'/g, "\\'")}')"><i data-lucide="trash-2" class="um-icon-sm"></i></button>` : ''}
+        ${canManage ? `<a href="${window.__IAM_VIEWS_BASE__}/roles/${role.id}/edit" class="p-btn p-btn-ghost p-btn-ghost-primary p-btn-sm" title="แก้ไข"><i data-lucide="edit-3" class="um-icon-sm"></i></a>` : ''}
+        ${canManage ? `<button type="button" class="p-btn p-btn-ghost p-btn-ghost-danger p-btn-sm" onclick="confirmDeleteRole('${role.id}', '${escapeHtml(role.code).replace(/'/g, "\\'")}')" title="ลบ"><i data-lucide="trash-2" class="um-icon-sm"></i></button>` : ''}
       </td>
     </tr>
   `,

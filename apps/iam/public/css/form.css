@@ -17,6 +17,22 @@
 .p-field .required {
   color: var(--pink);
 }
+/* Pico sizes form controls `width: 100%`, so in a single-column form
+   (.um-form-stack) every field stretched to the full 900px --page-max-width
+   column — a 10-character value in a 900px box. Cap the control itself; it
+   still shrinks below this on narrow viewports, and in a multi-column
+   .um-form-grid the column is usually the narrower constraint anyway.
+
+   Direct children only (`>`), deliberately: a control nested one level
+   deeper is inside a layout wrapper that has its own width contract, and
+   capping it there would break that. The case this protects is
+   `.um-copy-row input` (`flex: 1`) in the access-key secret dialog, where
+   the whole point is a wide field showing an unbroken key. */
+.p-field > input:not([type="checkbox"]):not([type="radio"]),
+.p-field > select,
+.p-field > textarea {
+  max-width: var(--field-max-width);
+}
 
 /* ── Sizing / typography variants ────────────────────────────────── */
 

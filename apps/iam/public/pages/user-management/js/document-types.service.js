@@ -112,8 +112,8 @@ function renderDocumentTypesTable() {
       <td>${docType.has_running_number ? `<span class="p-tag p-tag-sky">${escapeHtml(docType.running_number_format ?? '')}</span>` : '<span class="um-muted-note">ไม่มี</span>'}</td>
       <td><span class="p-tag ${docType.is_active ? 'p-tag-mint' : 'p-tag-pink'}">${docType.is_active ? 'Active' : 'Inactive'}</span></td>
       <td class="um-cell-actions">
-        ${canManage ? `<a href="${window.__IAM_VIEWS_BASE__}/document-types/${docType.id}/edit" class="p-btn p-btn-ghost p-btn-sm"><i data-lucide="edit-3" class="um-icon-sm"></i> แก้ไข</a>` : ''}
-        ${canDelete ? `<button type="button" class="p-btn p-btn-ghost p-btn-sm" onclick="confirmDeleteDocumentType('${docType.id}', '${escapeHtml(docType.code).replace(/'/g, "\\'")}')"><i data-lucide="trash-2" class="um-icon-sm"></i></button>` : ''}
+        ${canManage ? `<a href="${window.__IAM_VIEWS_BASE__}/document-types/${docType.id}/edit" class="p-btn p-btn-ghost p-btn-ghost-primary p-btn-sm" title="แก้ไข"><i data-lucide="edit-3" class="um-icon-sm"></i></a>` : ''}
+        ${canDelete ? `<button type="button" class="p-btn p-btn-ghost p-btn-ghost-danger p-btn-sm" onclick="confirmDeleteDocumentType('${docType.id}', '${escapeHtml(docType.code).replace(/'/g, "\\'")}')" title="ลบ"><i data-lucide="trash-2" class="um-icon-sm"></i></button>` : ''}
       </td>
     </tr>
   `,

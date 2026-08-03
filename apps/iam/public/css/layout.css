@@ -111,6 +111,13 @@
   background: var(--pink-lt);
   color: var(--pink-dk);
 }
+/* Neutral data tag — for values that just happen to be a list (e.g. the
+   policies attached to a role) and aren't a link or a status. A brand color
+   (p-tag-sky, etc.) here reads as "clickable"; this stays visually inert. */
+.p-tag-neutral {
+  background: var(--slate-100);
+  color: var(--slate-700);
+}
 
 .status-pill {
   padding: 2px 10px;

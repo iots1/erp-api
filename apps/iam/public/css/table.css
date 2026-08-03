@@ -226,8 +226,11 @@
      inline-flex themselves) with text-align/margin instead of flex. */
   text-align: right;
 }
+/* 12px minimum gap between action icons (edit/reset/delete) — tight spacing
+   here is what causes misclicks between a destructive and a non-destructive
+   action sitting side by side. */
 .um-cell-actions > * + * {
-  margin-left: 0.25rem;
+  margin-left: 0.75rem;
 }
 .um-cell-title {
   margin: 0;

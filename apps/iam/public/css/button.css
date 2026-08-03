@@ -104,6 +104,25 @@
   color: var(--text);
 }
 
+/* ── Icon-only ghost actions in a table row (edit/reset/delete) — each
+   tints to its action's semantic color on hover instead of ghost's default
+   neutral hover, so the icon itself signals what it does before it's
+   clicked. Pair with a `title` attribute for the tooltip; there's no
+   custom tooltip UI in this app, so the native one is deliberate. ────── */
+
+.p-btn-ghost-primary:hover {
+  background-color: var(--sky-lt);
+  color: var(--sky-dk);
+}
+.p-btn-ghost-warning:hover {
+  background-color: var(--peach-lt);
+  color: var(--peach-dk);
+}
+.p-btn-ghost-danger:hover {
+  background-color: var(--pink-lt);
+  color: var(--pink-dk);
+}
+
 /* ── Inline text link styled as a <button> ───────────────────────── */
 
 .um-link-btn {
