@@ -17,7 +17,6 @@ import { createAdminPage } from '../../user-management/js/admin-page.js';
 createAdminPage({
   pagePermission: 'page:view_access_keys',
   globals: {
-    handleAccessKeyFormSubmit,
     toggleAccessKeyOwnerType,
     closeAccessKeySecretModal,
     copyFieldToClipboard,
@@ -25,7 +24,11 @@ createAdminPage({
     confirmDeleteAccessKey,
     goToAccessKeysPage,
   },
-  form: { detectId: 'accessKeyForm', init: initAccessKeyForm },
+  form: {
+    detectId: 'accessKeyForm',
+    init: initAccessKeyForm,
+    onSubmit: handleAccessKeyFormSubmit,
+  },
   load: () => loadAccessKeys(1),
   filters: [
     { id: 'accessKeySearchFilter', onChange: (search) => setAccessKeysFilter({ search }) },

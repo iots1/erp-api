@@ -36,3 +36,34 @@ export function uid(prefix) {
 export function refreshIcons() {
   if (window.lucide?.createIcons) window.lucide.createIcons();
 }
+
+/**
+ * Toggles a topbar action button (e.g. the form "บันทึก" button) into/out of
+ * a disabled, spinning-icon loading state. The button's original innerHTML
+ * is stashed on the element itself so it can be restored exactly, regardless
+ * of how many icon/label markup a given action button carries.
+ * @param {HTMLButtonElement | null | undefined} button
+ * @param {boolean} isLoading
+ */
+export function setButtonLoading(button, isLoading) {
+  if (!button) return;
+
+  if (isLoading) {
+    if (button.dataset.loadingOriginal === undefined) {
+      button.dataset.loadingOriginal = button.innerHTML;
+    }
+    button.disabled = true;
+    button.classList.add('is-loading');
+    button.innerHTML = '<i data-lucide="loader-2" class="um-icon-sm um-spin"></i><span>กำลังบันทึก...</span>';
+    refreshIcons();
+    return;
+  }
+
+  button.disabled = false;
+  button.classList.remove('is-loading');
+  if (button.dataset.loadingOriginal !== undefined) {
+    button.innerHTML = button.dataset.loadingOriginal;
+    delete button.dataset.loadingOriginal;
+    refreshIcons();
+  }
+}

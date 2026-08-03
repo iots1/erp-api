@@ -17,6 +17,7 @@ import {
   removeStatementFromDraft,
   renderMultiSelect,
   selectAllActions,
+  setActionsDensity,
   setPoliciesFilter,
   setPoliciesPageSize,
   setPoliciesSort,
@@ -81,6 +82,7 @@ createAdminPage({
     toggleSelectAllMulti,
     toggleOptionMulti,
     selectAllActions,
+    setActionsDensity,
     toggleGroupActions,
     syncGroupSelectAll,
     addConditionRow,
@@ -88,12 +90,12 @@ createAdminPage({
     updateConditionRow,
     addStatementToDraft,
     removeStatementFromDraft,
-    handlePolicyFormSubmit,
     goToPoliciesPage,
   },
   form: {
     detectId: 'policyForm',
     init: initPolicyForm,
+    onSubmit: handlePolicyFormSubmit,
     wire: () => {
       wirePolicyCodeInput();
       wireDropdownDismiss();

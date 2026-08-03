@@ -13,11 +13,10 @@ import {
 createAdminPage({
   pagePermission: 'page:view_roles',
   globals: {
-    handleRoleFormSubmit,
     confirmDeleteRole,
     goToRolesPage,
   },
-  form: { detectId: 'roleForm', init: initRoleForm },
+  form: { detectId: 'roleForm', init: initRoleForm, onSubmit: handleRoleFormSubmit },
   load: () => loadRoles(1),
   filters: [{ id: 'roleSearchFilter', onChange: (search) => setRolesFilter({ search }) }],
   pageSize: { id: 'rolePageSize', set: setRolesPageSize },

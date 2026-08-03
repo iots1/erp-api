@@ -60,9 +60,9 @@ const topbarActions = [
                                     </div>
                                     <div class="p-field um-field-span-2">
                                         <label>รูปแบบสิทธิ์ (Policy Type) <span class="required">*</span></label>
-                                        <div class="um-type-toggle">
-                                            <button type="button" id="btnTypeUI" class="um-type-toggle-btn active" onclick="setStatementType('ui')"><i data-lucide="layout"></i> User Interface (UI)</button>
-                                            <button type="button" id="btnTypeAPI" class="um-type-toggle-btn" onclick="setStatementType('api')"><i data-lucide="database"></i> Resource (API)</button>
+                                        <div class="um-view-toggle" role="group" aria-label="รูปแบบสิทธิ์ (Policy Type)">
+                                            <button type="button" id="btnTypeUI" class="p-btn p-btn-ghost p-btn-sm um-view-toggle-btn active" onclick="setStatementType('ui')"><i data-lucide="layout" class="um-icon-sm"></i> User Interface (UI)</button>
+                                            <button type="button" id="btnTypeAPI" class="p-btn p-btn-ghost p-btn-sm um-view-toggle-btn" onclick="setStatementType('api')"><i data-lucide="database" class="um-icon-sm"></i> Resource (API)</button>
                                         </div>
                                         <input type="hidden" id="stmtPlane" value="ui">
                                     </div>
@@ -98,10 +98,36 @@ const topbarActions = [
                                     </div>
                                 </div>
 
-                                <div class="um-actions-box">
+                                <!-- Density toggle: this list is the tallest thing on the
+                                     page (one bordered card per permission, per group), so a
+                                     policy touching several pages scrolls a long way. Classic
+                                     strips the per-item card chrome down to plain checkbox
+                                     rows in dense columns; Modern is the roomier default.
+                                     Purely a CSS modifier on .um-actions-box — no re-render,
+                                     so switching never disturbs what's already ticked. -->
+                                <div class="um-actions-box" id="actionsBox">
+                                    <!-- Select-all is the checkbox in front of the heading, not
+                                         a separate link — one row instead of the toolbar
+                                         wrapping onto a second line, and it can show
+                                         indeterminate state, which a link cannot.
+                                         `actionsLabel` is its own <span> because
+                                         setStatementType() assigns .textContent to it; when the
+                                         asterisk lived inside that element it was wiped on the
+                                         first render and never appeared. -->
                                     <div class="um-actions-box-head">
-                                        <label id="actionsLabel">เลือก Components ในหน้าจอ <span class="required">*</span></label>
-                                        <button type="button" class="um-link-btn" onclick="selectAllActions()">เลือกทั้งหมด</button>
+                                        <label class="um-actions-select-all">
+                                            <input type="checkbox" id="actionsSelectAllToggle" onchange="selectAllActions(this.checked)">
+                                            <span id="actionsLabel">เลือก Components ในหน้าจอ</span>
+                                            <span class="required">*</span>
+                                        </label>
+                                        <div class="um-view-toggle" role="group" aria-label="ความหนาแน่นการแสดงผล">
+                                            <button type="button" class="p-btn p-btn-ghost p-btn-sm um-view-toggle-btn" data-actions-density="classic" onclick="setActionsDensity('classic')">
+                                                <i data-lucide="list" class="um-icon-sm"></i> Classic
+                                            </button>
+                                            <button type="button" class="p-btn p-btn-ghost p-btn-sm um-view-toggle-btn active" data-actions-density="modern" onclick="setActionsDensity('modern')">
+                                                <i data-lucide="layout-grid" class="um-icon-sm"></i> Modern
+                                            </button>
+                                        </div>
                                     </div>
                                     <div id="actionsCheckboxContainer" class="um-actions-box-body">
                                         <span class="um-muted-note">กรุณาเลือกข้อมูลด้านบนก่อน</span>

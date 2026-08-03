@@ -177,6 +177,44 @@ export function switchPolicyFormStep(step) {
   });
 }
 
+// ── Permission-picker density (classic / modern) ────────────────────────
+
+const ACTIONS_DENSITY_KEY = 'iam-policy-actions-density';
+const DEFAULT_ACTIONS_DENSITY = 'modern';
+
+/** Switches the permission picker between the roomy card layout ('modern')
+ * and the dense checkbox-row layout ('classic'). Nothing but a class on
+ * .um-actions-box — the rows themselves are identical in both modes (see
+ * form.css), so this never re-renders and never disturbs current ticks.
+ * The choice is remembered per browser, like the theme toggle. */
+export function setActionsDensity(mode) {
+  const box = document.getElementById('actionsBox');
+  if (!box) return;
+
+  const isClassic = mode === 'classic';
+  box.classList.toggle('is-classic', isClassic);
+  box.querySelectorAll('[data-actions-density]').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.actionsDensity === (isClassic ? 'classic' : 'modern'));
+  });
+
+  try {
+    localStorage.setItem(ACTIONS_DENSITY_KEY, isClassic ? 'classic' : 'modern');
+  } catch {
+    // Private mode / storage disabled — the toggle still works for this page
+    // view, it just won't be remembered.
+  }
+}
+
+function restoreActionsDensity() {
+  let saved = DEFAULT_ACTIONS_DENSITY;
+  try {
+    saved = localStorage.getItem(ACTIONS_DENSITY_KEY) ?? DEFAULT_ACTIONS_DENSITY;
+  } catch {
+    // See above — fall back to the default.
+  }
+  setActionsDensity(saved);
+}
+
 export async function initPolicyForm() {
   const form = document.getElementById('policyForm');
   if (!form) return;
@@ -186,6 +224,7 @@ export async function initPolicyForm() {
   resetPolicyFormDraft();
   state.policyForm.editingId = policyId;
   switchPolicyFormStep(1);
+  restoreActionsDensity();
 
   // Step 1's required fields (frmPolCode/NameTh/NameEn) sit in a panel that
   // can be `hidden` while step 2 is showing — a native HTML5 validation
@@ -394,6 +433,7 @@ export function renderActionCheckboxes() {
 
   if (!ready) {
     container.innerHTML = `<span class="um-muted-note">กรุณาเลือกข้อมูลด้านบนก่อน</span>`;
+    syncActionsSelectAll();
     return;
   }
 
@@ -426,7 +466,7 @@ export function renderActionCheckboxes() {
           ${perms
             .map(
               (p) => `
-            <label class="um-checkbox-card">
+            <label class="um-checkbox-card" title="${escapeHtml(p.permission_name?.en ?? p.permission)}">
               <input type="checkbox" name="stmtActions" value="${p.id}" onchange="syncGroupSelectAll('${groupId}')">
               <div>
                 <span class="um-checkbox-title">${escapeHtml(p.permission_name?.th)}</span>
@@ -441,6 +481,9 @@ export function renderActionCheckboxes() {
     `;
   }
   container.innerHTML = html;
+  // Fresh checkboxes are all unticked — clear any checked/indeterminate state
+  // the header carried over from the previous selection.
+  syncActionsSelectAll();
   refreshIcons();
 }
 
@@ -450,6 +493,7 @@ export function toggleGroupActions(groupId, isChecked) {
   group.querySelectorAll('input[name="stmtActions"]').forEach((cb) => {
     cb.checked = isChecked;
   });
+  syncActionsSelectAll();
 }
 
 export function syncGroupSelectAll(groupId) {
@@ -461,15 +505,29 @@ export function syncGroupSelectAll(groupId) {
   const checkedCount = checkboxes.filter((cb) => cb.checked).length;
   groupSelectAll.checked = checkedCount === checkboxes.length;
   groupSelectAll.indeterminate = checkedCount > 0 && checkedCount < checkboxes.length;
+  syncActionsSelectAll();
 }
 
-export function selectAllActions() {
-  const checkboxes = document.querySelectorAll('input[name="stmtActions"]');
-  const allChecked = Array.from(checkboxes).every((cb) => cb.checked);
-  checkboxes.forEach((cb) => {
-    cb.checked = !allChecked;
+/** Header select-all. Takes the checkbox's own state rather than toggling,
+ * so the box and the list can never disagree about what "all" means. */
+export function selectAllActions(isChecked) {
+  document.querySelectorAll('input[name="stmtActions"]').forEach((cb) => {
+    cb.checked = isChecked;
   });
   document.querySelectorAll('.um-action-group').forEach((group) => syncGroupSelectAll(group.id));
+  syncActionsSelectAll();
+}
+
+/** Mirrors the header checkbox against the whole list: checked when every
+ * permission is ticked, indeterminate on a partial selection. Runs after any
+ * change to an individual box, a group's select-all, or a re-render. */
+function syncActionsSelectAll() {
+  const master = document.getElementById('actionsSelectAllToggle');
+  if (!master) return;
+  const checkboxes = [...document.querySelectorAll('input[name="stmtActions"]')];
+  const checkedCount = checkboxes.filter((cb) => cb.checked).length;
+  master.checked = checkboxes.length > 0 && checkedCount === checkboxes.length;
+  master.indeterminate = checkedCount > 0 && checkedCount < checkboxes.length;
 }
 
 // ── Conditions builder ───────────────────────────────────────────

@@ -11,7 +11,7 @@ import { handleChangePasswordSubmit } from '../../../js/change-password.service.
 import { toggleTheme } from '../../../js/theme.service.js';
 import { bootAdminPage, handleInitialLoginSubmit, handleLogout } from './shell.service.js';
 import { createSortableTable } from './sortable-table.js';
-import { debounce } from './utils.js';
+import { debounce, setButtonLoading } from './utils.js';
 
 /** Matches the delay every page's search box already used. */
 const SEARCH_DEBOUNCE_MS = 350;
@@ -47,13 +47,20 @@ const SHELL_GLOBALS = {
  * @param {string} config.pagePermission  e.g. 'page:view_users'.
  * @param {object} [config.globals]  Page-specific window bridges, merged over
  *   SHELL_GLOBALS.
- * @param {{ detectId: string, init: () => any, wire?: () => void }} [config.form]
+ * @param {{ detectId: string, init: () => any, wire?: () => void, onSubmit?: (event: Event) => Promise<any> }} [config.form]
  *   For a resource whose create/edit form ships in the same bundle as its list
  *   page (both render from one entry.js). `detectId` is an id present only in
  *   form.ejs — how the bundle tells which of the two pages it landed on.
  *   `wire` is an optional hook for form-only listeners that must be attached
  *   synchronously, before the (async, auth-gated) boot — the policy form uses
  *   it for its code-prefix input mask and its click-outside dropdown closer.
+ *   `onSubmit` is the form's `<form onsubmit="...">` handler (a named async
+ *   function, e.g. `handleRoleFormSubmit`) — passing it here instead of via
+ *   `globals` lets createAdminPage wrap it so the topbar "บันทึก" button
+ *   shows a loading state for the handler's whole lifetime, on every page,
+ *   without each page wiring that itself. Keep the handler out of `globals`
+ *   when using this, or the wrapped version below gets clobbered back to the
+ *   unwrapped one.
  * @param {() => any} [config.load]  Loader for the non-form page. Omit for a
  *   page with no data to fetch (system-setting).
  * @param {FilterConfig[]} [config.filters]
@@ -75,6 +82,9 @@ export function createAdminPage({
   // bundle, so which one is live is decided by which markup actually exists.
   // The form page has no table, hence no filter/sort wiring.
   if (form && document.getElementById(form.detectId)) {
+    if (form.onSubmit) {
+      window[form.onSubmit.name] = wrapFormSubmitWithLoading(form.onSubmit);
+    }
     form.wire?.();
     bootAdminPage({ pagePermission, loader: () => form.init() });
     return;
@@ -110,4 +120,24 @@ function wireSort(sort) {
     defaultSort: sort.defaultSort,
     onChange: sort.set,
   });
+}
+
+/**
+ * Every form.ejs's topbar has exactly one action button — "บันทึก", firing
+ * `form.requestSubmit()` — so it's found generically by class rather than by
+ * per-page id. Wraps the real handler so the button shows a loading state
+ * for the handler's entire lifetime (including its own validation-error
+ * early returns), then always restores it — success navigates away anyway,
+ * but a thrown/caught error leaves the user right back on the form.
+ */
+function wrapFormSubmitWithLoading(handler) {
+  return async function wrapped(event) {
+    const button = document.querySelector('.um-topbar-right .p-btn');
+    setButtonLoading(button, true);
+    try {
+      await handler(event);
+    } finally {
+      setButtonLoading(button, false);
+    }
+  };
 }

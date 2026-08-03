@@ -12,6 +12,13 @@
 // evaluated. Reading it lazily per request (as the original copies did inside
 // their own buildUrl) keeps that ordering irrelevant.
 import { fetchWithAuth } from '../../../js/auth-guard.service.js';
+import { hideLoadingOverlay, showLoadingOverlay } from './loading-overlay.service.js';
+
+/** Verbs that mutate state — every call through these shows the shared
+ * full-page overlay for the duration of the request. GET is read-only and
+ * DELETE already goes through a confirm dialog (confirm-action.js), so
+ * neither needs the extra "something is happening" signal. */
+const OVERLAY_METHODS = new Set(['POST', 'PUT', 'PATCH']);
 
 function flattenResource(resource) {
   if (!resource || typeof resource !== 'object') return resource;
@@ -71,17 +78,23 @@ export function createJsonApiClient({ getBaseUrl }) {
   }
 
   async function request(path, { method = 'GET', body, query } = {}) {
-    const response = await fetchWithAuth(buildUrl(path, query), {
-      method,
-      headers: body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
-    });
+    const showsOverlay = OVERLAY_METHODS.has(method);
+    if (showsOverlay) showLoadingOverlay();
+    try {
+      const response = await fetchWithAuth(buildUrl(path, query), {
+        method,
+        headers: body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+      });
 
-    if (response.status === 204) return null;
-    if (!response.ok) throw await toApiError(response);
+      if (response.status === 204) return null;
+      if (!response.ok) throw await toApiError(response);
 
-    const json = await response.json();
-    return unwrapEnvelope(json);
+      const json = await response.json();
+      return unwrapEnvelope(json);
+    } finally {
+      if (showsOverlay) hideLoadingOverlay();
+    }
   }
 
   return {
@@ -93,13 +106,18 @@ export function createJsonApiClient({ getBaseUrl }) {
     /** For endpoints returning a raw binary body (e.g. a PDF) instead of a
      * JSON:API envelope — resolves to a Blob. */
     postBlob: async (path, body) => {
-      const response = await fetchWithAuth(buildUrl(path), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      if (!response.ok) throw await toApiError(response);
-      return response.blob();
+      showLoadingOverlay();
+      try {
+        const response = await fetchWithAuth(buildUrl(path), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (!response.ok) throw await toApiError(response);
+        return await response.blob();
+      } finally {
+        hideLoadingOverlay();
+      }
     },
   };
 }

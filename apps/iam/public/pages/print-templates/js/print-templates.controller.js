@@ -24,7 +24,6 @@ import {
 createAdminPage({
   pagePermission: 'page:view_print_templates',
   globals: {
-    handlePrintTemplateFormSubmit,
     confirmDeletePrintTemplate,
     goToPrintTemplatesPage,
     addPrintTemplateParameterRow,
@@ -39,7 +38,11 @@ createAdminPage({
     formatPrintTemplateMockData,
     generatePrintTemplateTestPdf,
   },
-  form: { detectId: 'printTemplateForm', init: initPrintTemplateForm },
+  form: {
+    detectId: 'printTemplateForm',
+    init: initPrintTemplateForm,
+    onSubmit: handlePrintTemplateFormSubmit,
+  },
   load: () => loadPrintTemplates(1),
   filters: [
     { id: 'printTemplateSearchFilter', onChange: (search) => setPrintTemplatesFilter({ search }) },

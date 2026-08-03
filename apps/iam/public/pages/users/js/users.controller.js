@@ -19,7 +19,6 @@ import {
 createAdminPage({
   pagePermission: 'page:view_users',
   globals: {
-    handleUserFormSubmit,
     confirmDeleteUser,
     confirmResetPassword,
     openUserRolesModal,
@@ -29,7 +28,7 @@ createAdminPage({
     closeUserTempPasswordModal,
     copyFieldToClipboard,
   },
-  form: { detectId: 'userForm', init: initUserForm },
+  form: { detectId: 'userForm', init: initUserForm, onSubmit: handleUserFormSubmit },
   load: () => loadUsers(1),
   filters: [
     { id: 'filterSearch', onChange: (search) => setUsersFilter({ search }) },

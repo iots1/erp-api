@@ -33,6 +33,18 @@
 .p-field > textarea {
   max-width: var(--field-max-width);
 }
+/* Same `.p-field` flex-column stretch this file already works around above,
+   but for a non-form-control child: `align-items: stretch` (the column's
+   default) stretches ANY child with `width: auto` to the field's full
+   width, `.um-view-toggle` included — not just <input>/<select>/<textarea>.
+   Scoped to a direct `.p-field` child rather than added to `.um-view-toggle`
+   itself, so this doesn't touch its other uses (print-templates' Split/Code/
+   Preview, this same policy form's Classic/Modern toggle), which sit in a
+   row-direction `.um-editor-toolbar`/`.um-actions-box-head` instead, where
+   the same `align-self` would fight that container's own vertical centering. */
+.p-field > .um-view-toggle {
+  align-self: flex-start;
+}
 
 /* ── Sizing / typography variants ────────────────────────────────── */
 
@@ -312,6 +324,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.75rem;
   padding-bottom: 0.5rem;
   border-bottom: 1px solid var(--border);
   margin-bottom: 0.75rem;
@@ -320,6 +333,21 @@
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--slate-700);
+  /* Pico gives every <label> a bottom margin for stacked forms; in this
+     single-row header that just makes the row taller than its content. */
+  margin-bottom: 0;
+}
+/* Select-all checkbox + heading on one line. Pico's
+   `label:has([type=checkbox]) { width: fit-content }` is wanted here — the
+   label should hug its text and sit left, not stretch across the row. */
+.um-actions-select-all {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+.um-actions-select-all input {
+  margin: 0;
 }
 .um-action-group {
   background: var(--surface);
@@ -370,6 +398,96 @@
   min-width: 220px;
   max-width: 320px;
 }
+
+/* ── Classic density (.um-actions-box.is-classic) ─────────────────────
+   The permission picker is the tallest block on the policy form — Modern
+   gives every permission a bordered two-line card (min 220px) inside a
+   bordered per-page group card, so a policy spanning a few pages scrolls a
+   long way. Classic keeps the same DOM and strips it to plain checkbox rows
+   in dense auto-fill columns: no per-item border/background, one line each
+   (the English/permission string moves to the row's `title` tooltip), and no
+   group card chrome. Roughly a third of Modern's height for the same list.
+
+   Selectors are deliberately (0,3,0) — `.um-actions-box.is-classic .x` —
+   rather than (0,2,0): they have to outrank `.um-action-grid .um-checkbox-card`
+   above *and* Pico's `label:has([type=checkbox]) { width: fit-content }`
+   (0,1,1), without depending on source order. ─────────────────────────── */
+
+.um-actions-box.is-classic {
+  padding: 0.6rem 0.75rem;
+}
+/* The divider goes at the *bottom of each group*, not under each heading.
+   Underlining the heading reads as "this title is a section of its own" and
+   visually detaches it from the rows it labels; a rule after the last row is
+   what actually separates one group from the next. Last group has no trailing
+   rule — nothing follows it to divide from. */
+.um-actions-box.is-classic .um-action-group {
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 0 0 0.5rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+.um-actions-box.is-classic .um-action-group:last-child {
+  padding-bottom: 0;
+  margin-bottom: 0;
+  border-bottom: none;
+}
+/* Neutral, not brand blue: in a dense list every group heading rendered in
+   --sky-dk competes with the actual content for attention, and blue reads as
+   "link". Weight and size carry the hierarchy instead. */
+.um-actions-box.is-classic .um-action-group-title {
+  margin-bottom: 0.25rem;
+  padding-bottom: 0;
+  border-bottom: none;
+  font-size: 0.78rem;
+  color: var(--slate-700);
+}
+/* auto-fill (not auto-fit) so a group with two permissions keeps them in two
+   narrow columns instead of stretching each to half the panel. */
+.um-actions-box.is-classic .um-action-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 0 0.9rem;
+}
+.um-actions-box.is-classic .um-checkbox-card {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.12rem 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+}
+/* Hover can't use the card fill any more (there's no card) — tint the label
+   instead, so there's still feedback on what the click will toggle. */
+.um-actions-box.is-classic .um-checkbox-card:hover {
+  border-color: transparent;
+  background: none;
+}
+.um-actions-box.is-classic .um-checkbox-card:hover .um-checkbox-title {
+  color: var(--sky-dk);
+}
+.um-actions-box.is-classic .um-checkbox-card input {
+  margin-top: 0;
+}
+.um-actions-box.is-classic .um-checkbox-title {
+  font-size: 0.8rem;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* The mono English/permission string is the bulk of a card's second line —
+   dropping it is most of the height saving. Still reachable via the row's
+   title tooltip (set in renderActionCheckboxes). */
+.um-actions-box.is-classic .um-checkbox-sub {
+  display: none;
+}
+
 .um-conditions-box {
   margin-top: 1.25rem;
 }

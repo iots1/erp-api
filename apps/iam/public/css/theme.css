@@ -142,7 +142,7 @@
        file here (button/form/table/layout.css) reuses --slate-N
        as "distance from the surface" (50 = subtle tint next to bg, 900 =
        strongest text) in BOTH themes — that's what makes e.g.
-       `.um-type-toggle{background:var(--slate-100)}` or a muted label at
+       `.um-table-toolbar{background:var(--slate-50)}` or a muted label at
        `--slate-500` work without a light/dark branch of their own. Re-index
        Frappe's dark hex values (same authentic colors, swapped position) so
        that contract holds: 50 stays "closest to bg", 900 stays "strongest

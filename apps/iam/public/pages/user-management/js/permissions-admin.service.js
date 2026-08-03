@@ -8,10 +8,6 @@ import { hasPermission } from '../../../js/login.service.js';
 import { closeModal, openModal } from '../../../js/modal.service.js';
 import { iamDelete, iamGet, iamPost, iamPut } from './api.js';
 import { confirmAndRun } from './confirm-action.js';
-import {
-  hideLoadingOverlay,
-  showLoadingOverlay,
-} from './loading-overlay.service.js';
 import { createPaginatedList } from './paginated-list.js';
 import { showApiError, showToast } from './toast.service.js';
 import { escapeHtml, refreshIcons } from './utils.js';
@@ -255,7 +251,6 @@ export async function handleSyncPermissions() {
   });
   if (!confirmed) return;
 
-  showLoadingOverlay('กำลัง Sync Permissions...');
   try {
     const log = await iamPost('/permission-syncs');
     showToast(
@@ -265,8 +260,6 @@ export async function handleSyncPermissions() {
     loadPermissions(pager.getCurrentPage());
   } catch (error) {
     showApiError(error, 'Sync Permissions ไม่สำเร็จ');
-  } finally {
-    hideLoadingOverlay();
   }
 }
 

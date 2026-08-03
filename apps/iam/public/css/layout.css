@@ -617,13 +617,26 @@
   gap: 0.5rem;
   flex-wrap: wrap;
 }
+/* `role="group"` (for a11y — this genuinely is a group of related controls)
+   makes this a target of Pico's own `[role=group],[role=search]{width:100%}`
+   + `[role=group]>*{flex:1 1 auto}` — meant for grouped inputs/buttons that
+   should span a form row, which is the opposite of a compact segmented
+   toggle. `width: auto` + `flex: 0 0 auto` on the buttons below undo both:
+   same specificity as Pico's attribute selectors, and this file loads after
+   pico.min.css (see page-head.ejs), so ours wins on source order without
+   needing !important. Without this override the toggle stretched to its
+   container's full width with its buttons stretched to match, which is what
+   made it look oversized instead of a compact pill. */
 .um-view-toggle {
   display: inline-flex;
+  width: auto;
+  flex: 0 0 auto;
   border: 1px solid var(--border);
   border-radius: var(--pico-border-radius, 0.5rem);
   overflow: hidden;
 }
 .um-view-toggle-btn {
+  flex: 0 0 auto;
   border-radius: 0 !important;
   margin: 0 !important;
 }

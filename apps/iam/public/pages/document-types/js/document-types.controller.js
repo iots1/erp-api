@@ -15,13 +15,16 @@ import {
 createAdminPage({
   pagePermission: 'page:view_document_types',
   globals: {
-    handleDocumentTypeFormSubmit,
     confirmDeleteDocumentType,
     goToDocumentTypesPage,
     toggleDocumentTypeRunningNumberFields,
     generateDocumentTypeTestNumber,
   },
-  form: { detectId: 'documentTypeForm', init: initDocumentTypeForm },
+  form: {
+    detectId: 'documentTypeForm',
+    init: initDocumentTypeForm,
+    onSubmit: handleDocumentTypeFormSubmit,
+  },
   load: () => loadDocumentTypes(1),
   filters: [
     { id: 'documentTypeSearchFilter', onChange: (search) => setDocumentTypesFilter({ search }) },
